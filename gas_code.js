@@ -1,7 +1,8 @@
 // Google Apps Script Code for StockSignal Project
 
-// Set your private 4-digit PIN here
-const AUTH_PIN = "1234";
+// Read PIN dynamically from Google Apps Script Environment (Script Properties)
+// Default to "1234" if not explicitly set in Script Properties
+const AUTH_PIN = PropertiesService.getScriptProperties().getProperty("AUTH_PIN") || "1234";
 
 function setupSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
