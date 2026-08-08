@@ -350,6 +350,10 @@
       loadDataFromGAS(userPin).then(success => {
         if (success) {
           document.getElementById('pin-modal').style.display = 'none';
+        } else {
+          localStorage.removeItem("STOCK_SIGNAL_PIN");
+          userPin = "";
+          document.getElementById('pin-modal').style.display = 'flex';
         }
       });
     }
