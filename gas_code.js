@@ -1,17 +1,11 @@
 function getAuthPin() {
   try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    let configSheet = ss.getSheetByName("Config");
-    if (configSheet && configSheet.getRange("B1").getValue()) {
-      const pinVal = String(configSheet.getRange("B1").getValue()).trim();
-      if (pinVal !== "") return pinVal;
-    }
     const prop = PropertiesService.getScriptProperties().getProperty("AUTH_PIN");
     if (prop && String(prop).trim() !== "") {
       return String(prop).trim();
     }
   } catch (err) {}
-  return "1234";
+  return "";
 }
 
 function setupSheets() {
