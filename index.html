@@ -276,8 +276,8 @@
       <h3 style="font-size: 1.3rem; margin-bottom: 8px;">보안 PIN 비밀번호 입력</h3>
       <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 20px;">대시보드에 접근하려면 비밀번호 4자리를 입력하세요.</p>
       
-      <div class="form-group">
-        <input type="password" class="form-input" id="input-pin" maxlength="4" placeholder="비밀번호 4자리 (기본: 1234)" style="text-align: center; font-size: 1.5rem; letter-spacing: 8px;" onkeyup="if(event.key==='Enter') verifyPin()">
+      <div class="form-group" style="margin-top: 15px;">
+        <input type="password" class="form-input" id="input-pin" maxlength="4" placeholder="••••" style="text-align: center; font-size: 2rem; letter-spacing: 12px; font-weight: 700; padding: 12px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
       </div>
       <div id="pin-error" style="color: var(--accent-red); font-size: 0.85rem; margin-bottom: 12px; display: none;">비밀번호가 올바르지 않습니다.</div>
       <button class="btn-buy-reg" style="width: 100%; padding: 12px; font-size: 1rem;" onclick="verifyPin()">대시보드 열기</button>
