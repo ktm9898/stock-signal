@@ -47,8 +47,8 @@ function doGet(e) {
   const inputPin = e.parameter.pin ? String(e.parameter.pin).trim() : "";
   const authPin = getAuthPin();
 
-  if (inputPin !== authPin && inputPin !== "1234") {
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unauthorized: Invalid PIN (Received: " + inputPin + ", Expected: " + authPin + ")" }))
+  if (inputPin !== authPin) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unauthorized: Invalid PIN" }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
