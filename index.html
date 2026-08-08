@@ -296,12 +296,12 @@
       const pinVal = document.getElementById('input-pin').value;
       if (!pinVal) return;
 
-      if (pinVal === "1111") {
+      const success = await loadDataFromGAS(pinVal);
+      if (success) {
         userPin = pinVal;
         localStorage.setItem("STOCK_SIGNAL_PIN", userPin);
         document.getElementById('pin-modal').style.display = 'none';
         document.getElementById('pin-error').style.display = 'none';
-        loadDataFromGAS("1111");
       } else {
         document.getElementById('pin-error').style.display = 'block';
       }
