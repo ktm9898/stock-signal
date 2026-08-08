@@ -309,7 +309,8 @@
     async function loadDataFromGAS(pin = userPin) {
       if (!pin) return false;
       try {
-        const resp = await fetch(GAS_WEBAPP_URL + "?action=all&pin=" + encodeURIComponent(pin));
+        const url = GAS_WEBAPP_URL + "?action=all&pin=" + encodeURIComponent(pin);
+        const resp = await fetch(url, { redirect: 'follow' });
         const data = await resp.json();
         
         if (data.status === "error") {
