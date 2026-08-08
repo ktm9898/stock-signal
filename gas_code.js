@@ -1,8 +1,9 @@
-// Google Apps Script Code for StockSignal Project
-
 // Read PIN dynamically from Google Apps Script Environment (Script Properties)
 // Default to "1234" if not explicitly set in Script Properties
-const AUTH_PIN = PropertiesService.getScriptProperties().getProperty("AUTH_PIN") || "1234";
+function getAuthPin() {
+  const prop = PropertiesService.getScriptProperties().getProperty("AUTH_PIN");
+  return prop ? String(prop).trim() : "1234";
+}
 
 function setupSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -40,8 +41,9 @@ function setupSheets() {
 
 // REST API GET Endpoint (Serve JSON data to Web App with PIN check)
 function doGet(e) {
-  const inputPin = e.parameter.pin;
-  if (inputPin !== AUTH_PIN) {
+  const inputPin = e.parameter.pin ? String(e.parameter.pin).trim() : "";
+  const authPin = getAuthPin();
+  if (inputPin !== authPin) {
     return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unauthorized: Invalid PIN" }))
       .setMimeType(ContentService.MimeType.JSON);
   }
@@ -70,9 +72,11 @@ function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const authPin = getAuthPin();
 
     // Verify PIN for all user actions
-    if (data.pin !== AUTH_PIN && data.action !== "update_buy_candidates") {
+    const inputPin = data.pin ? String(data.pin).trim() : "";
+    if (inputPin !== authPin && data.action !== "update_buy_candidates") {
       return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unauthorized: Invalid PIN" }));
     }
 
