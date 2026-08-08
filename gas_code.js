@@ -1,8 +1,9 @@
 function getAuthPin() {
   try {
-    const prop = PropertiesService.getScriptProperties().getProperty("AUTH_PIN");
-    if (prop && String(prop).trim() !== "") {
-      return String(prop).trim();
+    const props = PropertiesService.getScriptProperties();
+    const pin = props.getProperty("ADMIN_PW") || props.getProperty("AUTH_PIN") || props.getProperty("ADMIN_PASSWORD") || props.getProperty("APP_PASSWORD");
+    if (pin && String(pin).trim() !== "") {
+      return String(pin).trim();
     }
   } catch (err) {}
   return "";
