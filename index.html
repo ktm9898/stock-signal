@@ -268,55 +268,71 @@
   </div>
 
   <script>
-    // Demo Mock Data for Immediate UI Display
-    const mockBuyCandidates = [
-      { name: "LG에너지솔루션", code: "373220", tier: 1, adx: 34.2, minusDi: 32.1, rsi: 29.5, price: 382000 },
-      { name: "POSCO홀딩스", code: "005490", tier: 2, adx: 31.8, minusDi: 30.2, rsi: 38.4, price: 364500 },
-      { name: "삼성SDI", code: "006400", tier: 3, adx: 30.5, minusDi: 30.1, rsi: 41.2, price: 341000 }
-    ];
+    // GAS Web App API Endpoint
+    const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
 
-    const mockHoldings = [
-      { name: "삼성전자", code: "005930", buyPrice: 71000, currPrice: 74500, adx: 35.1, plusDi: 24.2, minusDi: 26.5, status: "1단계 경고 (+DI 고점 꺾임)", level: "warn" },
-      { name: "SK하이닉스", code: "000660", buyPrice: 172000, currPrice: 185000, adx: 28.4, plusDi: 31.0, minusDi: 18.2, status: "정상 (보유)", level: "normal" }
-    ];
+    let buyCandidatesData = [];
+    let holdingsData = [];
 
-    function renderBuyCandidates() {
+    async function loadDataFromGAS() {
+      try {
+        const resp = await fetch(GAS_WEBAPP_URL + "?action=all");
+        const data = await resp.json();
+        
+        buyCandidatesData = data.buyCandidates || [];
+        holdingsData = data.userHoldings || [];
+
+        renderBuyCandidates(buyCandidatesData);
+        renderHoldings(holdingsData);
+        
+        document.getElementById('count-buy').textContent = buyCandidatesData.length;
+        const tier1Count = buyCandidatesData.filter(item => String(item.Tier).includes('1')).length;
+        document.getElementById('count-tier1').textContent = tier1Count;
+        document.getElementById('count-sell').textContent = (data.sellSignals || []).length;
+      } catch (err) {
+        console.error("Failed to load data from GAS:", err);
+      }
+    }
+
+    function renderBuyCandidates(list) {
       const tbody = document.getElementById('buy-candidates-body');
-      tbody.innerHTML = mockBuyCandidates.map(item => `
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-sub); padding:30px;">오늘 감시 조건(ADX >= 30 및 -DI 하향 돌파)에 포착된 매수 종목이 없습니다.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(item => `
         <tr>
-          <td><strong>${item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.code})</span></td>
+          <td><strong>${item.Name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.Ticker})</span></td>
           <td>
-            <span class="badge ${item.tier === 1 ? 'badge-t1' : item.tier === 2 ? 'badge-t2' : 'badge-t3'}">
-              Tier ${item.tier} ${item.tier === 1 ? '(과매도 강추)' : item.tier === 2 ? '(거래량 폭발)' : '(일반)'}
+            <span class="badge ${String(item.Tier).includes('1') ? 'badge-t1' : String(item.Tier).includes('2') ? 'badge-t2' : 'badge-t3'}">
+              ${item.Tier}
             </span>
           </td>
-          <td><strong style="color:var(--accent-cyan);">${item.adx}</strong></td>
-          <td>${item.minusDi}</td>
-          <td><span style="color: ${item.rsi <= 35 ? 'var(--accent-green)' : 'inherit'}">${item.rsi}</span></td>
-          <td>${item.price.toLocaleString()} 원</td>
-          <td><button class="btn-buy-reg" onclick="quickRegister('${item.name}', '${item.code}', ${item.price})">매수 등록</button></td>
+          <td><strong style="color:var(--accent-cyan);">${item.ADX}</strong></td>
+          <td>${item.Minus_DI}</td>
+          <td><span style="color: ${item.RSI <= 35 ? 'var(--accent-green)' : 'inherit'}">${item.RSI || '-'}</span></td>
+          <td>${item.ClosePrice ? Number(item.ClosePrice).toLocaleString() + ' 원' : '-'}</td>
+          <td><button class="btn-buy-reg" onclick="quickRegister('${item.Name}', '${item.Ticker}', ${item.ClosePrice || 0})">매수 등록</button></td>
         </tr>
       `).join('');
     }
 
-    function renderHoldings() {
+    function renderHoldings(list) {
       const tbody = document.getElementById('holdings-body');
-      tbody.innerHTML = mockHoldings.map(item => {
-        const returnRate = (((item.currPrice - item.buyPrice) / item.buyPrice) * 100).toFixed(2);
-        const returnColor = returnRate >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-sub); padding:30px;">매수 등록된 보유 종목이 없습니다. 오른쪽 상단 '직접 종목 매수 등록' 버튼으로 추가하세요.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(item => {
         return `
           <tr>
-            <td><strong>${item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.code})</span></td>
-            <td>${item.buyPrice.toLocaleString()} 원</td>
-            <td>${item.currPrice.toLocaleString()} 원 <span style="color:${returnColor}; font-size:0.85rem; font-weight:600;">(${returnRate >= 0 ? '+' : ''}${returnRate}%)</span></td>
-            <td>${item.adx}</td>
-            <td>${item.plusDi} / ${item.minusDi}</td>
-            <td>
-              <span class="badge ${item.level === 'warn' ? 'badge-sell-warn' : item.level === 'exit' ? 'badge-sell-exit' : ''}" style="${item.level==='normal'?'color:var(--text-sub);':''}">
-                ${item.status}
-              </span>
-            </td>
-            <td><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${item.code}')"><i class="fa-solid fa-trash"></i></button></td>
+            <td><strong>${item.Name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.Ticker})</span></td>
+            <td>${Number(item.BuyPrice).toLocaleString()} 원</td>
+            <td>-</td>
+            <td>-</td>
+            <td>-</td>
+            <td><span class="badge" style="color:var(--text-sub);">감시 중</span></td>
+            <td><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${item.Ticker}')"><i class="fa-solid fa-trash"></i></button></td>
           </tr>
         `;
       }).join('');
@@ -332,30 +348,34 @@
     function openRegisterModal() { document.getElementById('register-modal').style.display = 'flex'; }
     function closeRegisterModal() { document.getElementById('register-modal').style.display = 'none'; }
 
-    function quickRegister(name, code, price) {
-      mockHoldings.push({ name, code, buyPrice: price, currPrice: price, adx: 31.0, plusDi: 22.0, minusDi: 30.0, status: "정상 (보유)", level: "normal" });
-      renderHoldings();
+    async function quickRegister(name, code, price) {
+      await saveHoldingToGAS(name, code, price);
       alert(`${name} 종목이 매수 등록되었습니다!`);
     }
 
-    function saveHolding() {
+    async function saveHolding() {
       const nameInput = document.getElementById('reg-stock-name').value;
       const priceInput = parseInt(document.getElementById('reg-stock-price').value);
       if(!nameInput || !priceInput) return alert("종목명과 매수가를 입력해주세요.");
 
-      mockHoldings.push({ name: nameInput, code: "Custom", buyPrice: priceInput, currPrice: priceInput, adx: 30.0, plusDi: 20.0, minusDi: 25.0, status: "정상 (보유)", level: "normal" });
-      renderHoldings();
+      await saveHoldingToGAS(nameInput, "Custom", priceInput);
       closeRegisterModal();
     }
 
-    function deleteHolding(code) {
-      const idx = mockHoldings.findIndex(h => h.code === code);
-      if(idx !== -1) { mockHoldings.splice(idx, 1); renderHoldings(); }
+    async function saveHoldingToGAS(name, code, price) {
+      try {
+        await fetch(GAS_WEBAPP_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "add_user_holding", ticker: code, name: name, buyPrice: price })
+        });
+        loadDataFromGAS();
+      } catch (err) {
+        console.error("Failed to save holding:", err);
+      }
     }
 
-    // Init
-    renderBuyCandidates();
-    renderHoldings();
+    // Init load
+    loadDataFromGAS();
   </script>
 </body>
 </html>

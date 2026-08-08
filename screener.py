@@ -145,4 +145,49 @@ def evaluate_sell_signal(df):
     }
 
 if __name__ == "__main__":
-    print("[INFO] KOSPI 200 Engine Module Initialized.")
+    import os
+    print("[INFO] KOSPI 200 Stock Signal Screener Engine Starting...")
+    
+    gas_url = os.environ.get("GAS_WEBAPP_URL", "")
+
+    # 1. Fetch KOSPI 200 Tickers
+    print("[1/3] Fetching KOSPI 200 component tickers...")
+    items = get_kospi200_tickers()
+    print(f" -> Found {len(items)} tickers.")
+
+    buy_candidates = []
+    end_date = datetime.datetime.now().strftime("%Y%m%d")
+    start_date = (datetime.datetime.now() - datetime.timedelta(days=60)).strftime("%Y%m%d")
+
+    # 2. Screen Buy Signals across all KOSPI 200
+    print("[2/3] Calculating indicators and screening buy signals...")
+    for idx, item in enumerate(items):
+        ticker = item['ticker']
+        name = item['name']
+        try:
+            df = stock.get_market_ohlcv_by_date(start_date, end_date, ticker)
+            if len(df) < 30:
+                continue
+            df = calculate_indicators(df)
+            buy_res = evaluate_buy_signal(df)
+            if buy_res:
+                buy_res['ticker'] = ticker
+                buy_res['name'] = name
+                buy_candidates.append(buy_res)
+                print(f"  🔥 [BUY SIGNAL] {name} ({ticker}) - {buy_res['priority']} | ADX: {buy_res['adx']} | RSI: {buy_res['rsi']}")
+        except Exception as e:
+            continue
+
+    # Sort buy candidates by priority score (Tier 1 -> Tier 2 -> Tier 3)
+    buy_candidates.sort(key=lambda x: x['score'])
+    print(f" -> Found {len(buy_candidates)} buy candidate stocks.")
+
+    # 3. Post to Google Sheets API
+    if gas_url:
+        print("[3/3] Posting screening results to Google Sheets...")
+        post_to_google_sheets(gas_url, "update_buy_candidates", {"candidates": buy_candidates})
+    else:
+        print("[WARN] GAS_WEBAPP_URL environment variable is not set. Results printed above.")
+
+    print("[INFO] Screener Execution Completed.")
+
