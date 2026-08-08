@@ -267,18 +267,55 @@
     </div>
   </div>
 
+  <!-- PIN Modal -->
+  <div class="modal-overlay" id="pin-modal" style="display: flex;">
+    <div class="modal-content" style="text-align: center; max-width: 380px;">
+      <div class="brand-icon" style="margin: 0 auto 16px auto; width: 48px; height: 48px; font-size: 1.4rem;">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+      <h3 style="font-size: 1.3rem; margin-bottom: 8px;">보안 PIN 비밀번호 입력</h3>
+      <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 20px;">대시보드에 접근하려면 비밀번호 4자리를 입력하세요.</p>
+      
+      <div class="form-group">
+        <input type="password" class="form-input" id="input-pin" maxlength="4" placeholder="비밀번호 4자리 (기본: 1234)" style="text-align: center; font-size: 1.5rem; letter-spacing: 8px;" onkeyup="if(event.key==='Enter') verifyPin()">
+      </div>
+      <div id="pin-error" style="color: var(--accent-red); font-size: 0.85rem; margin-bottom: 12px; display: none;">비밀번호가 올바르지 않습니다.</div>
+      <button class="btn-buy-reg" style="width: 100%; padding: 12px; font-size: 1rem;" onclick="verifyPin()">대시보드 열기</button>
+    </div>
+  </div>
+
   <script>
     // GAS Web App API Endpoint
     const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
 
+    let userPin = localStorage.getItem("STOCK_SIGNAL_PIN") || "";
     let buyCandidatesData = [];
     let holdingsData = [];
 
-    async function loadDataFromGAS() {
+    async function verifyPin() {
+      const pinVal = document.getElementById('input-pin').value;
+      if (!pinVal) return;
+
+      const success = await loadDataFromGAS(pinVal);
+      if (success) {
+        userPin = pinVal;
+        localStorage.setItem("STOCK_SIGNAL_PIN", userPin);
+        document.getElementById('pin-modal').style.display = 'none';
+      } else {
+        document.getElementById('pin-error').style.display = 'block';
+      }
+    }
+
+    async function loadDataFromGAS(pin = userPin) {
+      if (!pin) return false;
       try {
-        const resp = await fetch(GAS_WEBAPP_URL + "?action=all");
+        const resp = await fetch(GAS_WEBAPP_URL + "?action=all&pin=" + encodeURIComponent(pin));
         const data = await resp.json();
         
+        if (data.status === "error") {
+          return false;
+        }
+
         buyCandidatesData = data.buyCandidates || [];
         holdingsData = data.userHoldings || [];
 
@@ -289,84 +326,18 @@
         const tier1Count = buyCandidatesData.filter(item => String(item.Tier).includes('1')).length;
         document.getElementById('count-tier1').textContent = tier1Count;
         document.getElementById('count-sell').textContent = (data.sellSignals || []).length;
+        return true;
       } catch (err) {
         console.error("Failed to load data from GAS:", err);
+        return false;
       }
-    }
-
-    function renderBuyCandidates(list) {
-      const tbody = document.getElementById('buy-candidates-body');
-      if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-sub); padding:30px;">오늘 감시 조건(ADX >= 30 및 -DI 하향 돌파)에 포착된 매수 종목이 없습니다.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = list.map(item => `
-        <tr>
-          <td><strong>${item.Name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.Ticker})</span></td>
-          <td>
-            <span class="badge ${String(item.Tier).includes('1') ? 'badge-t1' : String(item.Tier).includes('2') ? 'badge-t2' : 'badge-t3'}">
-              ${item.Tier}
-            </span>
-          </td>
-          <td><strong style="color:var(--accent-cyan);">${item.ADX}</strong></td>
-          <td>${item.Minus_DI}</td>
-          <td><span style="color: ${item.RSI <= 35 ? 'var(--accent-green)' : 'inherit'}">${item.RSI || '-'}</span></td>
-          <td>${item.ClosePrice ? Number(item.ClosePrice).toLocaleString() + ' 원' : '-'}</td>
-          <td><button class="btn-buy-reg" onclick="quickRegister('${item.Name}', '${item.Ticker}', ${item.ClosePrice || 0})">매수 등록</button></td>
-        </tr>
-      `).join('');
-    }
-
-    function renderHoldings(list) {
-      const tbody = document.getElementById('holdings-body');
-      if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-sub); padding:30px;">매수 등록된 보유 종목이 없습니다. 오른쪽 상단 '직접 종목 매수 등록' 버튼으로 추가하세요.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = list.map(item => {
-        return `
-          <tr>
-            <td><strong>${item.Name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.Ticker})</span></td>
-            <td>${Number(item.BuyPrice).toLocaleString()} 원</td>
-            <td>-</td>
-            <td>-</td>
-            <td>-</td>
-            <td><span class="badge" style="color:var(--text-sub);">감시 중</span></td>
-            <td><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${item.Ticker}')"><i class="fa-solid fa-trash"></i></button></td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      document.getElementById(tabId).style.display = 'block';
-      event.currentTarget.classList.add('active');
-    }
-
-    function openRegisterModal() { document.getElementById('register-modal').style.display = 'flex'; }
-    function closeRegisterModal() { document.getElementById('register-modal').style.display = 'none'; }
-
-    async function quickRegister(name, code, price) {
-      await saveHoldingToGAS(name, code, price);
-      alert(`${name} 종목이 매수 등록되었습니다!`);
-    }
-
-    async function saveHolding() {
-      const nameInput = document.getElementById('reg-stock-name').value;
-      const priceInput = parseInt(document.getElementById('reg-stock-price').value);
-      if(!nameInput || !priceInput) return alert("종목명과 매수가를 입력해주세요.");
-
-      await saveHoldingToGAS(nameInput, "Custom", priceInput);
-      closeRegisterModal();
     }
 
     async function saveHoldingToGAS(name, code, price) {
       try {
         await fetch(GAS_WEBAPP_URL, {
           method: "POST",
-          body: JSON.stringify({ action: "add_user_holding", ticker: code, name: name, buyPrice: price })
+          body: JSON.stringify({ action: "add_user_holding", pin: userPin, ticker: code, name: name, buyPrice: price })
         });
         loadDataFromGAS();
       } catch (err) {
@@ -374,8 +345,14 @@
       }
     }
 
-    // Init load
-    loadDataFromGAS();
+    // Check saved PIN on startup
+    if (userPin) {
+      loadDataFromGAS(userPin).then(success => {
+        if (success) {
+          document.getElementById('pin-modal').style.display = 'none';
+        }
+      });
+    }
   </script>
 </body>
 </html>

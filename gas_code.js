@@ -1,5 +1,8 @@
 // Google Apps Script Code for StockSignal Project
 
+// Set your private 4-digit PIN here
+const AUTH_PIN = "1234";
+
 function setupSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -34,12 +37,18 @@ function setupSheets() {
   }
 }
 
-// REST API GET Endpoint (Serve JSON data to Web App)
+// REST API GET Endpoint (Serve JSON data to Web App with PIN check)
 function doGet(e) {
+  const inputPin = e.parameter.pin;
+  if (inputPin !== AUTH_PIN) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unauthorized: Invalid PIN" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const action = e.parameter.action || "all";
 
-  let result = {};
+  let result = { status: "success" };
 
   if (action === "all" || action === "buy") {
     result.buyCandidates = getSheetData(ss.getSheetByName("Buy_Candidates"));
@@ -55,11 +64,16 @@ function doGet(e) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// REST API POST Endpoint (Receive Python Screener data & Web App registrations)
+// REST API POST Endpoint (Receive Python Screener data & Web App registrations with PIN check)
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Verify PIN for all user actions
+    if (data.pin !== AUTH_PIN && data.action !== "update_buy_candidates") {
+      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unauthorized: Invalid PIN" }));
+    }
 
     if (data.action === "update_buy_candidates") {
       const sheet = ss.getSheetByName("Buy_Candidates");
@@ -112,3 +126,4 @@ function getSheetData(sheet) {
   }
   return data;
 }
+
