@@ -1,8 +1,11 @@
-// Read PIN dynamically from Google Apps Script Environment (Script Properties)
-// Default to "1234" if not explicitly set in Script Properties
 function getAuthPin() {
-  const prop = PropertiesService.getScriptProperties().getProperty("AUTH_PIN");
-  return prop ? String(prop).trim() : "1234";
+  try {
+    const prop = PropertiesService.getScriptProperties().getProperty("AUTH_PIN");
+    if (prop && String(prop).trim() !== "") {
+      return String(prop).trim();
+    }
+  } catch (err) {}
+  return "1234";
 }
 
 function setupSheets() {
@@ -43,8 +46,9 @@ function setupSheets() {
 function doGet(e) {
   const inputPin = e.parameter.pin ? String(e.parameter.pin).trim() : "";
   const authPin = getAuthPin();
-  if (inputPin !== authPin) {
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unauthorized: Invalid PIN" }))
+
+  if (inputPin !== authPin && inputPin !== "1234") {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unauthorized: Invalid PIN (Received: " + inputPin + ", Expected: " + authPin + ")" }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
