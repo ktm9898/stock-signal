@@ -335,6 +335,58 @@
       }
     }
 
+    function renderBuyCandidates(list) {
+      const tbody = document.getElementById('buy-candidates-body');
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-sub); padding:30px;">오늘 감시 조건(ADX >= 30 및 -DI 하향 돌파)에 포착된 매수 종목이 없습니다.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(item => `
+        <tr>
+          <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.Ticker || item.code})</span></td>
+          <td>
+            <span class="badge ${String(item.Tier || item.tier).includes('1') ? 'badge-t1' : String(item.Tier || item.tier).includes('2') ? 'badge-t2' : 'badge-t3'}">
+              ${item.Tier || item.tier}
+            </span>
+          </td>
+          <td><strong style="color:var(--accent-cyan);">${item.ADX || item.adx}</strong></td>
+          <td>${item.Minus_DI || item.minusDi}</td>
+          <td><span style="color: ${(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${item.RSI || item.rsi || '-'}</span></td>
+          <td>${(item.ClosePrice || item.price) ? Number(item.ClosePrice || item.price).toLocaleString() + ' 원' : '-'}</td>
+          <td><button class="btn-buy-reg" onclick="quickRegister('${item.Name || item.name}', '${item.Ticker || item.code}', ${item.ClosePrice || item.price || 0})">매수 등록</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderHoldings(list) {
+      const tbody = document.getElementById('holdings-body');
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-sub); padding:30px;">매수 등록된 보유 종목이 없습니다. 오른쪽 상단 '직접 종목 매수 등록' 버튼으로 추가하세요.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(item => `
+        <tr>
+          <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.Ticker || item.code})</span></td>
+          <td>${Number(item.BuyPrice || item.buyPrice || 0).toLocaleString()} 원</td>
+          <td>-</td>
+          <td>-</td>
+          <td>-</td>
+          <td><span class="badge" style="color:var(--text-sub);">감시 중</span></td>
+          <td><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${item.Ticker || item.code}')"><i class="fa-solid fa-trash"></i></button></td>
+        </tr>
+      `).join('');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(tabId).style.display = 'block';
+      event.currentTarget.classList.add('active');
+    }
+
+    function openRegisterModal() { document.getElementById('register-modal').style.display = 'flex'; }
+    function closeRegisterModal() { document.getElementById('register-modal').style.display = 'none'; }
+
     // Startup check: authenticate stored PIN against backend dynamically
     if (userPin) {
       loadDataFromGAS(userPin).then(success => {
