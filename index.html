@@ -292,17 +292,16 @@
     let buyCandidatesData = [];
     let holdingsData = [];
 
-    function verifyPin() {
+    async function verifyPin() {
       const pinVal = document.getElementById('input-pin').value;
       if (!pinVal) return;
 
-      // Check PIN (1111 or 1234)
-      if (pinVal === "1111" || pinVal === "1234") {
+      const success = await loadDataFromGAS(pinVal);
+      if (success) {
         userPin = pinVal;
         localStorage.setItem("STOCK_SIGNAL_PIN", userPin);
         document.getElementById('pin-modal').style.display = 'none';
         document.getElementById('pin-error').style.display = 'none';
-        loadDataFromGAS(userPin);
       } else {
         document.getElementById('pin-error').style.display = 'block';
       }
@@ -315,6 +314,10 @@
         const resp = await fetch(url);
         const data = await resp.json();
         
+        if (data.status === "error") {
+          return false;
+        }
+
         buyCandidatesData = data.buyCandidates || [];
         holdingsData = data.userHoldings || [];
 
@@ -332,10 +335,17 @@
       }
     }
 
-    // Startup check
-    if (userPin === "1111" || userPin === "1234") {
-      document.getElementById('pin-modal').style.display = 'none';
-      loadDataFromGAS(userPin);
+    // Startup check: authenticate stored PIN against backend dynamically
+    if (userPin) {
+      loadDataFromGAS(userPin).then(success => {
+        if (success) {
+          document.getElementById('pin-modal').style.display = 'none';
+        } else {
+          localStorage.removeItem("STOCK_SIGNAL_PIN");
+          userPin = "";
+          document.getElementById('pin-modal').style.display = 'flex';
+        }
+      });
     } else {
       document.getElementById('pin-modal').style.display = 'flex';
     }
