@@ -1,5 +1,3 @@
-// Google Apps Script Code for StockSignal Project
-
 function getAuthPin() {
   const pin = PropertiesService.getScriptProperties().getProperty("AUTH_PIN");
   return pin ? String(pin).trim() : "";
@@ -8,22 +6,19 @@ function getAuthPin() {
 function setupSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  let buySheet = ss.getSheetByName("Buy_Candidates");
-  if (!buySheet) buySheet = ss.insertSheet("Buy_Candidates");
+  let buySheet = ss.getSheetByName("Buy_Candidates") || ss.insertSheet("Buy_Candidates");
   if (buySheet.getLastRow() === 0) {
     buySheet.appendRow(["Date", "Ticker", "Name", "Tier", "ADX", "Minus_DI", "Plus_DI", "RSI", "ClosePrice"]);
     buySheet.getRange("A1:I1").setFontWeight("bold").setBackground("#e0f2fe");
   }
 
-  let holdingsSheet = ss.getSheetByName("User_Holdings");
-  if (!holdingsSheet) holdingsSheet = ss.insertSheet("User_Holdings");
+  let holdingsSheet = ss.getSheetByName("User_Holdings") || ss.insertSheet("User_Holdings");
   if (holdingsSheet.getLastRow() === 0) {
     holdingsSheet.appendRow(["DateAdded", "Ticker", "Name", "BuyPrice", "Notes"]);
     holdingsSheet.getRange("A1:E1").setFontWeight("bold").setBackground("#fef3c7");
   }
 
-  let sellSheet = ss.getSheetByName("Sell_Signals");
-  if (!sellSheet) sellSheet = ss.insertSheet("Sell_Signals");
+  let sellSheet = ss.getSheetByName("Sell_Signals") || ss.insertSheet("Sell_Signals");
   if (sellSheet.getLastRow() === 0) {
     sellSheet.appendRow(["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Status", "Details"]);
     sellSheet.getRange("A1:I1").setFontWeight("bold").setBackground("#fee2e2");
@@ -41,21 +36,13 @@ function doGet(e) {
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const action = e.parameter.action || "all";
-
   let result = { success: true, status: "success" };
 
-  if (action === "all" || action === "buy") {
-    result.buyCandidates = getSheetData(ss.getSheetByName("Buy_Candidates"));
-  }
-  if (action === "all" || action === "holdings") {
-    result.userHoldings = getSheetData(ss.getSheetByName("User_Holdings"));
-  }
-  if (action === "all" || action === "sell") {
-    result.sellSignals = getSheetData(ss.getSheetByName("Sell_Signals"));
-  }
+  if (action === "all" || action === "buy") result.buyCandidates = getSheetData(ss.getSheetByName("Buy_Candidates"));
+  if (action === "all" || action === "holdings") result.userHoldings = getSheetData(ss.getSheetByName("User_Holdings"));
+  if (action === "all" || action === "sell") result.sellSignals = getSheetData(ss.getSheetByName("Sell_Signals"));
 
-  return ContentService.createTextOutput(JSON.stringify(result))
-    .setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
@@ -72,9 +59,7 @@ function doPost(e) {
 
     if (data.action === "update_buy_candidates") {
       const sheet = ss.getSheetByName("Buy_Candidates");
-      if (sheet.getLastRow() > 1) {
-        sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
-      }
+      if (sheet.getLastRow() > 1) sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd HH:mm");
       data.candidates.forEach(c => {
         sheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.minus_di, c.plus_di, c.rsi, c.close]);
@@ -85,9 +70,7 @@ function doPost(e) {
 
     if (data.action === "update_sell_signals") {
       const sheet = ss.getSheetByName("Sell_Signals");
-      if (sheet.getLastRow() > 1) {
-        sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
-      }
+      if (sheet.getLastRow() > 1) sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd HH:mm");
       data.signals.forEach(s => {
         sheet.appendRow([today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, s.adx, s.signalLevel, s.details.join(", ")]);
