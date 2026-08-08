@@ -268,7 +268,7 @@
   </div>
 
   <!-- PIN Modal -->
-  <div class="modal-overlay" id="pin-modal" style="display: none;">
+  <div class="modal-overlay" id="pin-modal" style="display: flex;">
     <div class="modal-content" style="text-align: center; max-width: 380px;">
       <div class="brand-icon" style="margin: 0 auto 16px auto; width: 48px; height: 48px; font-size: 1.4rem;">
         <i class="fa-solid fa-lock"></i>
@@ -288,17 +288,20 @@
     // GAS Web App API Endpoint
     const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
 
-    // Local PIN verification for smooth UX (Master PIN or GAS authenticated)
-    const CLIENT_PIN = "1111";
+    let userPin = localStorage.getItem("STOCK_SIGNAL_PIN") || "";
+    let buyCandidatesData = [];
+    let holdingsData = [];
 
-    async function verifyPin() {
+    function verifyPin() {
       const pinVal = document.getElementById('input-pin').value;
       if (!pinVal) return;
 
-      if (pinVal === CLIENT_PIN || pinVal === "1234") {
+      // Check PIN (1111 or 1234)
+      if (pinVal === "1111" || pinVal === "1234") {
         userPin = pinVal;
         localStorage.setItem("STOCK_SIGNAL_PIN", userPin);
         document.getElementById('pin-modal').style.display = 'none';
+        document.getElementById('pin-error').style.display = 'none';
         loadDataFromGAS(userPin);
       } else {
         document.getElementById('pin-error').style.display = 'block';
@@ -309,13 +312,9 @@
       if (!pin) return false;
       try {
         const url = GAS_WEBAPP_URL + "?action=all&pin=" + encodeURIComponent(pin);
-        const resp = await fetch(url, { redirect: 'follow' });
+        const resp = await fetch(url);
         const data = await resp.json();
         
-        if (data.status === "error") {
-          return false;
-        }
-
         buyCandidatesData = data.buyCandidates || [];
         holdingsData = data.userHoldings || [];
 
@@ -333,20 +332,13 @@
       }
     }
 
-    async function saveHoldingToGAS(name, code, price) {
-      try {
-        await fetch(GAS_WEBAPP_URL, {
-          method: "POST",
-          body: JSON.stringify({ action: "add_user_holding", pin: userPin, ticker: code, name: name, buyPrice: price })
-        });
-        loadDataFromGAS();
-      } catch (err) {
-        console.error("Failed to save holding:", err);
-      }
+    // Startup check
+    if (userPin === "1111" || userPin === "1234") {
+      document.getElementById('pin-modal').style.display = 'none';
+      loadDataFromGAS(userPin);
+    } else {
+      document.getElementById('pin-modal').style.display = 'flex';
     }
-
-    // PIN Modal bypassed for smooth access
-    loadDataFromGAS();
   </script>
 </body>
 </html>
