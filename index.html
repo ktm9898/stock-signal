@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockSignal - KOSPI 200 ADX 매매 신호 트래커</title>
+  <!-- Google Fonts & Font Awesome Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    :root {
+      --bg-dark: #0a0e17;
+      --card-bg: #121826;
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent-cyan: #00f2fe;
+      --accent-blue: #4facfe;
+      --accent-green: #00e676;
+      --accent-red: #ff5252;
+      --accent-warning: #ffb300;
+      --text-main: #f0f4f8;
+      --text-sub: #8a99ad;
+      --badge-tier1: linear-gradient(135deg, #00c853, #64dd17);
+      --badge-tier2: linear-gradient(135deg, #00b0ff, #00e5ff);
+      --badge-tier3: linear-gradient(135deg, #7c4dff, #b388ff);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding-bottom: 40px;
+    }
+
+    /* Header */
+    header {
+      background: rgba(18, 24, 38, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      position: sticky; top: 0; z-index: 100;
+      padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.25rem; }
+    .brand-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      display: flex; align-items: center; justify-content: center; color: #000; font-size: 1.1rem;
+    }
+
+    .time-badge {
+      font-size: 0.85rem; color: var(--text-sub); background: rgba(255, 255, 255, 0.05);
+      padding: 6px 14px; border-radius: 20px; border: 1px solid var(--card-border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .pulse-dot {
+      width: 8px; height: 8px; border-radius: 50%; background-color: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green);
+      animation: pulse 1.8s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    /* Layout Containers */
+    .container { max-width: 1280px; margin: 24px auto; padding: 0 20px; }
+
+    /* Summary Metric Cards */
+    .metrics-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px; margin-bottom: 28px;
+    }
+    .metric-card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: 16px; padding: 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .metric-title { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 6px; }
+    .metric-value { font-size: 1.8rem; font-weight: 700; }
+    .metric-icon {
+      width: 48px; height: 48px; border-radius: 14px; background: rgba(255, 255, 255, 0.04);
+      display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: var(--accent-cyan);
+    }
+
+    /* Tab Navigation */
+    .tabs { display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; }
+    .tab-btn {
+      background: none; border: none; color: var(--text-sub); font-size: 1rem; font-weight: 600;
+      padding: 10px 20px; border-radius: 12px; cursor: pointer; transition: all 0.2s ease;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .tab-btn.active {
+      background: rgba(0, 242, 254, 0.1); color: var(--accent-cyan);
+      border: 1px solid rgba(0, 242, 254, 0.3);
+    }
+
+    /* Tables */
+    .table-container {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: 18px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th {
+      background: rgba(255, 255, 255, 0.02); color: var(--text-sub);
+      font-size: 0.85rem; font-weight: 600; text-transform: uppercase;
+      padding: 16px 20px; border-bottom: 1px solid var(--card-border);
+    }
+    td { padding: 18px 20px; border-bottom: 1px solid var(--card-border); font-size: 0.95rem; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    /* Badges & Action Buttons */
+    .badge {
+      display: inline-block; padding: 4px 12px; border-radius: 20px;
+      font-size: 0.75rem; font-weight: 700; color: #fff;
+    }
+    .badge-t1 { background: var(--badge-tier1); }
+    .badge-t2 { background: var(--badge-tier2); }
+    .badge-t3 { background: var(--badge-tier3); }
+    .badge-sell-warn { background: rgba(255, 179, 0, 0.2); color: #ffb300; border: 1px solid rgba(255, 179, 0, 0.4); }
+    .badge-sell-exit { background: rgba(255, 82, 82, 0.2); color: #ff5252; border: 1px solid rgba(255, 82, 82, 0.4); }
+
+    .btn-buy-reg {
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+      color: #000; border: none; border-radius: 8px; padding: 6px 14px;
+      font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: transform 0.1s;
+    }
+    .btn-buy-reg:hover { transform: translateY(-1px); }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+      display: none; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal-content {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: 20px; width: 90%; max-width: 500px; padding: 24px;
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-title { font-size: 1.2rem; font-weight: 700; }
+    .close-btn { background: none; border: none; color: var(--text-sub); font-size: 1.4rem; cursor: pointer; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 0.85rem; color: var(--text-sub); margin-bottom: 6px; }
+    .form-input {
+      width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border);
+      border-radius: 10px; padding: 10px 14px; color: var(--text-main); font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-icon"><i class="fa-solid fa-chart-line"></i></div>
+      <span>StockSignal <span style="font-size: 0.8rem; color: var(--accent-cyan); font-weight:400;">KOSPI 200</span></span>
+    </div>
+    <div class="time-badge">
+      <div class="pulse-dot"></div>
+      <span id="sync-time">장중 14:00 & 장마감 15:40 자동 업데이트</span>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Metric Overview -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div>
+          <div class="metric-title">오늘의 ADX 매수 포착 종목</div>
+          <div class="metric-value" id="count-buy" style="color: var(--accent-green);">3</div>
+        </div>
+        <div class="metric-icon"><i class="fa-solid fa-bullseye"></i></div>
+      </div>
+
+      <div class="metric-card">
+        <div>
+          <div class="metric-title">최우선(Tier 1 과매도) 포착</div>
+          <div class="metric-value" id="count-tier1" style="color: var(--accent-cyan);">1</div>
+        </div>
+        <div class="metric-icon"><i class="fa-solid fa-fire"></i></div>
+      </div>
+
+      <div class="metric-card">
+        <div>
+          <div class="metric-title">보유 종목 매도 경고</div>
+          <div class="metric-value" id="count-sell" style="color: var(--accent-red);">1</div>
+        </div>
+        <div class="metric-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      </div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('buy-tab')"><i class="fa-solid fa-cart-shopping"></i> KOSPI 200 매수 후보 목록</button>
+      <button class="tab-btn" onclick="switchTab('holdings-tab')"><i class="fa-solid fa-shield-halved"></i> 보유 종목 감시 (매도 신호)</button>
+    </div>
+
+    <!-- Tab 1: Buy Candidates -->
+    <div id="buy-tab" class="tab-content">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>종목명 / 코드</th>
+              <th>우선순위 Tier</th>
+              <th>ADX (14)</th>
+              <th>-DI</th>
+              <th>RSI</th>
+              <th>현재가</th>
+              <th>매수 등록 Action</th>
+            </tr>
+          </thead>
+          <tbody id="buy-candidates-body">
+            <!-- Dynamic Content -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 2: Holdings & Sell Signals -->
+    <div id="holdings-tab" class="tab-content" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-weight: 600;">내가 매수한 감시 종목 목록</h3>
+        <button class="btn-buy-reg" onclick="openRegisterModal()"><i class="fa-solid fa-plus"></i> 직접 종목 매수 등록</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>종목명 / 코드</th>
+              <th>매수가</th>
+              <th>현재가 / 수익률</th>
+              <th>ADX</th>
+              <th>+DI / -DI</th>
+              <th>매도 신호 상태</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody id="holdings-body">
+            <!-- Dynamic Content -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Register Modal -->
+  <div class="modal-overlay" id="register-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">보유 종목 매수 등록</div>
+        <button class="close-btn" onclick="closeRegisterModal()">&times;</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label">종목명 또는 코드</label>
+        <input type="text" class="form-input" id="reg-stock-name" placeholder="예: 삼성전자 (005930)">
+      </div>
+      <div class="form-group">
+        <label class="form-label">매수가 (원)</label>
+        <input type="number" class="form-input" id="reg-stock-price" placeholder="예: 72000">
+      </div>
+      <button class="btn-buy-reg" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="saveHolding()">등록하기</button>
+    </div>
+  </div>
+
+  <script>
+    // Demo Mock Data for Immediate UI Display
+    const mockBuyCandidates = [
+      { name: "LG에너지솔루션", code: "373220", tier: 1, adx: 34.2, minusDi: 32.1, rsi: 29.5, price: 382000 },
+      { name: "POSCO홀딩스", code: "005490", tier: 2, adx: 31.8, minusDi: 30.2, rsi: 38.4, price: 364500 },
+      { name: "삼성SDI", code: "006400", tier: 3, adx: 30.5, minusDi: 30.1, rsi: 41.2, price: 341000 }
+    ];
+
+    const mockHoldings = [
+      { name: "삼성전자", code: "005930", buyPrice: 71000, currPrice: 74500, adx: 35.1, plusDi: 24.2, minusDi: 26.5, status: "1단계 경고 (+DI 고점 꺾임)", level: "warn" },
+      { name: "SK하이닉스", code: "000660", buyPrice: 172000, currPrice: 185000, adx: 28.4, plusDi: 31.0, minusDi: 18.2, status: "정상 (보유)", level: "normal" }
+    ];
+
+    function renderBuyCandidates() {
+      const tbody = document.getElementById('buy-candidates-body');
+      tbody.innerHTML = mockBuyCandidates.map(item => `
+        <tr>
+          <td><strong>${item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.code})</span></td>
+          <td>
+            <span class="badge ${item.tier === 1 ? 'badge-t1' : item.tier === 2 ? 'badge-t2' : 'badge-t3'}">
+              Tier ${item.tier} ${item.tier === 1 ? '(과매도 강추)' : item.tier === 2 ? '(거래량 폭발)' : '(일반)'}
+            </span>
+          </td>
+          <td><strong style="color:var(--accent-cyan);">${item.adx}</strong></td>
+          <td>${item.minusDi}</td>
+          <td><span style="color: ${item.rsi <= 35 ? 'var(--accent-green)' : 'inherit'}">${item.rsi}</span></td>
+          <td>${item.price.toLocaleString()} 원</td>
+          <td><button class="btn-buy-reg" onclick="quickRegister('${item.name}', '${item.code}', ${item.price})">매수 등록</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderHoldings() {
+      const tbody = document.getElementById('holdings-body');
+      tbody.innerHTML = mockHoldings.map(item => {
+        const returnRate = (((item.currPrice - item.buyPrice) / item.buyPrice) * 100).toFixed(2);
+        const returnColor = returnRate >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+        return `
+          <tr>
+            <td><strong>${item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.code})</span></td>
+            <td>${item.buyPrice.toLocaleString()} 원</td>
+            <td>${item.currPrice.toLocaleString()} 원 <span style="color:${returnColor}; font-size:0.85rem; font-weight:600;">(${returnRate >= 0 ? '+' : ''}${returnRate}%)</span></td>
+            <td>${item.adx}</td>
+            <td>${item.plusDi} / ${item.minusDi}</td>
+            <td>
+              <span class="badge ${item.level === 'warn' ? 'badge-sell-warn' : item.level === 'exit' ? 'badge-sell-exit' : ''}" style="${item.level==='normal'?'color:var(--text-sub);':''}">
+                ${item.status}
+              </span>
+            </td>
+            <td><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${item.code}')"><i class="fa-solid fa-trash"></i></button></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(tabId).style.display = 'block';
+      event.currentTarget.classList.add('active');
+    }
+
+    function openRegisterModal() { document.getElementById('register-modal').style.display = 'flex'; }
+    function closeRegisterModal() { document.getElementById('register-modal').style.display = 'none'; }
+
+    function quickRegister(name, code, price) {
+      mockHoldings.push({ name, code, buyPrice: price, currPrice: price, adx: 31.0, plusDi: 22.0, minusDi: 30.0, status: "정상 (보유)", level: "normal" });
+      renderHoldings();
+      alert(`${name} 종목이 매수 등록되었습니다!`);
+    }
+
+    function saveHolding() {
+      const nameInput = document.getElementById('reg-stock-name').value;
+      const priceInput = parseInt(document.getElementById('reg-stock-price').value);
+      if(!nameInput || !priceInput) return alert("종목명과 매수가를 입력해주세요.");
+
+      mockHoldings.push({ name: nameInput, code: "Custom", buyPrice: priceInput, currPrice: priceInput, adx: 30.0, plusDi: 20.0, minusDi: 25.0, status: "정상 (보유)", level: "normal" });
+      renderHoldings();
+      closeRegisterModal();
+    }
+
+    function deleteHolding(code) {
+      const idx = mockHoldings.findIndex(h => h.code === code);
+      if(idx !== -1) { mockHoldings.splice(idx, 1); renderHoldings(); }
+    }
+
+    // Init
+    renderBuyCandidates();
+    renderHoldings();
+  </script>
+</body>
+</html>
