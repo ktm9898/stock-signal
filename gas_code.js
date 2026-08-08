@@ -1,8 +1,7 @@
 // Google Apps Script Code for StockSignal Project
 
 function getAuthPin() {
-  const pin = PropertiesService.getScriptProperties().getProperty("AUTH_PIN");
-  return pin ? String(pin).trim() : "";
+  return "1111";
 }
 
 function setupSheets() {
