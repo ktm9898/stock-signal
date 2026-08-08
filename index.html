@@ -310,14 +310,11 @@
     async function loadDataFromGAS(pin = userPin) {
       if (!pin) return false;
       try {
-        const resp = await fetch(GAS_WEBAPP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain' },
-          body: JSON.stringify({ action: 'adminLogin', pw: pin })
-        });
+        const url = GAS_WEBAPP_URL + "?action=all&pin=" + encodeURIComponent(pin);
+        const resp = await fetch(url);
         const data = await resp.json();
         
-        if (!data.success && data.status === "error") {
+        if (data.status === "error" || data.success === false) {
           return false;
         }
 
