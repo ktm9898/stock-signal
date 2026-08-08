@@ -268,7 +268,7 @@
   </div>
 
   <!-- PIN Modal -->
-  <div class="modal-overlay" id="pin-modal" style="display: flex;">
+  <div class="modal-overlay" id="pin-modal" style="display: none;">
     <div class="modal-content" style="text-align: center; max-width: 380px;">
       <div class="brand-icon" style="margin: 0 auto 16px auto; width: 48px; height: 48px; font-size: 1.4rem;">
         <i class="fa-solid fa-lock"></i>
@@ -345,18 +345,8 @@
       }
     }
 
-    // Check saved PIN on startup
-    if (userPin) {
-      loadDataFromGAS(userPin).then(success => {
-        if (success) {
-          document.getElementById('pin-modal').style.display = 'none';
-        } else {
-          localStorage.removeItem("STOCK_SIGNAL_PIN");
-          userPin = "";
-          document.getElementById('pin-modal').style.display = 'flex';
-        }
-      });
-    }
+    // PIN Modal bypassed for smooth access
+    loadDataFromGAS();
   </script>
 </body>
 </html>
