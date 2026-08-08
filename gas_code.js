@@ -78,10 +78,24 @@ function doPost(e) {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const authPin = getAuthPin();
 
-    // Verify PIN for all user actions
+    // 1. Admin Login Verification Action
+    if (data.action === "adminLogin") {
+      const inputPw = data.pw ? String(data.pw).trim() : "";
+      if (inputPw === authPin) {
+        let result = { success: true, status: "success" };
+        result.buyCandidates = getSheetData(ss.getSheetByName("Buy_Candidates"));
+        result.userHoldings = getSheetData(ss.getSheetByName("User_Holdings"));
+        result.sellSignals = getSheetData(ss.getSheetByName("Sell_Signals"));
+        return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+      } else {
+        return ContentService.createTextOutput(JSON.stringify({ success: false, status: "error", message: "Unauthorized: Invalid Password" })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
+    // Verify PIN for all other user actions
     const inputPin = data.pin ? String(data.pin).trim() : "";
     if (inputPin !== authPin && data.action !== "update_buy_candidates") {
-      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unauthorized: Invalid PIN" }));
+      return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unauthorized: Invalid PIN" })).setMimeType(ContentService.MimeType.JSON);
     }
 
     if (data.action === "update_buy_candidates") {
@@ -93,7 +107,7 @@ function doPost(e) {
       data.candidates.forEach(c => {
         sheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.minus_di, c.plus_di, c.rsi, c.close]);
       });
-      return ContentService.createTextOutput(JSON.stringify({ status: "success", count: data.candidates.length }));
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", count: data.candidates.length })).setMimeType(ContentService.MimeType.JSON);
     }
 
     if (data.action === "update_sell_signals") {
@@ -105,19 +119,19 @@ function doPost(e) {
       data.signals.forEach(s => {
         sheet.appendRow([today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, s.adx, s.signalLevel, s.details.join(", ")]);
       });
-      return ContentService.createTextOutput(JSON.stringify({ status: "success" }));
+      return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
     }
 
     if (data.action === "add_user_holding") {
       const sheet = ss.getSheetByName("User_Holdings");
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd");
       sheet.appendRow([today, data.ticker, data.name, data.buyPrice, data.notes || ""]);
-      return ContentService.createTextOutput(JSON.stringify({ status: "success" }));
+      return ContentService.createTextOutput(JSON.stringify({ status: "success" })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unknown action" }));
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "Unknown action" })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }));
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
