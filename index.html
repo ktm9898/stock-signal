@@ -787,7 +787,8 @@
     function closeRegisterModal() { document.getElementById('register-modal').style.display = 'none'; }
 
     function quickRegister(name, ticker, price) {
-      document.getElementById('reg-stock-name').value = `${name} (${ticker})`;
+      const cleanTicker = formatTicker(ticker);
+      document.getElementById('reg-stock-name').value = `${name} (${cleanTicker})`;
       document.getElementById('reg-stock-price').value = price || '';
       openRegisterModal();
     }
@@ -804,20 +805,22 @@
       let ticker = "";
       const match = rawInput.match(/\((.*?)\)/);
       if (match) {
-        ticker = match[1];
+        ticker = formatTicker(match[1]);
         name = rawInput.replace(/\(.*?\)/, '').trim();
       } else {
-        // Smart resolve against KOSPI 200 metrics list
-        const found = allMetricsData.find(m => 
-          String(m.Name || m.name || '').trim() === rawInput ||
-          String(m.Ticker || m.ticker || '').trim() === rawInput
-        );
+        // Smart resolve against KOSPI 200 metrics list (ignore spaces)
+        const cleanInput = rawInput.replace(/\s+/g, '');
+        const found = allMetricsData.find(m => {
+          const mName = String(m.Name || m.name || '').replace(/\s+/g, '');
+          const mTicker = formatTicker(m.Ticker || m.ticker || '').replace(/\s+/g, '');
+          return mName === cleanInput || mTicker === cleanInput;
+        });
         if (found) {
           name = found.Name || found.name;
-          ticker = found.Ticker || found.ticker;
+          ticker = formatTicker(found.Ticker || found.ticker);
         } else {
           name = rawInput;
-          ticker = rawInput;
+          ticker = formatTicker(rawInput);
         }
       }
 

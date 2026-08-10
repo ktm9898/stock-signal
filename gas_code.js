@@ -237,7 +237,8 @@ function doPost(e) {
       setupSheets();
       const sheet = ss.getSheetByName("User_Holdings");
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd");
-      sheet.appendRow([today, data.ticker, data.name, data.buyPrice, data.notes || ""]);
+      const tickerStr = normalizeTicker(data.ticker);
+      sheet.appendRow([today, tickerStr, data.name, data.buyPrice, data.notes || ""]);
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -245,9 +246,13 @@ function doPost(e) {
     if (data.action === "delete_user_holding") {
       const sheet = ss.getSheetByName("User_Holdings");
       if (sheet && sheet.getLastRow() > 1) {
+        const targetTicker = normalizeTicker(data.ticker);
+        const targetStr = String(data.ticker).trim();
         const dataRows = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
         for (let i = dataRows.length - 1; i >= 0; i--) {
-          if (String(dataRows[i][1]) === String(data.ticker)) {
+          const rowTicker = normalizeTicker(dataRows[i][1]);
+          const rowName = String(dataRows[i][2] || "").trim();
+          if ((targetTicker && rowTicker === targetTicker) || rowName === targetStr || String(dataRows[i][1]).trim() === targetStr) {
             sheet.deleteRow(i + 2);
           }
         }
