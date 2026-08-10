@@ -571,6 +571,23 @@
       return str;
     }
 
+    function formatTicker(t) {
+      if (!t) return '-';
+      const str = String(t).trim();
+      const digits = str.replace(/[^0-9]/g, '');
+      if (digits.length > 0 && digits.length <= 6) {
+        return digits.padStart(6, '0');
+      }
+      return str;
+    }
+
+    function formatDec(val, decimals = 2) {
+      if (val === null || val === undefined || val === '-' || val === '') return '-';
+      const num = Number(val);
+      if (isNaN(num)) return String(val);
+      return num.toFixed(decimals);
+    }
+
     function renderBuyCandidates(list, logs = []) {
       const tbody = document.getElementById('buy-candidates-body');
       if (!list || list.length === 0) {
@@ -588,17 +605,18 @@
         const rawTier = String(item.Tier || item.tier || 'Tier 3');
         const tierText = rawTier.includes('1') ? 'Tier 1' : rawTier.includes('2') ? 'Tier 2' : 'Tier 3';
         const tierClass = rawTier.includes('1') ? 'badge-t1' : rawTier.includes('2') ? 'badge-t2' : 'badge-t3';
+        const ticker = formatTicker(item.Ticker || item.ticker || item.code);
 
         return `
           <tr>
             <td><span style="color:var(--text-sub); font-size:0.85rem; font-weight:500;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
-            <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.Ticker || item.code})</span></td>
+            <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
             <td><span class="badge ${tierClass}">${tierText}</span></td>
-            <td><strong style="color:var(--accent-cyan);">${item.ADX || item.adx}</strong></td>
-            <td>${item.Minus_DI || item.minusDi}</td>
-            <td><span style="color: ${(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${item.RSI || item.rsi || '-'}</span></td>
+            <td><strong style="color:var(--accent-cyan);">${formatDec(item.ADX || item.adx)}</strong></td>
+            <td>${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}</td>
+            <td><span style="color: ${Number(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${formatDec(item.RSI || item.rsi)}</span></td>
             <td>${(item.ClosePrice || item.price) ? Number(item.ClosePrice || item.price).toLocaleString() + ' 원' : '-'}</td>
-            <td><button class="btn-buy-reg" style="padding: 4px 10px; font-size: 0.8rem;" onclick="quickRegister('${item.Name || item.name}', '${item.Ticker || item.code}', ${item.ClosePrice || item.price || 0})"><i class="fa-solid fa-plus"></i> 매수</button></td>
+            <td><button class="btn-buy-reg" style="padding: 4px 10px; font-size: 0.8rem;" onclick="quickRegister('${item.Name || item.name}', '${ticker}', ${item.ClosePrice || item.price || 0})"><i class="fa-solid fa-plus"></i> 매수</button></td>
           </tr>
         `;
       }).join('');
@@ -620,20 +638,23 @@
         else if (rawStatus.includes('추세강함')) { badgeClass = 'badge-sell-warn'; statusText = '추세 강함'; }
         else { statusText = '관망'; }
 
-        const currAdx = item.ADX || item.adx || '-';
-        const prevAdx = item.Prev_ADX || item.prev_adx || '-';
-        const currMdi = item.Minus_DI || item.minus_di || '-';
-        const prevMdi = item.Prev_Minus_DI || item.prev_minus_di || '-';
+        const ticker = formatTicker(item.Ticker || item.ticker || item.code);
+        const currAdx = formatDec(item.ADX || item.adx);
+        const prevAdx = formatDec(item.Prev_ADX || item.prev_adx);
+        const currMdi = formatDec(item.Minus_DI || item.minus_di);
+        const prevMdi = formatDec(item.Prev_Minus_DI || item.prev_minus_di);
+        const currPdi = formatDec(item.Plus_DI || item.plus_di);
+        const rsi = formatDec(item.RSI || item.rsi);
 
         return `
           <tr>
-            <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.Ticker || item.code})</span></td>
-            <td><strong style="color: ${Number(currAdx) >= 30 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
+            <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
+            <td><strong style="color: ${Number(item.ADX || item.adx) >= 30 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
             <td style="color:var(--text-sub);">${prevAdx}</td>
             <td>${currMdi}</td>
             <td style="color:var(--text-sub);">${prevMdi}</td>
-            <td>${item.Plus_DI || item.plus_di || '-'}</td>
-            <td><span style="color: ${(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${item.RSI || item.rsi || '-'}</span></td>
+            <td>${currPdi}</td>
+            <td><span style="color: ${Number(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
             <td>${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
             <td><span class="badge ${badgeClass}">${statusText}</span></td>
           </tr>
@@ -661,28 +682,28 @@
         return;
       }
       tbody.innerHTML = list.map(item => {
-        const rawTicker = String(item.Ticker || item.ticker || item.code || '').trim();
+        const rawTicker = formatTicker(item.Ticker || item.ticker || item.code || '');
         const rawName = String(item.Name || item.name || '').trim();
         
         // Find in statusList first (User_Holdings_Status), fallback to metricsList (allMetrics)
         const statusItem = statusList.find(s => {
-          const sTicker = String(s.Ticker || s.ticker || '').trim();
+          const sTicker = formatTicker(s.Ticker || s.ticker || '');
           const sName = String(s.Name || s.name || '').trim();
-          return (rawTicker && sTicker === rawTicker) || (rawName && sName === rawName);
+          return (rawTicker && rawTicker !== '-' && sTicker === rawTicker) || (rawName && sName === rawName);
         });
 
         const metric = statusItem || metricsList.find(m => {
-          const mTicker = String(m.Ticker || m.ticker || '').trim();
+          const mTicker = formatTicker(m.Ticker || m.ticker || '');
           const mName = String(m.Name || m.name || '').trim();
-          return (rawTicker && mTicker === rawTicker) || (rawName && mName === rawName);
+          return (rawTicker && rawTicker !== '-' && mTicker === rawTicker) || (rawName && mName === rawName);
         });
 
-        const displayTicker = metric ? (metric.Ticker || metric.ticker || rawTicker) : (rawTicker.match(/^\d+$/) ? rawTicker : '-');
+        const displayTicker = formatTicker(metric ? (metric.Ticker || metric.ticker || rawTicker) : rawTicker);
         const displayName = metric ? (metric.Name || metric.name || rawName) : (rawName || rawTicker);
 
         const buyPrice = Number(item.BuyPrice || item.buyPrice || 0);
         const currPrice = metric ? Number(metric.ClosePrice || metric.close || metric.CurrPrice || metric.currPrice || 0) : 0;
-        const adx = metric ? (metric.ADX || metric.adx || '-') : '-';
+        const adx = formatDec(metric ? (metric.ADX || metric.adx || '-') : '-');
         
         const statusText = statusItem ? (statusItem.Status || statusItem.signalLevel || '관망') : '관망';
         let badgeClass = 'badge-neutral';
@@ -707,7 +728,7 @@
             <td><strong style="color:${returnRateColor}">${returnRateStr}</strong></td>
             <td><strong style="color:var(--accent-cyan);">${adx}</strong></td>
             <td><span class="badge ${badgeClass}">${statusText}</span></td>
-            <td><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${rawTicker || rawName}')" title="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
+            <td><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${rawTicker !== '-' ? rawTicker : rawName}')" title="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
           </tr>
         `;
       }).join('');
@@ -732,14 +753,15 @@
         if (level.includes('강력') || level.includes('손절')) badgeClass = 'badge-sell-danger';
         else if (level.includes('수익') || level.includes('익절')) badgeClass = 'badge-t1';
 
-        const adx = item.ADX || item.adx || '-';
-        const mdi = item.Minus_DI || item.minus_di || '-';
-        const rsi = item.RSI || item.rsi || '-';
+        const ticker = formatTicker(item.Ticker || item.ticker || item.code);
+        const adx = formatDec(item.ADX || item.adx);
+        const mdi = formatDec(item.Minus_DI || item.minus_di);
+        const rsi = formatDec(item.RSI || item.rsi);
 
         return `
           <tr>
             <td><span style="color:var(--text-sub); font-size:0.85rem;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
-            <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.Ticker || item.code})</span></td>
+            <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
             <td>${Number(item.BuyPrice || item.buyPrice || 0).toLocaleString()} 원</td>
             <td>${Number(item.CurrPrice || item.currPrice || 0).toLocaleString()} 원</td>
             <td><strong style="color:${rateColor}">${rateSign}${rate.toFixed(2)}%</strong></td>
