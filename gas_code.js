@@ -234,39 +234,9 @@ function getSheetData(sheet) {
 }
 
 /**
- * Setup 100% reliable daily automatic triggers inside Google Apps Script (10:05, 14:05, 15:45 KST)
- * Run setupDailyTriggers() once inside GAS Editor!
+ * Automatically triggered by Google Apps Script UI Triggers (⏰ 트리거)
+ * to run KOSPI 200 Screener on GitHub Actions.
  */
-function setupDailyTriggers() {
-  const existingTriggers = ScriptApp.getProjectTriggers();
-  for (let i = 0; i < existingTriggers.length; i++) {
-    ScriptApp.deleteTrigger(existingTriggers[i]);
-  }
-
-  ScriptApp.newTrigger("triggerGitHubScreener")
-    .timeBased()
-    .atHour(10)
-    .nearMinute(5)
-    .everyDays(1)
-    .create();
-
-  ScriptApp.newTrigger("triggerGitHubScreener")
-    .timeBased()
-    .atHour(14)
-    .nearMinute(5)
-    .everyDays(1)
-    .create();
-
-  ScriptApp.newTrigger("triggerGitHubScreener")
-    .timeBased()
-    .atHour(15)
-    .nearMinute(45)
-    .everyDays(1)
-    .create();
-
-  Logger.log("✅ 구글 앱스 스크립트 정기 자동 트리거 설정 완료 (10:05, 14:05, 15:45 KST)!");
-}
-
 function triggerGitHubScreener() {
   const githubToken = PropertiesService.getScriptProperties().getProperty("GITHUB_TOKEN");
   const url = "https://api.github.com/repos/ktm9898/stock-signal/actions/workflows/screener.yml/dispatches";
