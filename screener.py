@@ -229,6 +229,60 @@ def evaluate_buy_signal(df):
         "close": int(df['종가'].iloc[-1])
     }
 
+def evaluate_sell_signal(df, buy_price):
+    """
+    Evaluate Sell Signal for a held stock using Korea Investment & Securities (KIS MTS Standard) ADX.
+    Conditions:
+    1. ADX Trend Reversal: ADX was >= 30 and starts declining (Prev_ADX > Curr_ADX)
+    2. Bearish Cross: +DI crosses below -DI (Prev(+DI) > Prev(-DI) and Curr(+DI) <= Curr(-DI))
+    3. Profit/Loss Alerts: Return Rate <= -5.0% (Stop Loss) or >= +15.0% (Profit Take)
+    """
+    if len(df) < 2 or 'adx' not in df.columns or 'plus_di' not in df.columns:
+        return None
+
+    curr_close = int(df['종가'].iloc[-1])
+    curr_adx = df['adx'].iloc[-1]
+    prev_adx = df['adx'].iloc[-2]
+    curr_pdi = df['plus_di'].iloc[-1]
+    prev_pdi = df['plus_di'].iloc[-2]
+    curr_mdi = df['minus_di'].iloc[-1]
+    prev_mdi = df['minus_di'].iloc[-2]
+
+    return_rate = 0.0
+    if buy_price and buy_price > 0:
+        return_rate = round(((curr_close - buy_price) / buy_price) * 100, 2)
+
+    details = []
+    level = "관망"
+
+    if prev_adx >= 30 and curr_adx < prev_adx:
+        details.append(f"ADX 추세 꺾임 (전일: {prev_adx:.1f} → 금일: {curr_adx:.1f})")
+        level = "매도 경고"
+
+    if prev_pdi > prev_mdi and curr_pdi <= curr_mdi:
+        details.append(f"+DI가 -DI 하향 데드크로스 (+DI: {curr_pdi:.1f}, -DI: {curr_mdi:.1f})")
+        level = "매도 신호"
+
+    if buy_price and buy_price > 0:
+        if return_rate <= -5.0:
+            details.append(f"손절 기준 도달 ({return_rate}%)")
+            level = "강력 매도 (손절)"
+        elif return_rate >= 15.0:
+            details.append(f"목표 수익률 달성 ({return_rate}%)")
+            level = "수익 실현 (익절)"
+
+    if not details:
+        return None
+
+    return {
+        "buyPrice": buy_price,
+        "currPrice": curr_close,
+        "returnRate": return_rate,
+        "adx": round(curr_adx, 2),
+        "signalLevel": level,
+        "details": details
+    }
+
 def post_to_google_sheets(url, action, data):
     """Post screening results to Google Apps Script Web App."""
     payload = {"action": action, **data}
@@ -244,7 +298,7 @@ if __name__ == "__main__":
     gas_url = os.environ.get("GAS_WEBAPP_URL", "")
 
     # 1. Fetch KOSPI 200 Tickers
-    print("[1/3] Fetching KOSPI 200 component tickers...")
+    print("[1/4] Fetching KOSPI 200 component tickers...")
     items = get_kospi200_tickers()
     print(f" -> Found {len(items)} tickers.")
 
@@ -254,7 +308,7 @@ if __name__ == "__main__":
     start_date = (datetime.datetime.now() - datetime.timedelta(days=365)).strftime("%Y%m%d")
 
     # 2. Screen Buy Signals across all KOSPI 200
-    print("[2/3] Calculating indicators and screening buy signals...")
+    print("[2/4] Calculating indicators and screening buy signals...")
     for idx, item in enumerate(items):
         ticker = item['ticker']
         name = item['name']
@@ -310,7 +364,7 @@ if __name__ == "__main__":
 
     # 3. Post to Google Sheets API
     if gas_url:
-        print("[3/3] Posting screening results to Google Sheets...")
+        print("[3/4] Posting screening results to Google Sheets...")
         log_payload = {
             "status": "SUCCESS",
             "scanned": len(items),
@@ -322,7 +376,44 @@ if __name__ == "__main__":
             "all_stocks": all_stocks,
             "log": log_payload
         })
+
+    # 4. Check Sell Signals for User Holdings
+    if gas_url:
+        print("[4/4] Checking Sell Signals for User Holdings...")
+        try:
+            pin = os.environ.get("AUTH_PIN", "")
+            req_url = f"{gas_url}?action=holdings"
+            if pin:
+                req_url += f"&pin={pin}"
+            h_res = requests.get(req_url, timeout=10)
+            if h_res.status_code == 200 and h_res.json().get("success"):
+                holdings_list = h_res.json().get("userHoldings", [])
+                sell_signals = []
+                for h in holdings_list:
+                    h_ticker = str(h.get("Ticker") or h.get("ticker", "")).strip()
+                    h_name = h.get("Name") or h.get("name", "")
+                    h_price = float(h.get("BuyPrice") or h.get("buyPrice", 0))
+                    if not h_ticker:
+                        continue
+                    
+                    h_df = get_ohlcv_data(h_ticker, start_date, end_date)
+                    if len(h_df) < 30:
+                        continue
+                    h_df = calculate_indicators(h_df)
+                    sell_res = evaluate_sell_signal(h_df, h_price)
+                    if sell_res:
+                        sell_res["ticker"] = h_ticker
+                        sell_res["name"] = h_name
+                        sell_signals.append(sell_res)
+                        print(f"  ⚠️ [SELL ALERT] {h_name} ({h_ticker}) - {sell_res['signalLevel']} | {', '.join(sell_res['details'])}")
+                
+                if sell_signals:
+                    post_to_google_sheets(gas_url, "update_sell_signals", {"signals": sell_signals})
+                else:
+                    print(" -> No sell signals detected for current holdings.")
+        except Exception as e:
+            print(f"[WARN] Failed evaluating sell signals: {e}")
     else:
-        print("[WARN] GAS_WEBAPP_URL environment variable is not set. Results printed above.")
+        print("[WARN] GAS_WEBAPP_URL environment variable is not set.")
 
     print("[INFO] Screener Execution Completed.")
