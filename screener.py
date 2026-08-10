@@ -412,15 +412,22 @@ if __name__ == "__main__":
                         h_name = str(h.get("Name") or h.get("name") or "").strip()
                         h_price = float(h.get("BuyPrice") or h.get("buyPrice", 0))
                         
+                        # Pad numeric ticker to 6 digits (e.g. "16360" -> "016360")
+                        if h_ticker.isdigit():
+                            h_ticker = h_ticker.zfill(6)
+
                         # Resolve stock ticker code if h_ticker is stock name (e.g. "삼성전자")
                         if not h_ticker.isdigit() or not h_name:
                             for item in items:
                                 i_name = str(item.get('name', '')).strip()
-                                i_ticker = str(item.get('ticker', '')).strip()
-                                if i_name == h_ticker or i_name == h_name or i_ticker == h_ticker:
+                                i_ticker = str(item.get('ticker', '')).strip().zfill(6)
+                                if i_name == h_ticker or i_name == h_name or i_ticker == h_ticker or i_name.replace(' ', '') == h_name.replace(' ', ''):
                                     h_ticker = i_ticker
                                     h_name = i_name
                                     break
+                        
+                        if h_ticker.isdigit():
+                            h_ticker = h_ticker.zfill(6)
                         
                         if not h_ticker or not h_ticker.isdigit():
                             print(f"  [WARN] Skipping invalid holding entry: Ticker={h_ticker}, Name={h_name}")
