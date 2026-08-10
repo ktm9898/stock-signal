@@ -55,9 +55,14 @@
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--card-border);
       position: sticky; top: 0; z-index: 100;
-      padding: 12px 24px;
-      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 20px;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%;
     }
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; color: #0f172a; }
     .brand-icon {
@@ -327,23 +332,25 @@
 
   <!-- Header -->
   <header>
-    <div class="brand">
-      <div class="brand-icon"><i class="fa-solid fa-chart-line"></i></div>
-      <div style="display: flex; flex-direction: column;">
-        <span style="font-size: 1.1rem; font-weight: 700; color: #0f172a; line-height: 1.1;">StockSignal</span>
-        <span style="font-size: 0.7rem; color: #2563eb; font-weight: 600; margin-top: 1px;">KOSPI 200</span>
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon"><i class="fa-solid fa-chart-line"></i></div>
+        <div style="display: flex; flex-direction: column;">
+          <span style="font-size: 1.1rem; font-weight: 700; color: #0f172a; line-height: 1.1;">StockSignal</span>
+          <span style="font-size: 0.7rem; color: #2563eb; font-weight: 600; margin-top: 1px;">KOSPI 200</span>
+        </div>
       </div>
-    </div>
-    <div class="header-right-group">
-      <button class="btn-header-refresh" onclick="refreshDataUI(this)" title="데이터 새로고침">
-        <i class="fa-solid fa-rotate"></i>
-      </button>
-      <button class="btn-manual-exec" id="manual-trigger-btn" onclick="triggerManualScreening()">
-        수동 실행
-      </button>
-      <div class="time-badge">
-        <div class="pulse-dot"></div>
-        <span id="sync-time">최근 갱신: -</span>
+      <div class="header-right-group">
+        <div class="time-badge">
+          <div class="pulse-dot"></div>
+          <span id="sync-time">최근 갱신: -</span>
+        </div>
+        <button class="btn-header-refresh" onclick="refreshDataUI(this)" title="데이터 새로고침">
+          <i class="fa-solid fa-rotate"></i>
+        </button>
+        <button class="btn-manual-exec" id="manual-trigger-btn" onclick="triggerManualScreening()">
+          수동 실행
+        </button>
       </div>
     </div>
   </header>
@@ -981,246 +988,6 @@
         ticker = formatTicker(match[1]);
         name = rawInput.replace(/\(.*?\)/, '').trim();
       } else {
-        const cleanInput = rawInput.replace(/\s+/g, '');
-        const found = allMetricsData.find(m => {
-          const mName = String(m.Name || m.name || '').replace(/\s+/g, '');
-          const mTicker = formatTicker(m.Ticker || m.ticker || '').replace(/\s+/g, '');
-          return mName === cleanInput || mTicker === cleanInput;
-        });
-        if (found) {
-          name = found.Name || found.name;
-          ticker = formatTicker(found.Ticker || found.ticker);
-        } else {
-          name = rawInput;
-          ticker = formatTicker(rawInput);
-        }
-      }
-
-      try {
-        const resp = await fetch(GAS_WEBAPP_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({
-            action: "add_user_holding",
-            pin: userPin,
-            ticker: ticker,
-            name: name,
-            buyPrice: Number(buyPrice)
-          })
-        });
-        const result = await resp.json();
-        if (result.success) {
-          alert(`[${name} (${ticker})] 보유 종목이 성공적으로 매수 등록되었습니다!`);
-          closeRegisterModal();
-          loadDataFromGAS(userPin);
-        } else {
-          alert("등록 실패: " + (result.message || "오류가 발생했습니다."));
-        }
-      } catch (err) {
-        alert("등록 중 네트워크 오류가 발생했습니다: " + err);
-      }
-    }
-
-    async function deleteHolding(ticker) {
-      if (!confirm(`종목코드 [${ticker}] 보유 종목을 삭제하시겠습니까?`)) return;
-      try {
-        const resp = await fetch(GAS_WEBAPP_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({
-            action: "delete_user_holding",
-            pin: userPin,
-            ticker: ticker
-          })
-        });
-        const result = await resp.json();
-        if (result.success) {
-          loadDataFromGAS(userPin);
-        } else {
-          alert("삭제 실패: " + (result.message || "오류가 발생했습니다."));
-        }
-      } catch (err) {
-        alert("삭제 중 오류가 발생했습니다: " + err);
-      }
-    }
-
-    async function triggerManualScreening() {
-      if (!confirm("⚡ KOSPI 200 종목 수동 스크리닝을 즉시 실행하시겠습니까?\n\n(200개 종목 수집 및 한국투자증권 ADX 정밀 계산에 약 1~2분이 소요됩니다)")) return;
-      
-      const btn = document.getElementById('manual-trigger-btn');
-      if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 분석 중...';
-      }
-
-      try {
-        const resp = await fetch(GAS_WEBAPP_URL, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({
-            action: "trigger_screener",
-            pin: userPin
-          })
-        });
-        const result = await resp.json();
-        if (result.success) {
-          alert("🚀 수동 스크리닝이 깃허브 서버에서 즉시 시작되었습니다!\n\n약 1~2분 후 200개 종목 수식 계산이 완료되면 시트와 화면이 자동 갱신됩니다.");
-          setTimeout(() => {
-            loadDataFromGAS(userPin);
-            if (btn) {
-              btn.disabled = false;
-              btn.innerHTML = '수동 실행';
-            }
-          }, 90000);
-        } else {
-          alert("❌ 수동 스크리닝 실행 실패:\n\n" + (result.message || "권한 또는 설정 오류가 발생했습니다."));
-          if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '수동 실행';
-          }
-        }
-      } catch (err) {
-        alert("스크리닝 요청 실패: " + err);
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = '수동 실행';
-        }
-      }
-    }
-
-    // PWA Installation Prompt Logic
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      const installBtn = document.getElementById('pwa-install-btn');
-      if (installBtn) installBtn.style.display = 'inline-flex';
-    });
-
-    async function installPWA() {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        const installBtn = document.getElementById('pwa-install-btn');
-        if (installBtn) installBtn.style.display = 'none';
-      }
-      deferredPrompt = null;
-    }
-
-    // Register Service Worker for Mobile PWA
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW reg failed:', err));
-      });
-    }
-
-    // Startup check: authenticate PIN or attempt PIN-free load
-    loadDataFromGAS(userPin).then(success => {
-      if (success) {
-        document.getElementById('pin-modal').style.display = 'none';
-        document.getElementById('pin-error').style.display = 'none';
-      } else {
-        document.getElementById('pin-modal').style.display = 'flex';
-      }
-    });
-  </script>
-</body>
-</html>
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      document.getElementById(tabId).style.display = 'block';
-      if (event && event.currentTarget) {
-        event.currentTarget.classList.add('active');
-      }
-    }
-
-    function onStockSearchInput() {
-      const input = document.getElementById('reg-stock-name').value.trim().toLowerCase();
-      const resultsDiv = document.getElementById('stock-search-results');
-      if (!input || !allMetricsData || allMetricsData.length === 0) {
-        resultsDiv.style.display = 'none';
-        return;
-      }
-
-      const matches = allMetricsData.filter(m => {
-        const name = String(m.Name || m.name || '').toLowerCase();
-        const ticker = formatTicker(m.Ticker || m.ticker || '').toLowerCase();
-        return name.includes(input) || ticker.includes(input);
-      }).slice(0, 10);
-
-      if (matches.length === 0) {
-        resultsDiv.style.display = 'none';
-        return;
-      }
-
-      resultsDiv.innerHTML = matches.map(m => {
-        const name = m.Name || m.name;
-        const ticker = formatTicker(m.Ticker || m.ticker);
-        const price = Number(m.ClosePrice || m.close || 0);
-        const priceStr = price > 0 ? price.toLocaleString() + '원' : '';
-        return `
-          <div class="search-item" onclick="selectStockSearchResult('${name}', '${ticker}', ${price})">
-            <div><strong>${name}</strong> <span style="color:var(--text-sub); font-size:0.8rem;">(${ticker})</span></div>
-            <div style="color:#2563eb; font-weight:600; font-size:0.85rem;">${priceStr}</div>
-          </div>
-        `;
-      }).join('');
-      resultsDiv.style.display = 'block';
-    }
-
-    function selectStockSearchResult(name, ticker, price) {
-      document.getElementById('reg-stock-name').value = `${name} (${ticker})`;
-      if (price > 0) {
-        document.getElementById('reg-stock-price').value = price;
-      }
-      document.getElementById('stock-search-results').style.display = 'none';
-    }
-
-    document.addEventListener('click', function(e) {
-      const resultsDiv = document.getElementById('stock-search-results');
-      const input = document.getElementById('reg-stock-name');
-      if (resultsDiv && input && !input.contains(e.target) && !resultsDiv.contains(e.target)) {
-        resultsDiv.style.display = 'none';
-      }
-    });
-
-    function openRegisterModal() { 
-      document.getElementById('register-modal').style.display = 'flex'; 
-      const resultsDiv = document.getElementById('stock-search-results');
-      if (resultsDiv) resultsDiv.style.display = 'none';
-    }
-    function closeRegisterModal() { 
-      document.getElementById('register-modal').style.display = 'none'; 
-      const resultsDiv = document.getElementById('stock-search-results');
-      if (resultsDiv) resultsDiv.style.display = 'none';
-    }
-
-    function quickRegister(name, ticker, price) {
-      const cleanTicker = formatTicker(ticker);
-      document.getElementById('reg-stock-name').value = `${name} (${cleanTicker})`;
-      document.getElementById('reg-stock-price').value = price || '';
-      openRegisterModal();
-    }
-
-    async function saveHolding() {
-      const rawInput = document.getElementById('reg-stock-name').value.trim();
-      const buyPrice = document.getElementById('reg-stock-price').value.trim();
-      if (!rawInput || !buyPrice) {
-        alert("종목명(또는 코드)과 매수가격(원)을 모두 입력해주세요.");
-        return;
-      }
-
-      let name = rawInput;
-      let ticker = "";
-      const match = rawInput.match(/\((.*?)\)/);
-      if (match) {
-        ticker = formatTicker(match[1]);
-        name = rawInput.replace(/\(.*?\)/, '').trim();
-      } else {
-        // Smart resolve against KOSPI 200 metrics list (ignore spaces)
         const cleanInput = rawInput.replace(/\s+/g, '');
         const found = allMetricsData.find(m => {
           const mName = String(m.Name || m.name || '').replace(/\s+/g, '');
