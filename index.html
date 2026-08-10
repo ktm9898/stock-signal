@@ -400,17 +400,20 @@
 
     function formatShortDate(rawDate) {
       if (!rawDate) return '-';
+      try {
+        const d = new Date(rawDate);
+        if (!isNaN(d.getTime())) {
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          const hours = String(d.getHours()).padStart(2, '0');
+          const minutes = String(d.getMinutes()).padStart(2, '0');
+          return `${month}.${day} ${hours}:${minutes}`;
+        }
+      } catch (e) {}
+
       const str = String(rawDate).trim();
-      if (str.includes('T')) {
-        const parts = str.split('T');
-        const d = parts[0].substring(5).replace('-', '.');
-        const t = parts[1].substring(0, 5);
-        return `${d} ${t}`;
-      }
       if (str.length >= 16) {
-        const d = str.substring(5, 10).replace('-', '.');
-        const t = str.substring(11, 16);
-        return `${d} ${t}`;
+        return str.substring(5, 16).replace('T', ' ').replace('-', '.');
       }
       return str;
     }
