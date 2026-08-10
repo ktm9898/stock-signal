@@ -50,6 +50,7 @@ function doGet(e) {
   }
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  setupSheets();
   let result = { success: true, status: "success" };
 
   if (action === "all" || action === "buy") result.buyCandidates = getSheetData(ss.getSheetByName("Buy_Candidates"));
@@ -275,7 +276,13 @@ function getSheetData(sheet) {
   for (let i = 1; i < rows.length; i++) {
     let rowObj = {};
     for (let j = 0; j < headers.length; j++) {
-      rowObj[headers[j]] = rows[i][j];
+      const key = String(headers[j] || "").trim();
+      if (!key) continue;
+      let val = rows[i][j];
+      if (val instanceof Date) {
+        val = Utilities.formatDate(val, "GMT+9", "yyyy-MM-dd HH:mm:ss");
+      }
+      rowObj[key] = val;
     }
     data.push(rowObj);
   }

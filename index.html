@@ -413,6 +413,8 @@
               <th>현재가</th>
               <th>수익률</th>
               <th>ADX</th>
+              <th>-DI</th>
+              <th>RSI</th>
               <th>상태</th>
               <th>사유</th>
               <th>삭제</th>
@@ -617,6 +619,16 @@
       const num = Number(val);
       if (isNaN(num)) return String(val);
       return num.toFixed(decimals);
+    }
+
+    function getVal(obj, ...keys) {
+      if (!obj) return '-';
+      for (const k of keys) {
+        if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '' && obj[k] !== '-') {
+          return obj[k];
+        }
+      }
+      return '-';
     }
 
     function renderBuyCandidates(list, logs = []) {
