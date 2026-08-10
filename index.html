@@ -885,7 +885,7 @@
             <td><strong style="color:var(--accent-cyan);">${adx}</strong></td>
             <td>${mdi}</td>
             <td><span style="color: ${Number(rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
-            <td><span class="badge ${badgeClass}" onclick="showDetailsAlert('${displayName}', '${statusText}', '${escapedDetails}')" title="클릭 시 감시 사유 확인">${statusText}</span></td>
+            <td><span class="badge ${badgeClass}" onclick="showDetailsModal('${displayName}', '${statusText}', '${escapedDetails}', '${badgeClass}')" title="클릭 시 감시 사유 확인">${statusText}</span></td>
             <td><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${rawTicker !== '-' ? rawTicker : rawName}')" title="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
           </tr>
         `;
@@ -939,7 +939,7 @@
             <td><strong style="color:var(--accent-cyan);">${adx}</strong></td>
             <td>${mdi}</td>
             <td><span style="color: ${Number(rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
-            <td><span class="badge ${badgeClass}" onclick="showDetailsAlert('${item.Name || item.name}', '${level}', '${escapedDetails}')" title="클릭 시 감시 사유 확인">${level}</span></td>
+            <td><span class="badge ${badgeClass}" onclick="showDetailsModal('${item.Name || item.name}', '${level}', '${escapedDetails}', '${badgeClass}')" title="클릭 시 감시 사유 확인">${level}</span></td>
           </tr>
         `;
       }).join('');
