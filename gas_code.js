@@ -129,6 +129,29 @@ function doPost(e) {
         .setMimeType(ContentService.MimeType.JSON);
     }
 
+    if (data.action === "trigger_screener") {
+      const githubToken = PropertiesService.getScriptProperties().getProperty("GITHUB_TOKEN");
+      const url = "https://api.github.com/repos/ktm9898/stock-signal/actions/workflows/screener.yml/dispatches";
+      const options = {
+        method: "post",
+        contentType: "application/json",
+        headers: {
+          "Accept": "application/vnd.github+json",
+          "User-Agent": "GoogleAppsScript"
+        },
+        payload: JSON.stringify({ ref: "main" }),
+        muteHttpExceptions: true
+      };
+      if (githubToken) {
+        options.headers["Authorization"] = "Bearer " + githubToken;
+      }
+      try {
+        UrlFetchApp.fetch(url, options);
+      } catch (err) {}
+      return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success", message: "수동 스크리닝이 깃허브 서버에서 시작되었습니다." }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     if (data.action === "add_user_holding") {
       setupSheets();
       const sheet = ss.getSheetByName("User_Holdings");

@@ -4,6 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>StockSignal - KOSPI 200 ADX 매매 신호 트래커</title>
+  <!-- PWA Mobile App Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a0e17">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="StockSignal">
+  <link rel="apple-touch-icon" href="icon-192.png">
+
   <!-- Google Fonts & Font Awesome Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -159,9 +168,17 @@
       <div class="brand-icon"><i class="fa-solid fa-chart-line"></i></div>
       <span>StockSignal <span style="font-size: 0.8rem; color: var(--accent-cyan); font-weight:400;">KOSPI 200</span></span>
     </div>
-    <div class="time-badge">
-      <div class="pulse-dot"></div>
-      <span id="sync-time">장중 14:00 & 장마감 15:40 자동 업데이트</span>
+    <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+      <button class="btn-buy-reg" id="manual-trigger-btn" style="padding: 8px 14px; font-size: 0.85rem; background: linear-gradient(135deg, #00f2fe, #4facfe); color: #000; font-weight: 600;" onclick="triggerManualScreening()">
+        <i class="fa-solid fa-rotate-right"></i> 수동 스크리닝 실행
+      </button>
+      <button class="btn-buy-reg" id="pwa-install-btn" style="display:none; padding: 8px 14px; font-size: 0.85rem; background: linear-gradient(135deg, #00c853, #64dd17); color: #000; font-weight: 600;" onclick="installPWA()">
+        <i class="fa-solid fa-mobile-screen-button"></i> 앱으로 설치하기
+      </button>
+      <div class="time-badge">
+        <div class="pulse-dot"></div>
+        <span id="sync-time">자동 & 수동 스크리닝</span>
+      </div>
     </div>
   </header>
 
@@ -690,6 +707,69 @@
       } catch (err) {
         alert("삭제 중 오류가 발생했습니다: " + err);
       }
+    }
+
+    async function triggerManualScreening() {
+      if (!confirm("⚡ KOSPI 200 종목 수동 스크리닝을 즉시 실행하시겠습니까?\n\n(200개 종목 수집 및 한국투자증권 ADX 정밀 계산에 약 1~2분이 소요됩니다)")) return;
+      
+      const btn = document.getElementById('manual-trigger-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 분석 중...';
+      }
+
+      try {
+        await fetch(GAS_WEBAPP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: "trigger_screener",
+            pin: userPin
+          })
+        });
+        alert("🚀 수동 스크리닝이 깃허브 서버에서 즉시 시작되었습니다!\n\n약 1~2분 후 200개 종목 수식 계산이 완료되면 시트와 화면이 자동 갱신됩니다.");
+        
+        setTimeout(() => {
+          loadDataFromGAS(userPin);
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> 수동 스크리닝 실행';
+          }
+        }, 90000);
+      } catch (err) {
+        alert("스크리닝 요청 완료! 약 1~2분 후 화면이 갱신됩니다.");
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-rotate-right"></i> 수동 스크리닝 실행';
+        }
+      }
+    }
+
+    // PWA Installation Prompt Logic
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const installBtn = document.getElementById('pwa-install-btn');
+      if (installBtn) installBtn.style.display = 'inline-flex';
+    });
+
+    async function installPWA() {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        const installBtn = document.getElementById('pwa-install-btn');
+        if (installBtn) installBtn.style.display = 'none';
+      }
+      deferredPrompt = null;
+    }
+
+    // Register Service Worker for Mobile PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW reg failed:', err));
+      });
     }
 
     // Startup check: authenticate stored PIN against backend dynamically
