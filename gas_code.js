@@ -76,7 +76,7 @@ function doPost(e) {
       data.action === "update_holdings_status" || 
       data.action === "update_sell_signals"
     );
-    if (inputPin !== authPin && !isBackendAction) {
+    if (authPin && inputPin !== authPin && !isBackendAction) {
       return ContentService.createTextOutput(JSON.stringify({ success: false, status: "error", message: "Unauthorized: Invalid PIN" }))
         .setMimeType(ContentService.MimeType.JSON);
     }
