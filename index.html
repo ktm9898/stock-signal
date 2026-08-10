@@ -678,6 +678,48 @@
       }
     }
 
+    function showDetailsModal(stockName, statusText, detailsText, badgeClass = 'badge-t1') {
+      document.getElementById('info-modal-title').textContent = stockName;
+      const badgeEl = document.getElementById('info-modal-badge');
+      badgeEl.textContent = statusText;
+      badgeEl.className = 'badge ' + badgeClass;
+      
+      const desc = (detailsText && detailsText !== '-' && detailsText !== 'undefined') ? detailsText : "상세 사유 기록이 없습니다.";
+      document.getElementById('info-modal-body').textContent = desc;
+      document.getElementById('info-modal').style.display = 'flex';
+    }
+
+    function showInfoModal(title, text) {
+      document.getElementById('info-modal-title').textContent = title;
+      const badgeEl = document.getElementById('info-modal-badge');
+      badgeEl.textContent = '안내';
+      badgeEl.className = 'badge badge-t2';
+      document.getElementById('info-modal-body').textContent = text;
+      document.getElementById('info-modal').style.display = 'flex';
+    }
+
+    function closeInfoModal() {
+      document.getElementById('info-modal').style.display = 'none';
+    }
+
+    let confirmResolve = null;
+    function showConfirmModal(title, msg) {
+      document.getElementById('confirm-modal-title').textContent = title;
+      document.getElementById('confirm-modal-msg').textContent = msg;
+      document.getElementById('confirm-modal').style.display = 'flex';
+      return new Promise((resolve) => {
+        confirmResolve = resolve;
+      });
+    }
+
+    function closeConfirmModal(result) {
+      document.getElementById('confirm-modal').style.display = 'none';
+      if (confirmResolve) {
+        confirmResolve(result);
+        confirmResolve = null;
+      }
+    }
+
     function formatDateOnly(rawDate) {
       if (!rawDate) return '-';
       try {
