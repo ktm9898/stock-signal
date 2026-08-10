@@ -739,9 +739,10 @@
         
         const statusText = statusItem ? (statusItem.Status || statusItem.signalLevel || '관망') : '관망';
         let badgeClass = 'badge-neutral';
-        if (statusText.includes('매도 경고')) badgeClass = 'badge-sell-warn';
-        else if (statusText.includes('강력') || statusText.includes('손절')) badgeClass = 'badge-sell-danger';
-        else if (statusText.includes('익절') || statusText.includes('수익')) badgeClass = 'badge-t1';
+        if (statusText.includes('4단계') || statusText.includes('강력')) badgeClass = 'badge-sell-danger';
+        else if (statusText.includes('3단계') || statusText.includes('매도 신호')) badgeClass = 'badge-sell-warn';
+        else if (statusText.includes('2단계') || statusText.includes('매도 주의')) badgeClass = 'badge-t3';
+        else if (statusText.includes('1단계') || statusText.includes('매도 준비')) badgeClass = 'badge-t2';
 
         let returnRateStr = '-';
         let returnRateColor = 'inherit';
@@ -780,10 +781,12 @@
         const rate = Number(item.ReturnRate || item.returnRate || 0);
         const rateColor = rate > 0 ? 'var(--accent-red)' : rate < 0 ? 'var(--accent-blue)' : 'inherit';
         const rateSign = rate > 0 ? '+' : '';
-        const level = String(item.Status || item.signalLevel || '매도 경고');
-        let badgeClass = 'badge-sell-warn';
-        if (level.includes('강력') || level.includes('손절')) badgeClass = 'badge-sell-danger';
-        else if (level.includes('수익') || level.includes('익절')) badgeClass = 'badge-t1';
+        const level = String(item.Status || item.signalLevel || '1단계: 매도 준비');
+        let badgeClass = 'badge-t2';
+        if (level.includes('4단계') || level.includes('강력')) badgeClass = 'badge-sell-danger';
+        else if (level.includes('3단계') || level.includes('매도 신호')) badgeClass = 'badge-sell-warn';
+        else if (level.includes('2단계') || level.includes('매도 주의')) badgeClass = 'badge-t3';
+        else if (level.includes('1단계') || level.includes('매도 준비')) badgeClass = 'badge-t2';
 
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
         const adx = formatDec(item.ADX || item.adx);

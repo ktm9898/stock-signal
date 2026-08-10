@@ -253,26 +253,33 @@ def evaluate_sell_signal(df, buy_price):
         return_rate = round(((curr_close - buy_price) / buy_price) * 100, 2)
 
     details = []
-    level = "관망"
-
-    # 1. ADX 추세 꺾임 (ADX Peak Drop >= 30)
-    if prev_adx >= 30.0 and curr_adx < prev_adx:
+    
+    # 1. ADX Peak Drop (ADX >= 30 and dropping)
+    adx_drop = (prev_adx >= 30.0 and curr_adx < prev_adx)
+    if adx_drop:
         details.append(f"ADX 추세 꺾임 (전일: {prev_adx:.1f} → 금일: {curr_adx:.1f})")
-        level = "매도 경고 (추세 둔화)"
 
-    # 2. +DI가 -DI 하향 데드크로스 (+DI Dead Cross)
-    if prev_pdi > prev_mdi and curr_pdi <= curr_mdi:
+    # 2. +DI Dead Cross (+DI <= -DI)
+    di_dead_cross = (prev_pdi > prev_mdi and curr_pdi <= curr_mdi)
+    if di_dead_cross:
         details.append(f"+DI가 -DI 하향 데드크로스 (+DI: {curr_pdi:.1f}, -DI: {curr_mdi:.1f})")
-        if level == "관망":
-            level = "매도 신호 (방향 전환)"
-        else:
-            level = "강력 매도 (추세 꺾임 + 데드크로스)"
 
-    # 3. -DI 상승 및 매도세 우위 이탈 (-DI Acceleration >= 25)
-    if curr_mdi >= 25.0 and curr_mdi > curr_pdi:
+    # 3. -DI Acceleration (-DI >= 25 and -DI > +DI)
+    mdi_strong = (curr_mdi >= 25.0 and curr_mdi > curr_pdi)
+    if mdi_strong:
         details.append(f"-DI 매도세 우위 이탈 (-DI: {curr_mdi:.1f} >= 25)")
-        if level == "관망":
-            level = "매도 경고 (매도세 우위)"
+
+    # Hierarchical Sell Signal Classification (1단계 ~ 4단계)
+    if adx_drop and di_dead_cross:
+        level = "4단계: 강력 매도"
+    elif di_dead_cross:
+        level = "3단계: 매도 신호"
+    elif mdi_strong:
+        level = "2단계: 매도 주의"
+    elif adx_drop:
+        level = "1단계: 매도 준비"
+    else:
+        level = "관망"
 
     curr_rsi = df['rsi'].iloc[-1] if 'rsi' in df.columns else 0.0
 
