@@ -397,50 +397,67 @@ if __name__ == "__main__":
             req_url = f"{gas_url}?action=holdings"
             if pin:
                 req_url += f"&pin={pin}"
-            h_res = requests.get(req_url, timeout=10)
-            if h_res.status_code == 200 and h_res.json().get("success"):
-                holdings_list = h_res.json().get("userHoldings", [])
-                holdings_status = []
-                sell_signals = []
-                for h in holdings_list:
-                    h_ticker = str(h.get("Ticker") or h.get("ticker") or h.get("code") or "").strip()
-                    h_name = str(h.get("Name") or h.get("name") or "").strip()
-                    h_price = float(h.get("BuyPrice") or h.get("buyPrice", 0))
+            h_res = requests.get(req_url, timeout=15)
+            print(f" -> Fetch Holdings Response: Status {h_res.status_code} | {h_res.text[:150]}")
+
+            if h_res.status_code == 200:
+                res_json = h_res.json()
+                if res_json.get("success"):
+                    holdings_list = res_json.get("userHoldings", [])
+                    print(f" -> Found {len(holdings_list)} user holdings to evaluate.")
+                    holdings_status = []
+                    sell_signals = []
+                    for h in holdings_list:
+                        h_ticker = str(h.get("Ticker") or h.get("ticker") or h.get("code") or "").strip()
+                        h_name = str(h.get("Name") or h.get("name") or "").strip()
+                        h_price = float(h.get("BuyPrice") or h.get("buyPrice", 0))
+                        
+                        # Resolve stock ticker code if h_ticker is stock name (e.g. "삼성전자")
+                        if not h_ticker.isdigit() or not h_name:
+                            for item in items:
+                                i_name = str(item.get('name', '')).strip()
+                                i_ticker = str(item.get('ticker', '')).strip()
+                                if i_name == h_ticker or i_name == h_name or i_ticker == h_ticker:
+                                    h_ticker = i_ticker
+                                    h_name = i_name
+                                    break
+                        
+                        if not h_ticker or not h_ticker.isdigit():
+                            print(f"  [WARN] Skipping invalid holding entry: Ticker={h_ticker}, Name={h_name}")
+                            continue
+                        
+                        h_df = get_ohlcv_data(h_ticker, start_date, end_date)
+                        if len(h_df) < 30:
+                            print(f"  [WARN] Insufficient candle data for holding: {h_name} ({h_ticker})")
+                            continue
+                        h_df = calculate_indicators(h_df)
+                        sell_res = evaluate_sell_signal(h_df, h_price)
+                        if sell_res:
+                            sell_res["ticker"] = h_ticker
+                            sell_res["name"] = h_name
+                            holdings_status.append(sell_res)
+                            if sell_res.get("isAlert"):
+                                sell_signals.append(sell_res)
+                                print(f"  ⚠️ [SELL ALERT] {h_name} ({h_ticker}) - {sell_res['signalLevel']} | {', '.join(sell_res['details'])}")
+                            else:
+                                print(f"  🛡️ [HOLDING MONITOR] {h_name} ({h_ticker}) - 관망 (ADX: {sell_res['adx']}, 수익률: {sell_res['returnRate']}%)")
                     
-                    # Resolve stock ticker code if h_ticker is stock name (e.g. "삼성전자")
-                    if not h_ticker.isdigit() or not h_name:
-                        for item in items:
-                            if item['name'] == h_ticker or item['name'] == h_name:
-                                h_ticker = item['ticker']
-                                h_name = item['name']
-                                break
-                    
-                    if not h_ticker or not h_ticker.isdigit():
-                        continue
-                    
-                    h_df = get_ohlcv_data(h_ticker, start_date, end_date)
-                    if len(h_df) < 30:
-                        continue
-                    h_df = calculate_indicators(h_df)
-                    sell_res = evaluate_sell_signal(h_df, h_price)
-                    if sell_res:
-                        sell_res["ticker"] = h_ticker
-                        sell_res["name"] = h_name
-                        holdings_status.append(sell_res)
-                        if sell_res.get("isAlert"):
-                            sell_signals.append(sell_res)
-                            print(f"  ⚠️ [SELL ALERT] {h_name} ({h_ticker}) - {sell_res['signalLevel']} | {', '.join(sell_res['details'])}")
-                        else:
-                            print(f"  🛡️ [HOLDING MONITOR] {h_name} ({h_ticker}) - 관망 (ADX: {sell_res['adx']}, 수익률: {sell_res['returnRate']}%)")
-                
-                if holdings_status:
-                    post_to_google_sheets(gas_url, "update_holdings_status", {"holdings_status": holdings_status})
-                if sell_signals:
-                    post_to_google_sheets(gas_url, "update_sell_signals", {"signals": sell_signals})
+                    if holdings_status:
+                        print(f" -> Posting {len(holdings_status)} holdings status metrics to Google Sheets...")
+                        post_to_google_sheets(gas_url, "update_holdings_status", {"holdings_status": holdings_status})
+                    else:
+                        print(" -> No active holdings status metrics to update.")
+
+                    if sell_signals:
+                        post_to_google_sheets(gas_url, "update_sell_signals", {"signals": sell_signals})
+                    else:
+                        print(" -> No sell alert signals detected for current holdings.")
                 else:
-                    print(" -> No sell signals detected for current holdings.")
+                    print(f"[WARN] GAS returned error when fetching holdings: {res_json.get('message')}")
+            else:
+                print(f"[WARN] GAS returned HTTP {h_res.status_code} for holdings fetch.")
         except Exception as e:
-            print(f"[WARN] Failed evaluating sell signals: {e}")
+            print(f"[ERROR] Failed evaluating sell signals: {e}")
     else:
         print("[WARN] GAS_WEBAPP_URL environment variable is not set.")
 

@@ -44,8 +44,9 @@ function setupSheets() {
 function doGet(e) {
   const inputPin = e.parameter.pin ? String(e.parameter.pin).trim() : "";
   const authPin = getAuthPin();
+  const action = e.parameter.action || "all";
 
-  if (inputPin !== authPin) {
+  if (authPin && inputPin !== authPin && action !== "holdings") {
     return ContentService.createTextOutput(JSON.stringify({ success: false, status: "error", message: "Unauthorized: Invalid PIN" }))
       .setMimeType(ContentService.MimeType.JSON);
   }
