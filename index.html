@@ -490,14 +490,14 @@
     // GAS Web App API Endpoint
     const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
 
-    let userPin = localStorage.getItem("STOCK_SIGNAL_PIN") || "";
+    let userPin = (localStorage.getItem("STOCK_SIGNAL_PIN") || "").trim();
     let buyCandidatesData = [];
     let holdingsData = [];
     let executionLogsData = [];
     let allMetricsData = [];
 
     async function verifyPin() {
-      const pinVal = document.getElementById('input-pin').value;
+      const pinVal = document.getElementById('input-pin').value.trim();
       if (!pinVal) return;
 
       const success = await loadDataFromGAS(pinVal);
@@ -512,9 +512,10 @@
     }
 
     async function loadDataFromGAS(pin = userPin) {
-      if (!pin) return false;
+      const cleanPin = String(pin || '').trim();
+      if (!cleanPin) return false;
       try {
-        const url = GAS_WEBAPP_URL + "?action=all&pin=" + encodeURIComponent(pin);
+        const url = GAS_WEBAPP_URL + "?action=all&pin=" + encodeURIComponent(cleanPin);
         const resp = await fetch(url);
         const data = await resp.json();
         
