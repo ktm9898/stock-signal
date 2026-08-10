@@ -71,17 +71,18 @@ function doPost(e) {
     }
 
     if (data.action === "update_buy_candidates") {
-      // Ensure all sheets exist and headers match 100%
       setupSheets();
-
       const buySheet = ss.getSheetByName("Buy_Candidates");
-      if (buySheet && buySheet.getLastRow() > 1) {
-        buySheet.getRange(2, 1, buySheet.getLastRow() - 1, buySheet.getLastColumn()).clearContent();
-      }
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd HH:mm");
+      
       if (data.candidates && data.candidates.length > 0 && buySheet) {
+        const existingData = buySheet.getLastRow() > 1 ? buySheet.getRange(2, 1, buySheet.getLastRow() - 1, buySheet.getLastColumn()).getValues() : [];
         data.candidates.forEach(c => {
-          buySheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.prev_adx, c.minus_di, c.prev_minus_di, c.plus_di, c.rsi, c.close]);
+          // Record candidate without deleting past signals (avoid duplicate for same ticker on same day)
+          const exists = existingData.some(row => String(row[0]).substring(0, 10) === today.substring(0, 10) && String(row[1]) === String(c.ticker));
+          if (!exists) {
+            buySheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.prev_adx, c.minus_di, c.prev_minus_di, c.plus_di, c.rsi, c.close]);
+          }
         });
       }
 
@@ -121,9 +122,24 @@ function doPost(e) {
     }
 
     if (data.action === "add_user_holding") {
+      setupSheets();
       const sheet = ss.getSheetByName("User_Holdings");
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd");
       sheet.appendRow([today, data.ticker, data.name, data.buyPrice, data.notes || ""]);
+      return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (data.action === "delete_user_holding") {
+      const sheet = ss.getSheetByName("User_Holdings");
+      if (sheet && sheet.getLastRow() > 1) {
+        const dataRows = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+        for (let i = dataRows.length - 1; i >= 0; i--) {
+          if (String(dataRows[i][1]) === String(data.ticker)) {
+            sheet.deleteRow(i + 2);
+          }
+        }
+      }
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
         .setMimeType(ContentService.MimeType.JSON);
     }
