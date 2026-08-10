@@ -265,18 +265,16 @@ def evaluate_sell_signal(df, buy_price):
 
     if buy_price and buy_price > 0:
         if return_rate <= -5.0:
-            details.append(f"손절 기준 도달 ({return_rate}%)")
+            details.append(f"손절 기준 도달 (수익률: {return_rate:.2f}%)")
             level = "강력 매도 (손절)"
         elif return_rate >= 15.0:
-            details.append(f"목표 수익률 달성 ({return_rate}%)")
+            details.append(f"목표 수익률 달성 (수익률: +{return_rate:.2f}%)")
             level = "수익 실현 (익절)"
 
     curr_rsi = df['rsi'].iloc[-1] if 'rsi' in df.columns else 0.0
 
-    curr_rsi = df['rsi'].iloc[-1] if 'rsi' in df.columns else 0.0
-
     if not details:
-        details = [f"ADX: {curr_adx:.1f} (정상 관망)"]
+        details = [f"정상 관망 (추세 유지 중 | ADX: {curr_adx:.1f})"]
 
     return {
         "buyPrice": buy_price,
