@@ -1,13 +1,6 @@
 name: KOSPI 200 Stock Signal Screener
 
 on:
-  schedule:
-    # 10:05 KST (01:05 UTC) Mon-Fri
-    - cron: '5 1 * * 1-5'
-    # 14:05 KST (05:05 UTC) Mon-Fri
-    - cron: '5 5 * * 1-5'
-    # 15:42 KST (06:42 UTC) Mon-Fri
-    - cron: '42 6 * * 1-5'
   workflow_dispatch:
 
 jobs:
