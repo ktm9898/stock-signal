@@ -158,11 +158,39 @@
     .modal-title { font-size: 1.2rem; font-weight: 700; color: #0f172a; }
     .close-btn { background: none; border: none; color: var(--text-sub); font-size: 1.4rem; cursor: pointer; }
 
-    .form-group { margin-bottom: 16px; }
+    .form-group { margin-bottom: 16px; position: relative; }
     .form-label { display: block; font-size: 0.85rem; color: var(--text-sub); margin-bottom: 6px; }
     .form-input {
       width: 100%; background: #f8fafc; border: 1px solid #cbd5e1;
       border-radius: 10px; padding: 10px 14px; color: #0f172a; font-size: 1rem;
+    }
+    .search-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      max-height: 200px;
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      z-index: 999;
+      margin-top: 4px;
+    }
+    .search-item {
+      padding: 10px 14px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.9rem;
+    }
+    .search-item:last-child { border-bottom: none; }
+    .search-item:hover {
+      background: #eff6ff;
+      color: #2563eb;
     }
     .btn-manual-exec {
       background: #eff6ff;
@@ -457,9 +485,10 @@
         <div class="modal-title">보유 종목 매수 등록</div>
         <button class="close-btn" onclick="closeRegisterModal()">&times;</button>
       </div>
-      <div class="form-group">
-        <label class="form-label">종목명 또는 코드</label>
-        <input type="text" class="form-input" id="reg-stock-name" placeholder="예: 삼성전자 (005930)">
+      <div class="form-group" style="position: relative;">
+        <label class="form-label">종목명 또는 6자리 코드 검색</label>
+        <input type="text" class="form-input" id="reg-stock-name" placeholder="예: 삼성전자 (005930)" oninput="onStockSearchInput()" autocomplete="off">
+        <div id="stock-search-results" class="search-dropdown" style="display:none;"></div>
       </div>
       <div class="form-group">
         <label class="form-label">매수가 (원)</label>
@@ -664,15 +693,17 @@
     }
 
     function filterAllStocksTable() {
-      const query = document.getElementById('all-stocks-search').value.toLowerCase().trim();
+      const query = document.getElementById('all-stocks-search').value.toLowerCase().trim().replace(/\s+/g, '');
       if (!query) {
         renderAllStocks(allMetricsData);
         return;
       }
-      const filtered = allMetricsData.filter(item => 
-        (item.Name || item.name || '').toLowerCase().includes(query) ||
-        (item.Ticker || item.code || '').toLowerCase().includes(query)
-      );
+      const filtered = allMetricsData.filter(item => {
+        const name = String(item.Name || item.name || '').toLowerCase().replace(/\s+/g, '');
+        const rawTicker = String(item.Ticker || item.ticker || item.code || '').toLowerCase().replace(/\s+/g, '');
+        const formattedTicker = formatTicker(item.Ticker || item.ticker || item.code).toLowerCase();
+        return name.includes(query) || rawTicker.includes(query) || formattedTicker.includes(query);
+      });
       renderAllStocks(filtered);
     }
 
@@ -783,8 +814,66 @@
       event.currentTarget.classList.add('active');
     }
 
-    function openRegisterModal() { document.getElementById('register-modal').style.display = 'flex'; }
-    function closeRegisterModal() { document.getElementById('register-modal').style.display = 'none'; }
+    function onStockSearchInput() {
+      const input = document.getElementById('reg-stock-name').value.trim().toLowerCase();
+      const resultsDiv = document.getElementById('stock-search-results');
+      if (!input || !allMetricsData || allMetricsData.length === 0) {
+        resultsDiv.style.display = 'none';
+        return;
+      }
+
+      const matches = allMetricsData.filter(m => {
+        const name = String(m.Name || m.name || '').toLowerCase();
+        const ticker = formatTicker(m.Ticker || m.ticker || '').toLowerCase();
+        return name.includes(input) || ticker.includes(input);
+      }).slice(0, 10);
+
+      if (matches.length === 0) {
+        resultsDiv.style.display = 'none';
+        return;
+      }
+
+      resultsDiv.innerHTML = matches.map(m => {
+        const name = m.Name || m.name;
+        const ticker = formatTicker(m.Ticker || m.ticker);
+        const price = Number(m.ClosePrice || m.close || 0);
+        const priceStr = price > 0 ? price.toLocaleString() + '원' : '';
+        return `
+          <div class="search-item" onclick="selectStockSearchResult('${name}', '${ticker}', ${price})">
+            <div><strong>${name}</strong> <span style="color:var(--text-sub); font-size:0.8rem;">(${ticker})</span></div>
+            <div style="color:#2563eb; font-weight:600; font-size:0.85rem;">${priceStr}</div>
+          </div>
+        `;
+      }).join('');
+      resultsDiv.style.display = 'block';
+    }
+
+    function selectStockSearchResult(name, ticker, price) {
+      document.getElementById('reg-stock-name').value = `${name} (${ticker})`;
+      if (price > 0) {
+        document.getElementById('reg-stock-price').value = price;
+      }
+      document.getElementById('stock-search-results').style.display = 'none';
+    }
+
+    document.addEventListener('click', function(e) {
+      const resultsDiv = document.getElementById('stock-search-results');
+      const input = document.getElementById('reg-stock-name');
+      if (resultsDiv && input && !input.contains(e.target) && !resultsDiv.contains(e.target)) {
+        resultsDiv.style.display = 'none';
+      }
+    });
+
+    function openRegisterModal() { 
+      document.getElementById('register-modal').style.display = 'flex'; 
+      const resultsDiv = document.getElementById('stock-search-results');
+      if (resultsDiv) resultsDiv.style.display = 'none';
+    }
+    function closeRegisterModal() { 
+      document.getElementById('register-modal').style.display = 'none'; 
+      const resultsDiv = document.getElementById('stock-search-results');
+      if (resultsDiv) resultsDiv.style.display = 'none';
+    }
 
     function quickRegister(name, ticker, price) {
       const cleanTicker = formatTicker(ticker);
