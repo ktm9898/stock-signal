@@ -111,12 +111,20 @@ function doPost(e) {
     }
 
     if (data.action === "update_sell_signals") {
+      setupSheets();
       const sheet = ss.getSheetByName("Sell_Signals");
-      if (sheet && sheet.getLastRow() > 1) sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd HH:mm");
-      data.signals.forEach(s => {
-        sheet.appendRow([today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, s.adx, s.signalLevel, s.details.join(", ")]);
-      });
+      if (data.signals && data.signals.length > 0 && sheet) {
+        const existingData = sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues() : [];
+        data.signals.forEach(s => {
+          // Avoid duplicate sell alert for same ticker on same day
+          const exists = existingData.some(row => String(row[0]).substring(0, 10) === today.substring(0, 10) && String(row[1]) === String(s.ticker));
+          if (!exists) {
+            const detailsText = Array.isArray(s.details) ? s.details.join(", ") : String(s.details || "");
+            sheet.appendRow([today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, s.adx, s.signalLevel, detailsText]);
+          }
+        });
+      }
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
         .setMimeType(ContentService.MimeType.JSON);
     }
