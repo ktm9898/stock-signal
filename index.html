@@ -121,20 +121,19 @@
     /* Summary Metric Cards (3 Cards Layout) */
     .metrics-grid {
       display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 12px; margin-bottom: 18px;
+      gap: 12px; margin-bottom: 16px;
     }
     .metric-card {
       background: var(--card-bg); border: 1px solid var(--card-border);
-      border-radius: 12px; padding: 12px 18px;
+      border-radius: 12px; padding: 10px 14px;
       display: flex; align-items: center; justify-content: space-between;
       box-shadow: 0 2px 6px rgba(0,0,0,0.02);
     }
-    .metric-title { font-size: 0.8rem; font-weight: 600; color: var(--text-sub); white-space: nowrap; }
-    .metric-value { font-size: 1.4rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
-    .metric-sub { font-size: 0.75rem; font-weight: 500; color: var(--text-sub); margin-top: 2px; }
+    .metric-title { font-size: 0.78rem; font-weight: 600; color: var(--text-sub); white-space: nowrap; margin-bottom: 2px; }
+    .metric-value { font-size: 1.35rem; font-weight: 700; color: #0f172a; line-height: 1.2; display: flex; align-items: baseline; }
     .metric-icon {
-      width: 36px; height: 36px; border-radius: 10px; background: #eff6ff;
-      display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #2563eb;
+      width: 32px; height: 32px; border-radius: 8px; background: #eff6ff;
+      display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #2563eb;
     }
 
     /* Tab Navigation */
@@ -272,15 +271,14 @@
         margin-bottom: 12px;
       }
       .metric-card {
-        padding: 8px 10px;
+        padding: 6px 8px;
         border-radius: 10px;
         flex-direction: column;
         align-items: flex-start;
         gap: 2px;
       }
       .metric-title { font-size: 0.65rem; margin-bottom: 0; }
-      .metric-value { font-size: 1.2rem; }
-      .metric-sub { font-size: 0.65rem; margin-top: 0; }
+      .metric-value { font-size: 1.1rem; flex-wrap: wrap; }
       .metric-icon { display: none; }
 
       /* Mobile App Bottom Fixed Navigation Bar (Toss / Native App Style: 4 Tabs) */
@@ -366,7 +364,7 @@
   </header>
 
   <div class="container">
-    <!-- Metric Overview (3 Cards Layout) -->
+    <!-- Metric Overview (3 Compact Cards Layout) -->
     <div class="metrics-grid">
       <div class="metric-card">
         <div>
@@ -387,8 +385,10 @@
       <div class="metric-card">
         <div>
           <div class="metric-title">보유 종목</div>
-          <div class="metric-value" id="count-holdings" style="color: var(--accent-cyan);">0</div>
-          <div class="metric-sub">(수익 <span id="count-profit" style="color:var(--accent-red); font-weight:700;">0</span> / 손실 <span id="count-loss" style="color:var(--accent-blue); font-weight:700;">0</span>)</div>
+          <div class="metric-value">
+            <span id="count-holdings" style="color: var(--accent-cyan);">0</span>
+            <span style="font-size: 0.78rem; font-weight: 500; color: var(--text-sub); margin-left: 6px;">(수익 <span id="count-profit" style="color:var(--accent-red); font-weight:700;">0</span> / 손실 <span id="count-loss" style="color:var(--accent-blue); font-weight:700;">0</span>)</span>
+          </div>
         </div>
         <div class="metric-icon"><i class="fa-solid fa-briefcase"></i></div>
       </div>
