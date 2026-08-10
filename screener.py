@@ -271,6 +271,8 @@ def evaluate_sell_signal(df, buy_price):
             details.append(f"목표 수익률 달성 ({return_rate}%)")
             level = "수익 실현 (익절)"
 
+    curr_rsi = df['rsi'].iloc[-1] if 'rsi' in df.columns else 0.0
+
     if not details:
         return None
 
@@ -279,6 +281,12 @@ def evaluate_sell_signal(df, buy_price):
         "currPrice": curr_close,
         "returnRate": return_rate,
         "adx": round(curr_adx, 2),
+        "prev_adx": round(prev_adx, 2),
+        "plus_di": round(curr_pdi, 2),
+        "prev_plus_di": round(prev_pdi, 2),
+        "minus_di": round(curr_mdi, 2),
+        "prev_minus_di": round(prev_mdi, 2),
+        "rsi": round(curr_rsi, 2),
         "signalLevel": level,
         "details": details
     }

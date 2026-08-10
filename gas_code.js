@@ -21,8 +21,8 @@ function setupSheets() {
   // 3. Sell Signals Sheet Header Enforce
   let sellSheet = ss.getSheetByName("Sell_Signals") || ss.insertSheet("Sell_Signals");
   if (sellSheet.getLastRow() === 0) {
-    sellSheet.getRange("A1:I1").setValues([["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Status", "Details"]]);
-    sellSheet.getRange("A1:I1").setFontWeight("bold").setBackground("#fee2e2");
+    sellSheet.getRange("A1:M1").setValues([["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Prev_ADX", "Plus_DI", "Minus_DI", "RSI", "Status", "Details"]]);
+    sellSheet.getRange("A1:M1").setFontWeight("bold").setBackground("#fee2e2");
   }
 
   // 4. Execution Logs Sheet Header Enforce
@@ -148,7 +148,11 @@ function doPost(e) {
           // Keep the FIRST sell alert timestamp of the day
           if (!exists) {
             const detailsText = Array.isArray(s.details) ? s.details.join(", ") : String(s.details || "");
-            sheet.appendRow([today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, s.adx, s.signalLevel, detailsText]);
+            sheet.appendRow([
+              today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, 
+              s.adx || '-', s.prev_adx || '-', s.plus_di || '-', s.minus_di || '-', s.rsi || '-', 
+              s.signalLevel, detailsText
+            ]);
           }
         });
       }
