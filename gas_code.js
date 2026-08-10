@@ -82,24 +82,19 @@ function doPost(e) {
         
         data.candidates.forEach(c => {
           const tickerStr = String(c.ticker).trim();
-          let existingIndex = -1;
+          let exists = false;
           for (let i = 0; i < existingRows.length; i++) {
             const rowDateStr = String(existingRows[i][0]).substring(0, 10);
             const rowTickerStr = String(existingRows[i][1]).trim();
             if (rowDateStr === todayDateStr && rowTickerStr === tickerStr) {
-              existingIndex = i;
+              exists = true;
               break;
             }
           }
 
-          const newRowData = [today, c.ticker, c.name, c.priority, c.adx, c.prev_adx, c.minus_di, c.prev_minus_di, c.plus_di, c.rsi, c.close];
-
-          if (existingIndex >= 0) {
-            // Overwrite existing row on same date with latest timestamp & metrics
-            buySheet.getRange(existingIndex + 2, 1, 1, newRowData.length).setValues([newRowData]);
-          } else {
-            // Append new row for new date or new stock candidate
-            buySheet.appendRow(newRowData);
+          // Keep the FIRST signal timestamp & metrics of the day (do not overwrite with later times)
+          if (!exists) {
+            buySheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.prev_adx, c.minus_di, c.prev_minus_di, c.plus_di, c.rsi, c.close]);
           }
         });
       }
@@ -140,23 +135,20 @@ function doPost(e) {
         
         data.signals.forEach(s => {
           const tickerStr = String(s.ticker).trim();
-          let existingIndex = -1;
+          let exists = false;
           for (let i = 0; i < existingData.length; i++) {
             const rowDateStr = String(existingData[i][0]).substring(0, 10);
             const rowTickerStr = String(existingData[i][1]).trim();
             if (rowDateStr === todayDateStr && rowTickerStr === tickerStr) {
-              existingIndex = i;
+              exists = true;
               break;
             }
           }
 
-          const detailsText = Array.isArray(s.details) ? s.details.join(", ") : String(s.details || "");
-          const newRowData = [today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, s.adx, s.signalLevel, detailsText];
-
-          if (existingIndex >= 0) {
-            sheet.getRange(existingIndex + 2, 1, 1, newRowData.length).setValues([newRowData]);
-          } else {
-            sheet.appendRow(newRowData);
+          // Keep the FIRST sell alert timestamp of the day
+          if (!exists) {
+            const detailsText = Array.isArray(s.details) ? s.details.join(", ") : String(s.details || "");
+            sheet.appendRow([today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, s.adx, s.signalLevel, detailsText]);
           }
         });
       }
