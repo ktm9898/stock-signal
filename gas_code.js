@@ -6,35 +6,34 @@ function getAuthPin() {
 function setupSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
+  // 1. Buy Candidates Sheet Header Enforce
   let buySheet = ss.getSheetByName("Buy_Candidates") || ss.insertSheet("Buy_Candidates");
-  if (buySheet.getLastRow() === 0) {
-    buySheet.appendRow(["Date", "Ticker", "Name", "Tier", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "RSI", "ClosePrice"]);
-    buySheet.getRange("A1:K1").setFontWeight("bold").setBackground("#e0f2fe");
-  }
+  buySheet.getRange("A1:K1").setValues([["Date", "Ticker", "Name", "Tier", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "RSI", "ClosePrice"]]);
+  buySheet.getRange("A1:K1").setFontWeight("bold").setBackground("#e0f2fe");
 
+  // 2. User Holdings Sheet Header Enforce
   let holdingsSheet = ss.getSheetByName("User_Holdings") || ss.insertSheet("User_Holdings");
   if (holdingsSheet.getLastRow() === 0) {
-    holdingsSheet.appendRow(["DateAdded", "Ticker", "Name", "BuyPrice", "Notes"]);
+    holdingsSheet.getRange("A1:E1").setValues([["DateAdded", "Ticker", "Name", "BuyPrice", "Notes"]]);
     holdingsSheet.getRange("A1:E1").setFontWeight("bold").setBackground("#fef3c7");
   }
 
+  // 3. Sell Signals Sheet Header Enforce
   let sellSheet = ss.getSheetByName("Sell_Signals") || ss.insertSheet("Sell_Signals");
   if (sellSheet.getLastRow() === 0) {
-    sellSheet.appendRow(["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Status", "Details"]);
+    sellSheet.getRange("A1:I1").setValues([["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Status", "Details"]]);
     sellSheet.getRange("A1:I1").setFontWeight("bold").setBackground("#fee2e2");
   }
 
+  // 4. Execution Logs Sheet Header Enforce
   let logSheet = ss.getSheetByName("Execution_Logs") || ss.insertSheet("Execution_Logs");
-  if (logSheet.getLastRow() === 0) {
-    logSheet.appendRow(["Timestamp", "Status", "ScannedCount", "CandidatesCount", "Message"]);
-    logSheet.getRange("A1:E1").setFontWeight("bold").setBackground("#dcfce7");
-  }
+  logSheet.getRange("A1:E1").setValues([["Timestamp", "Status", "ScannedCount", "CandidatesCount", "Message"]]);
+  logSheet.getRange("A1:E1").setFontWeight("bold").setBackground("#dcfce7");
 
+  // 5. KOSPI 200 All Metrics Sheet Header Enforce
   let allSheet = ss.getSheetByName("KOSPI200_All_Metrics") || ss.insertSheet("KOSPI200_All_Metrics");
-  if (allSheet.getLastRow() === 0) {
-    allSheet.appendRow(["Date", "Ticker", "Name", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "RSI", "ClosePrice", "Status"]);
-    allSheet.getRange("A1:K1").setFontWeight("bold").setBackground("#f3e8ff");
-  }
+  allSheet.getRange("A1:K1").setValues([["Date", "Ticker", "Name", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "RSI", "ClosePrice", "Status"]]);
+  allSheet.getRange("A1:K1").setFontWeight("bold").setBackground("#f3e8ff");
 }
 
 function doGet(e) {
@@ -72,6 +71,9 @@ function doPost(e) {
     }
 
     if (data.action === "update_buy_candidates") {
+      // Ensure all sheets exist and headers match 100%
+      setupSheets();
+
       const buySheet = ss.getSheetByName("Buy_Candidates");
       if (buySheet && buySheet.getLastRow() > 1) {
         buySheet.getRange(2, 1, buySheet.getLastRow() - 1, buySheet.getLastColumn()).clearContent();
@@ -85,10 +87,6 @@ function doPost(e) {
 
       // Record Execution Log
       let logSheet = ss.getSheetByName("Execution_Logs");
-      if (!logSheet) {
-        setupSheets();
-        logSheet = ss.getSheetByName("Execution_Logs");
-      }
       if (data.log) {
         logSheet.appendRow([today, data.log.status || "SUCCESS", data.log.scanned || 0, data.candidates ? data.candidates.length : 0, data.log.message || "정상 완료"]);
       } else {
@@ -98,10 +96,6 @@ function doPost(e) {
       // Record All 200 Stocks Metrics
       if (data.all_stocks && data.all_stocks.length > 0) {
         let allSheet = ss.getSheetByName("KOSPI200_All_Metrics");
-        if (!allSheet) {
-          setupSheets();
-          allSheet = ss.getSheetByName("KOSPI200_All_Metrics");
-        }
         if (allSheet.getLastRow() > 1) {
           allSheet.getRange(2, 1, allSheet.getLastRow() - 1, allSheet.getLastColumn()).clearContent();
         }
