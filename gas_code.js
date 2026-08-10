@@ -71,7 +71,12 @@ function doPost(e) {
     const authPin = getAuthPin();
 
     const inputPin = data.pin ? String(data.pin).trim() : "";
-    if (inputPin !== authPin && data.action !== "update_buy_candidates") {
+    const isBackendAction = (
+      data.action === "update_buy_candidates" || 
+      data.action === "update_holdings_status" || 
+      data.action === "update_sell_signals"
+    );
+    if (inputPin !== authPin && !isBackendAction) {
       return ContentService.createTextOutput(JSON.stringify({ success: false, status: "error", message: "Unauthorized: Invalid PIN" }))
         .setMimeType(ContentService.MimeType.JSON);
     }

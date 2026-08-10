@@ -296,12 +296,13 @@ def evaluate_sell_signal(df, buy_price):
 
 def post_to_google_sheets(url, action, data):
     """Post screening results to Google Apps Script Web App."""
-    payload = {"action": action, **data}
+    pin = os.environ.get("AUTH_PIN", "")
+    payload = {"action": action, "pin": pin, **data}
     try:
         res = requests.post(url, json=payload, timeout=15)
-        print(f" -> GAS Response: Status {res.status_code} | {res.text[:200]}")
+        print(f" -> GAS Response [{action}]: Status {res.status_code} | {res.text[:200]}")
     except Exception as e:
-        print(f"[ERROR] Failed to post to Google Sheets: {e}")
+        print(f"[ERROR] Failed to post to Google Sheets ({action}): {e}")
 
 if __name__ == "__main__":
     print("[INFO] KOSPI 200 Stock Signal Screener Engine Starting...")
