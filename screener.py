@@ -46,6 +46,7 @@ def get_kospi200_tickers():
         for page in range(1, 21):
             url = f"https://finance.naver.com/sise/entryJongmok.naver?page={page}"
             res = requests.get(url, headers=headers, timeout=5)
+            res.encoding = 'euc-kr'
             if BeautifulSoup:
                 soup = BeautifulSoup(res.text, "html.parser")
                 tds = soup.find_all("td", class_="ctg")
