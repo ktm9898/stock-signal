@@ -501,6 +501,33 @@
     </div>
   </div>
 
+  <!-- Info/Details Modal -->
+  <div class="modal-overlay" id="info-modal">
+    <div class="modal-content" style="max-width: 440px;">
+      <div class="modal-header" style="margin-bottom: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div class="modal-title" id="info-modal-title">종목 상세 사유</div>
+          <span id="info-modal-badge" class="badge"></span>
+        </div>
+        <button class="close-btn" onclick="closeInfoModal()">&times;</button>
+      </div>
+      <div id="info-modal-body" style="font-size: 0.92rem; color: #334155; line-height: 1.6; background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 16px; white-space: pre-wrap;"></div>
+      <button class="btn-buy-reg" style="width: 100%; padding: 10px;" onclick="closeInfoModal()">확인</button>
+    </div>
+  </div>
+
+  <!-- Custom Confirm Modal -->
+  <div class="modal-overlay" id="confirm-modal">
+    <div class="modal-content" style="max-width: 400px; text-align: center;">
+      <div class="modal-title" id="confirm-modal-title" style="margin-bottom: 10px; font-size: 1.15rem;">확인</div>
+      <div id="confirm-modal-msg" style="font-size: 0.92rem; color: #475569; margin-bottom: 20px; line-height: 1.5; white-space: pre-wrap;"></div>
+      <div style="display: flex; gap: 10px;">
+        <button style="flex: 1; padding: 9px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 600; color: #475569; cursor: pointer;" onclick="closeConfirmModal(false)">취소</button>
+        <button style="flex: 1; padding: 9px; background: #2563eb; border: none; border-radius: 8px; font-weight: 600; color: #fff; cursor: pointer;" onclick="closeConfirmModal(true)">확인</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Register Modal -->
   <div class="modal-overlay" id="register-modal">
     <div class="modal-content">
@@ -702,11 +729,6 @@
       return num.toFixed(decimals);
     }
 
-    function showDetailsAlert(stockName, statusText, detailsText) {
-      const desc = (detailsText && detailsText !== '-' && detailsText !== 'undefined') ? detailsText : "상세 사유 기록이 없습니다.";
-      alert(`[${stockName}] ${statusText}\n\n📌 사유: ${desc}`);
-    }
-
     function renderBuyCandidates(list, logs = []) {
       const tbody = document.getElementById('buy-candidates-body');
       if (!list || list.length === 0) {
@@ -731,7 +753,7 @@
           <tr>
             <td><span style="color:var(--text-sub); font-size:0.85rem; font-weight:500;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
             <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
-            <td><span class="badge ${tierClass}" onclick="showDetailsAlert('${name}', '${tierText}', '${reason}')">${tierText}</span></td>
+            <td><span class="badge ${tierClass}" onclick="showDetailsModal('${name}', '${tierText}', '${reason}', '${tierClass}')">${tierText}</span></td>
             <td><strong style="color:var(--accent-cyan);">${formatDec(item.ADX || item.adx)}</strong></td>
             <td>${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}</td>
             <td><span style="color: ${Number(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${formatDec(item.RSI || item.rsi)}</span></td>
@@ -1037,19 +1059,20 @@
         });
         const result = await resp.json();
         if (result.success) {
-          alert(`[${name} (${ticker})] 보유 종목이 성공적으로 매수 등록되었습니다!`);
+          showInfoModal('등록 완료', `[${name} (${ticker})] 보유 종목이 등록되었습니다.`);
           closeRegisterModal();
           loadDataFromGAS(userPin);
         } else {
-          alert("등록 실패: " + (result.message || "오류가 발생했습니다."));
+          showInfoModal('등록 실패', result.message || "오류가 발생했습니다.");
         }
       } catch (err) {
-        alert("등록 중 네트워크 오류가 발생했습니다: " + err);
+        showInfoModal('오류', "등록 중 네트워크 오류가 발생했습니다: " + err);
       }
     }
 
     async function deleteHolding(ticker) {
-      if (!confirm(`종목코드 [${ticker}] 보유 종목을 삭제하시겠습니까?`)) return;
+      const confirmed = await showConfirmModal('보유 종목 삭제', `종목코드 [${ticker}] 보유 종목을 삭제할까요?`);
+      if (!confirmed) return;
       try {
         const resp = await fetch(GAS_WEBAPP_URL, {
           method: "POST",
@@ -1064,15 +1087,16 @@
         if (result.success) {
           loadDataFromGAS(userPin);
         } else {
-          alert("삭제 실패: " + (result.message || "오류가 발생했습니다."));
+          showInfoModal('삭제 실패', result.message || "오류가 발생했습니다.");
         }
       } catch (err) {
-        alert("삭제 중 오류가 발생했습니다: " + err);
+        showInfoModal('오류', "삭제 중 오류가 발생했습니다: " + err);
       }
     }
 
     async function triggerManualScreening() {
-      if (!confirm("⚡ KOSPI 200 종목 수동 스크리닝을 즉시 실행하시겠습니까?\n\n(200개 종목 수집 및 한국투자증권 ADX 정밀 계산에 약 1~2분이 소요됩니다)")) return;
+      const confirmed = await showConfirmModal('수동 스크리닝', 'KOSPI 200 수동 스크리닝을 실행할까요?\n(약 1~2분 소요)');
+      if (!confirmed) return;
       
       const btn = document.getElementById('manual-trigger-btn');
       if (btn) {
@@ -1091,7 +1115,7 @@
         });
         const result = await resp.json();
         if (result.success) {
-          alert("🚀 수동 스크리닝이 깃허브 서버에서 즉시 시작되었습니다!\n\n약 1~2분 후 200개 종목 수식 계산이 완료되면 시트와 화면이 자동 갱신됩니다.");
+          showInfoModal('스크리닝 시작', '수동 스크리닝이 시작되었습니다.\n1~2분 후 결과가 자동 갱신됩니다.');
           setTimeout(() => {
             loadDataFromGAS(userPin);
             if (btn) {
@@ -1100,14 +1124,14 @@
             }
           }, 90000);
         } else {
-          alert("❌ 수동 스크리닝 실행 실패:\n\n" + (result.message || "권한 또는 설정 오류가 발생했습니다."));
+          showInfoModal('실패', result.message || "권한 또는 설정 오류가 발생했습니다.");
           if (btn) {
             btn.disabled = false;
             btn.innerHTML = '수동 실행';
           }
         }
       } catch (err) {
-        alert("스크리닝 요청 실패: " + err);
+        showInfoModal('오류', "스크리닝 요청 실패: " + err);
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = '수동 실행';
