@@ -118,19 +118,60 @@ def get_ohlcv_data(ticker, start_date, end_date):
 
     return pd.DataFrame()
 
-def calculate_indicators(df):
+def calculate_indicators(df, period=14):
     """
-    Calculate ADX(14), +DI, -DI, RSI(14), 5MA, 20MA for OHLCV dataframe.
+    Calculate 한국투자증권 (KIS MTS Standard) ADX(14), +DI, -DI, RSI(14), 5MA, 20MA.
     Columns expected: ['고가', '저가', '종가', '거래량']
     """
     if len(df) < 30 or not {'고가', '저가', '종가', '거래량'}.issubset(df.columns):
         return df
 
-    # ADX & DI
-    adx_ind = ta.trend.ADXIndicator(high=df['고가'], low=df['저가'], close=df['종가'], window=14)
-    df['adx'] = adx_ind.adx()
-    df['plus_di'] = adx_ind.adx_pos()
-    df['minus_di'] = adx_ind.adx_neg()
+    highs = df['고가'].values
+    lows = df['저가'].values
+    closes = df['종가'].values
+    n = len(closes)
+    
+    tr, dm_p, dm_m = [], [], []
+    for i in range(1, n):
+        h, l, c = highs[i], lows[i], closes[i]
+        ph, pl, pc = highs[i-1], lows[i-1], closes[i-1]
+        
+        tr_val = max(h - l, abs(h - pc), abs(l - pc))
+        up = h - ph
+        down = pl - l
+        
+        dp = up if (up > down and up > 0) else 0.0
+        dm = down if (down > up and down > 0) else 0.0
+        
+        tr.append(tr_val)
+        dm_p.append(dp)
+        dm_m.append(dm)
+        
+    alpha = 2.0 / (period + 1)
+    
+    def calc_ema(arr):
+        res = [arr[0]]
+        for val in arr[1:]:
+            res.append(val * alpha + res[-1] * (1 - alpha))
+        return res
+
+    tr_ema = calc_ema(tr)
+    dp_ema = calc_ema(dm_p)
+    dm_ema = calc_ema(dm_m)
+    
+    pdi = [100 * p / t if t != 0 else 0 for p, t in zip(dp_ema, tr_ema)]
+    mdi = [100 * m / t if t != 0 else 0 for p, t in zip(dm_ema, tr_ema)]
+    
+    dx = [100 * abs(p - m) / (p + m) if (p + m) != 0 else 0 for p, m in zip(pdi, mdi)]
+    adx = calc_ema(dx)
+    
+    pdi = [np.nan] + pdi
+    mdi = [np.nan] + mdi
+    adx = [np.nan] + adx
+    
+    df['adx'] = adx
+    df['plus_di'] = pdi
+    df['minus_di'] = mdi
 
     # RSI
     rsi_ind = ta.momentum.RSIIndicator(close=df['종가'], window=14)
