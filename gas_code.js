@@ -56,6 +56,7 @@ function doGet(e) {
 
   if (action === "all" || action === "buy") result.buyCandidates = getSheetData(ss.getSheetByName("Buy_Candidates"));
   if (action === "all" || action === "holdings") result.userHoldings = getSheetData(ss.getSheetByName("User_Holdings"));
+  if (action === "all" || action === "holdings_status") result.holdingsStatus = getSheetData(ss.getSheetByName("User_Holdings_Status"));
   if (action === "all" || action === "sell") result.sellSignals = getSheetData(ss.getSheetByName("Sell_Signals"));
   if (action === "all" || action === "logs") result.executionLogs = getSheetData(ss.getSheetByName("Execution_Logs"));
   if (action === "all" || action === "all_metrics") result.allMetrics = getSheetData(ss.getSheetByName("KOSPI200_All_Metrics"));
@@ -86,11 +87,11 @@ function doPost(e) {
         const existingRows = lastRow > 1 ? buySheet.getRange(2, 1, lastRow - 1, buySheet.getLastColumn()).getValues() : [];
         
         data.candidates.forEach(c => {
-          const tickerStr = String(c.ticker).trim();
+          const tickerStr = normalizeTicker(c.ticker);
           let exists = false;
           for (let i = 0; i < existingRows.length; i++) {
             const rowYMD = extractYMD(existingRows[i][0]);
-            const rowTickerStr = String(existingRows[i][1]).trim();
+            const rowTickerStr = normalizeTicker(existingRows[i][1]);
             if (rowYMD === todayYMD && rowTickerStr === tickerStr) {
               exists = true;
               break;
@@ -139,11 +140,11 @@ function doPost(e) {
         const existingData = lastRow > 1 ? sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues() : [];
         
         data.signals.forEach(s => {
-          const tickerStr = String(s.ticker).trim();
+          const tickerStr = normalizeTicker(s.ticker);
           let exists = false;
           for (let i = 0; i < existingData.length; i++) {
             const rowYMD = extractYMD(existingData[i][0]);
-            const rowTickerStr = String(existingData[i][1]).trim();
+            const rowTickerStr = normalizeTicker(existingData[i][1]);
             if (rowYMD === todayYMD && rowTickerStr === tickerStr) {
               exists = true;
               break;
@@ -278,7 +279,25 @@ function extractYMD(val) {
   if (val instanceof Date) {
     return Utilities.formatDate(val, "GMT+9", "yyyyMMdd");
   }
-  return String(val).replace(/[^0-9]/g, "").substring(0, 8);
+  const str = String(val).trim();
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    return Utilities.formatDate(d, "GMT+9", "yyyyMMdd");
+  }
+  const match = str.match(/(\d{4})[^\d]+(\d{1,2})[^\d]+(\d{1,2})/);
+  if (match) {
+    const yyyy = match[1];
+    const mm = match[2].padStart(2, '0');
+    const dd = match[3].padStart(2, '0');
+    return yyyy + mm + dd;
+  }
+  return "";
+}
+
+function normalizeTicker(t) {
+  if (!t) return "";
+  const digits = String(t).replace(/[^0-9]/g, "");
+  return digits ? digits.padStart(6, "0") : String(t).trim();
 }
 
 /**

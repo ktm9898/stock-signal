@@ -524,12 +524,13 @@
 
         buyCandidatesData = data.buyCandidates || [];
         holdingsData = data.userHoldings || [];
+        const holdingsStatusData = data.holdingsStatus || [];
         executionLogsData = data.executionLogs || [];
         allMetricsData = data.allMetrics || [];
         const sellSignalsData = data.sellSignals || [];
 
         renderBuyCandidates(buyCandidatesData, executionLogsData);
-        renderHoldings(holdingsData, allMetricsData);
+        renderHoldings(holdingsData, allMetricsData, holdingsStatusData);
         renderSellSignals(sellSignalsData);
         renderAllStocks(allMetricsData);
         
@@ -653,7 +654,7 @@
       renderAllStocks(filtered);
     }
 
-    function renderHoldings(list, metricsList = []) {
+    function renderHoldings(list, metricsList = [], statusList = []) {
       const tbody = document.getElementById('holdings-body');
       if (!list || list.length === 0) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-sub); padding:30px;">매수 등록된 보유 종목이 없습니다. 오른쪽 상단 '종목 추가' 버튼으로 추가하세요.</td></tr>`;
@@ -663,23 +664,32 @@
         const rawTicker = String(item.Ticker || item.ticker || item.code || '').trim();
         const rawName = String(item.Name || item.name || '').trim();
         
-        // Robust match against KOSPI 200 metrics list by Ticker OR Name
-        const metric = metricsList.find(m => {
-          const mTicker = String(m.Ticker || m.ticker || '').trim();
-          const mName = String(m.Name || m.name || '').trim();
-          return (rawTicker && mTicker === rawTicker) ||
-                 (rawName && mName === rawName) ||
-                 (rawTicker && mName === rawTicker) ||
-                 (rawName && mTicker === rawName);
+        // Find in statusList first (User_Holdings_Status), fallback to metricsList (allMetrics)
+        const statusItem = statusList.find(s => {
+          const sTicker = String(s.Ticker || s.ticker || '').trim();
+          const sName = String(s.Name || s.name || '').trim();
+          return (rawTicker && sTicker === rawTicker) || (rawName && sName === rawName);
         });
 
-        const displayTicker = metric ? (metric.Ticker || metric.ticker) : (rawTicker.match(/^\d+$/) ? rawTicker : '-');
-        const displayName = metric ? (metric.Name || metric.name) : (rawName || rawTicker);
+        const metric = statusItem || metricsList.find(m => {
+          const mTicker = String(m.Ticker || m.ticker || '').trim();
+          const mName = String(m.Name || m.name || '').trim();
+          return (rawTicker && mTicker === rawTicker) || (rawName && mName === rawName);
+        });
+
+        const displayTicker = metric ? (metric.Ticker || metric.ticker || rawTicker) : (rawTicker.match(/^\d+$/) ? rawTicker : '-');
+        const displayName = metric ? (metric.Name || metric.name || rawName) : (rawName || rawTicker);
 
         const buyPrice = Number(item.BuyPrice || item.buyPrice || 0);
-        const currPrice = metric ? Number(metric.ClosePrice || metric.close || 0) : 0;
+        const currPrice = metric ? Number(metric.ClosePrice || metric.close || metric.CurrPrice || metric.currPrice || 0) : 0;
         const adx = metric ? (metric.ADX || metric.adx || '-') : '-';
         
+        const statusText = statusItem ? (statusItem.Status || statusItem.signalLevel || '관망') : '관망';
+        let badgeClass = 'badge-neutral';
+        if (statusText.includes('매도 경고')) badgeClass = 'badge-sell-warn';
+        else if (statusText.includes('강력') || statusText.includes('손절')) badgeClass = 'badge-sell-danger';
+        else if (statusText.includes('익절') || statusText.includes('수익')) badgeClass = 'badge-t1';
+
         let returnRateStr = '-';
         let returnRateColor = 'inherit';
         if (buyPrice > 0 && currPrice > 0) {
@@ -696,7 +706,7 @@
             <td>${currPrice > 0 ? currPrice.toLocaleString() + ' 원' : '-'}</td>
             <td><strong style="color:${returnRateColor}">${returnRateStr}</strong></td>
             <td><strong style="color:var(--accent-cyan);">${adx}</strong></td>
-            <td><span class="badge badge-t2">감시 중</span></td>
+            <td><span class="badge ${badgeClass}">${statusText}</span></td>
             <td><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${rawTicker || rawName}')" title="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
           </tr>
         `;
