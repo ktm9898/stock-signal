@@ -721,20 +721,22 @@
       const reversedList = [...list].reverse();
       tbody.innerHTML = reversedList.map(item => {
         const rawTier = String(item.Tier || item.tier || 'Tier 3');
-        const tierText = rawTier.includes('1') ? 'Tier 1' : rawTier.includes('2') ? 'Tier 2' : 'Tier 3';
+        const tierText = rawTier.includes('1') ? '1단계' : rawTier.includes('2') ? '2단계' : '3단계';
         const tierClass = rawTier.includes('1') ? 'badge-t1' : rawTier.includes('2') ? 'badge-t2' : 'badge-t3';
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
+        const name = (item.Name || item.name || '').replace(/'/g, "\\'");
+        const reason = (item.Reason || item.reason || item.Notes || item.notes || `ADX: ${formatDec(item.ADX || item.adx)}, -DI: ${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}, RSI: ${formatDec(item.RSI || item.rsi)} 조건 충족`).replace(/'/g, "\\'");
 
         return `
           <tr>
             <td><span style="color:var(--text-sub); font-size:0.85rem; font-weight:500;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
             <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
-            <td><span class="badge ${tierClass}">${tierText}</span></td>
+            <td><span class="badge ${tierClass}" onclick="showDetailsAlert('${name}', '${tierText}', '${reason}')">${tierText}</span></td>
             <td><strong style="color:var(--accent-cyan);">${formatDec(item.ADX || item.adx)}</strong></td>
             <td>${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}</td>
             <td><span style="color: ${Number(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${formatDec(item.RSI || item.rsi)}</span></td>
             <td>${(item.ClosePrice || item.price) ? Number(item.ClosePrice || item.price).toLocaleString() + ' 원' : '-'}</td>
-            <td><button class="btn-buy-reg" style="padding: 4px 10px; font-size: 0.8rem;" onclick="quickRegister('${item.Name || item.name}', '${ticker}', ${item.ClosePrice || item.price || 0})"><i class="fa-solid fa-plus"></i> 매수</button></td>
+            <td><button class="btn-buy-reg" style="padding: 4px 10px; font-size: 0.8rem;" onclick="quickRegister('${name}', '${ticker}', ${item.ClosePrice || item.price || 0})"><i class="fa-solid fa-plus"></i> 매수</button></td>
           </tr>
         `;
       }).join('');
