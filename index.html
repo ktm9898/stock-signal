@@ -793,6 +793,11 @@
         const mdi = formatDec(item.Minus_DI || item.minus_di);
         const rsi = formatDec(item.RSI || item.rsi);
 
+        let detailsText = String(item.Details || item.details || '-').trim();
+        if (!isNaN(Number(detailsText)) && detailsText !== '-') {
+          detailsText = `${level} 조건 포착`;
+        }
+
         return `
           <tr>
             <td><span style="color:var(--text-sub); font-size:0.85rem;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
@@ -804,7 +809,7 @@
             <td>${mdi}</td>
             <td>${rsi}</td>
             <td><span class="badge ${badgeClass}">${level}</span></td>
-            <td style="font-size:0.85rem; color:var(--text-sub);">${item.Details || item.details || '-'}</td>
+            <td style="font-size:0.85rem; color:var(--text-sub);">${detailsText}</td>
           </tr>
         `;
       }).join('');

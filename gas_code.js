@@ -20,10 +20,8 @@ function setupSheets() {
 
   // 3. Sell Signals Sheet Header Enforce
   let sellSheet = ss.getSheetByName("Sell_Signals") || ss.insertSheet("Sell_Signals");
-  if (sellSheet.getLastRow() === 0) {
-    sellSheet.getRange("A1:M1").setValues([["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Prev_ADX", "Plus_DI", "Minus_DI", "RSI", "Status", "Details"]]);
-    sellSheet.getRange("A1:M1").setFontWeight("bold").setBackground("#fee2e2");
-  }
+  sellSheet.getRange("A1:M1").setValues([["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Prev_ADX", "Plus_DI", "Minus_DI", "RSI", "Status", "Details"]]);
+  sellSheet.getRange("A1:M1").setFontWeight("bold").setBackground("#fee2e2");
 
   // 4. Execution Logs Sheet Header Enforce
   let logSheet = ss.getSheetByName("Execution_Logs") || ss.insertSheet("Execution_Logs");
