@@ -390,10 +390,19 @@ if __name__ == "__main__":
                 holdings_list = h_res.json().get("userHoldings", [])
                 sell_signals = []
                 for h in holdings_list:
-                    h_ticker = str(h.get("Ticker") or h.get("ticker", "")).strip()
-                    h_name = h.get("Name") or h.get("name", "")
+                    h_ticker = str(h.get("Ticker") or h.get("ticker") or h.get("code") or "").strip()
+                    h_name = str(h.get("Name") or h.get("name") or "").strip()
                     h_price = float(h.get("BuyPrice") or h.get("buyPrice", 0))
-                    if not h_ticker:
+                    
+                    # Resolve stock ticker code if h_ticker is stock name (e.g. "삼성전자")
+                    if not h_ticker.isdigit() or not h_name:
+                        for item in items:
+                            if item['name'] == h_ticker or item['name'] == h_name:
+                                h_ticker = item['ticker']
+                                h_name = item['name']
+                                break
+                    
+                    if not h_ticker or not h_ticker.isdigit():
                         continue
                     
                     h_df = get_ohlcv_data(h_ticker, start_date, end_date)
