@@ -513,13 +513,13 @@
 
     async function loadDataFromGAS(pin = userPin) {
       const cleanPin = String(pin || '').trim();
-      if (!cleanPin) return false;
       try {
-        const url = GAS_WEBAPP_URL + "?action=all&pin=" + encodeURIComponent(cleanPin);
+        const url = GAS_WEBAPP_URL + "?action=all" + (cleanPin ? "&pin=" + encodeURIComponent(cleanPin) : "");
         const resp = await fetch(url);
         const data = await resp.json();
         
         if (data.status === "error" || data.success === false) {
+          console.warn("GAS Auth/Fetch Error:", data.message);
           return false;
         }
 
@@ -940,20 +940,15 @@
       });
     }
 
-    // Startup check: authenticate stored PIN against backend dynamically
-    if (userPin) {
-      loadDataFromGAS(userPin).then(success => {
-        if (success) {
-          document.getElementById('pin-modal').style.display = 'none';
-        } else {
-          localStorage.removeItem("STOCK_SIGNAL_PIN");
-          userPin = "";
-          document.getElementById('pin-modal').style.display = 'flex';
-        }
-      });
-    } else {
-      document.getElementById('pin-modal').style.display = 'flex';
-    }
+    // Startup check: authenticate stored PIN or attempt PIN-free load
+    loadDataFromGAS(userPin).then(success => {
+      if (success) {
+        document.getElementById('pin-modal').style.display = 'none';
+        document.getElementById('pin-error').style.display = 'none';
+      } else {
+        document.getElementById('pin-modal').style.display = 'flex';
+      }
+    });
   </script>
 </body>
 </html>
