@@ -65,7 +65,7 @@ def get_kospi200_tickers():
     return items
 
 def get_ohlcv_data(ticker, start_date, end_date):
-    """Retrieve OHLCV DataFrame for a ticker (PyKRX with Naver Finance fallback)."""
+    """Retrieve OHLCV DataFrame for a ticker (PyKRX with Naver FChart XML fallback)."""
     # 1. Try PyKRX
     try:
         df = stock.get_market_ohlcv_by_date(start_date, end_date, ticker)
@@ -74,8 +74,32 @@ def get_ohlcv_data(ticker, start_date, end_date):
     except Exception:
         pass
 
-    # 2. Fallback: Naver Finance API
+    # 2. Fallback A: Naver FChart XML (Adjusted Prices - 300 candles)
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    try:
+        import xml.etree.ElementTree as ET
+        url = f"https://fchart.stock.naver.com/sise.nhn?symbol={ticker}&timeframe=day&count=300&requestType=0"
+        res = requests.get(url, headers=headers, timeout=5)
+        root = ET.fromstring(res.text)
+        items = root.findall('.//item')
+        rows = []
+        for item in items:
+            parts = item.attrib.get('data', '').split('|')
+            if len(parts) >= 6:
+                rows.append({
+                    'Date': parts[0],
+                    '시가': float(parts[1]),
+                    '고가': float(parts[2]),
+                    '저가': float(parts[3]),
+                    '종가': float(parts[4]),
+                    '거래량': float(parts[5])
+                })
+        if len(rows) >= 30:
+            return pd.DataFrame(rows)
+    except Exception:
+        pass
+
+    # 3. Fallback B: Naver siseJson API
     try:
         url = f"https://api.finance.naver.com/siseJson.naver?symbol={ticker}&requestType=1&startTime={start_date}&endTime={end_date}&timeframe=day"
         res = requests.get(url, headers=headers, timeout=5)
@@ -184,7 +208,7 @@ if __name__ == "__main__":
     buy_candidates = []
     all_stocks = []
     end_date = datetime.datetime.now().strftime("%Y%m%d")
-    start_date = (datetime.datetime.now() - datetime.timedelta(days=60)).strftime("%Y%m%d")
+    start_date = (datetime.datetime.now() - datetime.timedelta(days=365)).strftime("%Y%m%d")
 
     # 2. Screen Buy Signals across all KOSPI 200
     print("[2/3] Calculating indicators and screening buy signals...")
