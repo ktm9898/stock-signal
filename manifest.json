@@ -4,8 +4,8 @@
   "description": "KOSPI 200 한국투자증권 ADX 매매 신호 & 보유 종목 감시 모바일 앱",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0a0e17",
-  "theme_color": "#0a0e17",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
   "orientation": "portrait",
   "icons": [
     {
