@@ -182,6 +182,7 @@ if __name__ == "__main__":
     print(f" -> Found {len(items)} tickers.")
 
     buy_candidates = []
+    all_stocks = []
     end_date = datetime.datetime.now().strftime("%Y%m%d")
     start_date = (datetime.datetime.now() - datetime.timedelta(days=60)).strftime("%Y%m%d")
 
@@ -195,18 +196,42 @@ if __name__ == "__main__":
             if len(df) < 30:
                 continue
             df = calculate_indicators(df)
+            
+            # Record current indicators for all stocks
+            curr_adx = float(df['adx'].iloc[-1]) if 'adx' in df.columns and not np.isnan(df['adx'].iloc[-1]) else 0.0
+            curr_mdi = float(df['minus_di'].iloc[-1]) if 'minus_di' in df.columns and not np.isnan(df['minus_di'].iloc[-1]) else 0.0
+            curr_pdi = float(df['plus_di'].iloc[-1]) if 'plus_di' in df.columns and not np.isnan(df['plus_di'].iloc[-1]) else 0.0
+            curr_rsi = float(df['rsi'].iloc[-1]) if 'rsi' in df.columns and not np.isnan(df['rsi'].iloc[-1]) else 0.0
+            curr_close = int(df['종가'].iloc[-1]) if '종가' in df.columns else 0
+
             buy_res = evaluate_buy_signal(df)
+            status_text = "관망"
             if buy_res:
                 buy_res['ticker'] = ticker
                 buy_res['name'] = name
                 buy_candidates.append(buy_res)
+                status_text = buy_res['priority']
                 print(f"  🔥 [BUY SIGNAL] {name} ({ticker}) - {buy_res['priority']} | ADX: {buy_res['adx']} | RSI: {buy_res['rsi']}")
+            elif curr_adx >= 30:
+                status_text = "추세강함 (조건미달)"
+
+            all_stocks.append({
+                "ticker": ticker,
+                "name": name,
+                "adx": round(curr_adx, 2),
+                "minus_di": round(curr_mdi, 2),
+                "plus_di": round(curr_pdi, 2),
+                "rsi": round(curr_rsi, 2),
+                "close": curr_close,
+                "status": status_text
+            })
         except Exception as e:
             continue
 
     # Sort buy candidates by priority score (Tier 1 -> Tier 2 -> Tier 3)
     buy_candidates.sort(key=lambda x: x['score'])
     print(f" -> Found {len(buy_candidates)} buy candidate stocks.")
+    print(f" -> Calculated indicators for {len(all_stocks)} stocks.")
 
     # 3. Post to Google Sheets API
     if gas_url:
@@ -219,6 +244,7 @@ if __name__ == "__main__":
         }
         post_to_google_sheets(gas_url, "update_buy_candidates", {
             "candidates": buy_candidates,
+            "all_stocks": all_stocks,
             "log": log_payload
         })
     else:

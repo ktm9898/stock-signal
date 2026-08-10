@@ -197,7 +197,8 @@
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('buy-tab')"><i class="fa-solid fa-cart-shopping"></i> KOSPI 200 매수 후보 목록</button>
       <button class="tab-btn" onclick="switchTab('holdings-tab')"><i class="fa-solid fa-shield-halved"></i> 보유 종목 감시 (매도 신호)</button>
-      <button class="tab-btn" onclick="switchTab('logs-tab')"><i class="fa-solid fa-clock-rotate-left"></i> 시스템 실행 이력 (Execution Logs)</button>
+      <button class="tab-btn" onclick="switchTab('logs-tab')"><i class="fa-solid fa-clock-rotate-left"></i> 시스템 실행 이력</button>
+      <button class="tab-btn" onclick="switchTab('all-stocks-tab')"><i class="fa-solid fa-list-ul"></i> KOSPI 200 전체 종목 지표 (200개)</button>
     </div>
 
     <!-- Tab 1: Buy Candidates -->
@@ -267,6 +268,32 @@
         </table>
       </div>
     </div>
+
+    <!-- Tab 4: All 200 Stocks Metrics -->
+    <div id="all-stocks-tab" class="tab-content" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h3 style="font-weight: 600;">KOSPI 200 전체 종목 보조지표 현황</h3>
+        <input type="text" id="all-stocks-search" placeholder="🔍 종목명 또는 코드 검색..." class="form-input" style="max-width: 300px; padding: 8px 14px;" oninput="filterAllStocksTable()">
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>종목명 / 코드</th>
+              <th>ADX (14)</th>
+              <th>-DI</th>
+              <th>+DI</th>
+              <th>RSI</th>
+              <th>현재가</th>
+              <th>상태 / 신호</th>
+            </tr>
+          </thead>
+          <tbody id="all-stocks-body">
+            <!-- Dynamic Content -->
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
   <!-- Register Modal -->
@@ -313,6 +340,7 @@
     let buyCandidatesData = [];
     let holdingsData = [];
     let executionLogsData = [];
+    let allMetricsData = [];
 
     async function verifyPin() {
       const pinVal = document.getElementById('input-pin').value;
@@ -343,10 +371,12 @@
         buyCandidatesData = data.buyCandidates || [];
         holdingsData = data.userHoldings || [];
         executionLogsData = data.executionLogs || [];
+        allMetricsData = data.allMetrics || [];
 
         renderLogs(executionLogsData);
         renderBuyCandidates(buyCandidatesData, executionLogsData);
         renderHoldings(holdingsData);
+        renderAllStocks(allMetricsData);
         
         document.getElementById('count-buy').textContent = buyCandidatesData.length;
         const tier1Count = buyCandidatesData.filter(item => String(item.Tier).includes('1')).length;
@@ -398,7 +428,6 @@
         tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-sub); padding:30px;">기록된 시스템 실행 로그가 없습니다.</td></tr>`;
         return;
       }
-      // Render reverse order (newest on top)
       const reversedLogs = [...logs].reverse();
       tbody.innerHTML = reversedLogs.map(log => `
         <tr>
@@ -409,6 +438,46 @@
           <td>${log.Message || log.message || '정상 완료'}</td>
         </tr>
       `).join('');
+    }
+
+    function renderAllStocks(list) {
+      const tbody = document.getElementById('all-stocks-body');
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-sub); padding:30px;">저장된 KOSPI 200 전체 종목 지표 데이터가 없습니다. (다음 스크리너 실행 시 자동으로 수집됩니다)</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(item => {
+        const status = item.Status || item.status || '관망';
+        let badgeClass = 'badge-t3';
+        if (status.includes('Tier 1')) badgeClass = 'badge-t1';
+        else if (status.includes('Tier 2')) badgeClass = 'badge-t2';
+        else if (status.includes('추세강함')) badgeClass = 'badge-sell-warn';
+
+        return `
+          <tr>
+            <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.Ticker || item.code})</span></td>
+            <td><strong style="color: ${(item.ADX || item.adx) >= 30 ? 'var(--accent-cyan)' : 'inherit'}">${item.ADX || item.adx}</strong></td>
+            <td>${item.Minus_DI || item.minus_di || '-'}</td>
+            <td>${item.Plus_DI || item.plus_di || '-'}</td>
+            <td><span style="color: ${(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${item.RSI || item.rsi || '-'}</span></td>
+            <td>${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
+            <td><span class="badge ${badgeClass}">${status}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterAllStocksTable() {
+      const query = document.getElementById('all-stocks-search').value.toLowerCase().trim();
+      if (!query) {
+        renderAllStocks(allMetricsData);
+        return;
+      }
+      const filtered = allMetricsData.filter(item => 
+        (item.Name || item.name || '').toLowerCase().includes(query) ||
+        (item.Ticker || item.code || '').toLowerCase().includes(query)
+      );
+      renderAllStocks(filtered);
     }
 
     function renderHoldings(list) {
