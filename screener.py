@@ -264,10 +264,10 @@ def evaluate_sell_signal(df, buy_price):
     if di_dead_cross:
         details.append(f"+DI가 -DI 하향 데드크로스 (+DI: {curr_pdi:.1f}, -DI: {curr_mdi:.1f})")
 
-    # 3. -DI Acceleration (-DI >= 25 and -DI > +DI)
-    mdi_strong = (curr_mdi >= 25.0 and curr_mdi > curr_pdi)
+    # 3. -DI Acceleration (-DI >= 30 and -DI > +DI)
+    mdi_strong = (curr_mdi >= 30.0 and curr_mdi > curr_pdi)
     if mdi_strong:
-        details.append(f"-DI 매도세 우위 이탈 (-DI: {curr_mdi:.1f} >= 25)")
+        details.append(f"-DI 매도세 우위 이탈 (-DI: {curr_mdi:.1f} >= 30)")
 
     # Hierarchical Sell Signal Classification (1단계 ~ 4단계)
     if adx_drop and di_dead_cross:
