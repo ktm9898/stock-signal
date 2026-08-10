@@ -781,7 +781,12 @@
         const rate = Number(item.ReturnRate || item.returnRate || 0);
         const rateColor = rate > 0 ? 'var(--accent-red)' : rate < 0 ? 'var(--accent-blue)' : 'inherit';
         const rateSign = rate > 0 ? '+' : '';
-        const level = String(item.Status || item.signalLevel || '1단계: 매도 준비');
+        
+        let level = String(item.Status || item.signalLevel || '1단계: 매도 준비').trim();
+        if (!isNaN(Number(level)) || level.length === 0 || level === 'undefined') {
+          level = '1단계: 매도 준비';
+        }
+
         let badgeClass = 'badge-t2';
         if (level.includes('4단계') || level.includes('강력')) badgeClass = 'badge-sell-danger';
         else if (level.includes('3단계') || level.includes('매도 신호')) badgeClass = 'badge-sell-warn';
@@ -794,8 +799,8 @@
         const rsi = formatDec(item.RSI || item.rsi);
 
         let detailsText = String(item.Details || item.details || '-').trim();
-        if (!isNaN(Number(detailsText)) && detailsText !== '-') {
-          detailsText = `${level} 조건 포착`;
+        if (!isNaN(Number(detailsText)) || detailsText.includes('조건 포착') || detailsText === '-') {
+          detailsText = `${level} (ADX 추세 둔화 및 매도 이탈 조건 포착)`;
         }
 
         return `
