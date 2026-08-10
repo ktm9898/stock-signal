@@ -80,7 +80,8 @@ def get_ohlcv_data(ticker, start_date, end_date):
         import xml.etree.ElementTree as ET
         url = f"https://fchart.stock.naver.com/sise.nhn?symbol={ticker}&timeframe=day&count=300&requestType=0"
         res = requests.get(url, headers=headers, timeout=5)
-        root = ET.fromstring(res.text)
+        xml_text = res.content.decode('euc-kr', errors='ignore')
+        root = ET.fromstring(xml_text)
         items = root.findall('.//item')
         rows = []
         for item in items:
@@ -96,7 +97,7 @@ def get_ohlcv_data(ticker, start_date, end_date):
                 })
         if len(rows) >= 30:
             return pd.DataFrame(rows)
-    except Exception:
+    except Exception as e:
         pass
 
     # 3. Fallback B: Naver siseJson API
@@ -297,6 +298,8 @@ if __name__ == "__main__":
                 "status": status_text
             })
         except Exception as e:
+            if idx < 5:
+                print(f"[ERROR] Screening failed for {name} ({ticker}): {e}")
             continue
 
     # Sort buy candidates by priority score (Tier 1 -> Tier 2 -> Tier 3)
