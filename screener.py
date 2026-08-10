@@ -255,21 +255,24 @@ def evaluate_sell_signal(df, buy_price):
     details = []
     level = "관망"
 
-    if prev_adx >= 30 and curr_adx < prev_adx:
+    # 1. ADX 추세 꺾임 (ADX Peak Drop >= 30)
+    if prev_adx >= 30.0 and curr_adx < prev_adx:
         details.append(f"ADX 추세 꺾임 (전일: {prev_adx:.1f} → 금일: {curr_adx:.1f})")
-        level = "매도 경고"
+        level = "매도 경고 (추세 둔화)"
 
+    # 2. +DI가 -DI 하향 데드크로스 (+DI Dead Cross)
     if prev_pdi > prev_mdi and curr_pdi <= curr_mdi:
         details.append(f"+DI가 -DI 하향 데드크로스 (+DI: {curr_pdi:.1f}, -DI: {curr_mdi:.1f})")
-        level = "매도 신호"
+        if level == "관망":
+            level = "매도 신호 (방향 전환)"
+        else:
+            level = "강력 매도 (추세 꺾임 + 데드크로스)"
 
-    if buy_price and buy_price > 0:
-        if return_rate <= -5.0:
-            details.append(f"손절 기준 도달 (수익률: {return_rate:.2f}%)")
-            level = "강력 매도 (손절)"
-        elif return_rate >= 15.0:
-            details.append(f"목표 수익률 달성 (수익률: +{return_rate:.2f}%)")
-            level = "수익 실현 (익절)"
+    # 3. -DI 상승 및 매도세 우위 이탈 (-DI Acceleration >= 25)
+    if curr_mdi >= 25.0 and curr_mdi > curr_pdi:
+        details.append(f"-DI 매도세 우위 이탈 (-DI: {curr_mdi:.1f} >= 25)")
+        if level == "관망":
+            level = "매도 경고 (매도세 우위)"
 
     curr_rsi = df['rsi'].iloc[-1] if 'rsi' in df.columns else 0.0
 
