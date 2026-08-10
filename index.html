@@ -235,10 +235,7 @@
         padding-bottom: 70px;
       }
       header {
-        padding: 10px 14px;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
+        padding: 10px 0;
       }
       .brand { font-size: 1.05rem; }
       .header-right-group {
@@ -266,7 +263,7 @@
       .metric-value { font-size: 1.2rem; }
       .metric-icon { display: none; }
 
-      /* Mobile App Bottom Fixed Navigation Bar (Toss / Native App Style) */
+      /* Mobile App Bottom Fixed Navigation Bar (Toss / Native App Style: 4 Tabs) */
       .tabs {
         position: fixed !important;
         bottom: 0 !important;
@@ -310,8 +307,6 @@
         font-weight: 700 !important;
         box-shadow: none !important;
       }
-      .tab-label-desktop { display: none !important; }
-      .tab-label-mobile { display: inline !important; }
 
       .table-container {
         overflow-x: auto !important;
@@ -320,12 +315,6 @@
       }
       th { font-size: 0.72rem !important; padding: 8px 10px !important; white-space: nowrap !important; }
       td { font-size: 0.82rem !important; padding: 8px 10px !important; white-space: nowrap !important; }
-    }
-
-    @media (min-width: 769px) {
-      .tab-label-desktop { display: inline !important; }
-      .tab-label-mobile { display: none !important; }
-      .tab-btn-mobile-only { display: none !important; }
     }
   </style>
 </head>
@@ -384,26 +373,23 @@
       </div>
     </div>
 
-    <!-- Tab Navigation -->
+    <!-- Tab Navigation (4 Standalone Tabs) -->
     <div class="tabs">
-      <button class="tab-btn tab-btn-mobile-only" onclick="refreshDataUI(this)">
-        <i class="fa-solid fa-rotate"></i>
-        <span class="tab-label-mobile">새로고침</span>
-      </button>
       <button class="tab-btn active" onclick="switchTab('buy-tab')">
         <i class="fa-solid fa-cart-shopping"></i>
-        <span class="tab-label-desktop">매수 신호</span>
-        <span class="tab-label-mobile">매수 신호</span>
+        <span>매수 신호</span>
       </button>
       <button class="tab-btn" onclick="switchTab('holdings-tab')">
-        <i class="fa-solid fa-shield-halved"></i>
-        <span class="tab-label-desktop">매도 신호</span>
-        <span class="tab-label-mobile">매도 신호</span>
+        <i class="fa-solid fa-briefcase"></i>
+        <span>보유 종목</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('sell-signals-tab')">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span>매도 신호</span>
       </button>
       <button class="tab-btn" onclick="switchTab('all-stocks-tab')">
         <i class="fa-solid fa-list-ul"></i>
-        <span class="tab-label-desktop">전체 종목</span>
-        <span class="tab-label-mobile">전체 종목</span>
+        <span>전체 종목</span>
       </button>
     </div>
 
@@ -430,13 +416,13 @@
       </div>
     </div>
 
-    <!-- Tab 2: Holdings & Sell Signals -->
+    <!-- Tab 2: User Holdings -->
     <div id="holdings-tab" class="tab-content" style="display: none;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px;">
         <h3 style="font-weight: 600; font-size: 1rem; color: #0f172a;">보유 종목</h3>
         <button class="btn-buy-reg" onclick="openRegisterModal()"><i class="fa-solid fa-plus"></i> 종목 추가</button>
       </div>
-      <div class="table-container" style="margin-bottom: 20px;">
+      <div class="table-container">
         <table>
           <thead>
             <tr>
@@ -457,7 +443,10 @@
           </tbody>
         </table>
       </div>
+    </div>
 
+    <!-- Tab 3: Sell Signals History -->
+    <div id="sell-signals-tab" class="tab-content" style="display: none;">
       <div style="margin-bottom: 10px;">
         <h3 style="font-weight: 600; font-size: 1rem; color: var(--accent-red);">매도 신호 이력</h3>
       </div>
@@ -483,7 +472,7 @@
       </div>
     </div>
 
-    <!-- Tab 3: All 200 Stocks Metrics -->
+    <!-- Tab 4: All 200 Stocks Metrics -->
     <div id="all-stocks-tab" class="tab-content" style="display: none;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
         <h3 style="font-weight: 600; font-size: 1rem;">KOSPI 200 지표</h3>
