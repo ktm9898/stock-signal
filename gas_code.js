@@ -74,14 +74,32 @@ function doPost(e) {
       setupSheets();
       const buySheet = ss.getSheetByName("Buy_Candidates");
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd HH:mm");
+      const todayDateStr = today.substring(0, 10);
       
       if (data.candidates && data.candidates.length > 0 && buySheet) {
-        const existingData = buySheet.getLastRow() > 1 ? buySheet.getRange(2, 1, buySheet.getLastRow() - 1, buySheet.getLastColumn()).getValues() : [];
+        const lastRow = buySheet.getLastRow();
+        const existingRows = lastRow > 1 ? buySheet.getRange(2, 1, lastRow - 1, buySheet.getLastColumn()).getValues() : [];
+        
         data.candidates.forEach(c => {
-          // Record candidate without deleting past signals (avoid duplicate for same ticker on same day)
-          const exists = existingData.some(row => String(row[0]).substring(0, 10) === today.substring(0, 10) && String(row[1]) === String(c.ticker));
-          if (!exists) {
-            buySheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.prev_adx, c.minus_di, c.prev_minus_di, c.plus_di, c.rsi, c.close]);
+          const tickerStr = String(c.ticker).trim();
+          let existingIndex = -1;
+          for (let i = 0; i < existingRows.length; i++) {
+            const rowDateStr = String(existingRows[i][0]).substring(0, 10);
+            const rowTickerStr = String(existingRows[i][1]).trim();
+            if (rowDateStr === todayDateStr && rowTickerStr === tickerStr) {
+              existingIndex = i;
+              break;
+            }
+          }
+
+          const newRowData = [today, c.ticker, c.name, c.priority, c.adx, c.prev_adx, c.minus_di, c.prev_minus_di, c.plus_di, c.rsi, c.close];
+
+          if (existingIndex >= 0) {
+            // Overwrite existing row on same date with latest timestamp & metrics
+            buySheet.getRange(existingIndex + 2, 1, 1, newRowData.length).setValues([newRowData]);
+          } else {
+            // Append new row for new date or new stock candidate
+            buySheet.appendRow(newRowData);
           }
         });
       }
@@ -114,14 +132,31 @@ function doPost(e) {
       setupSheets();
       const sheet = ss.getSheetByName("Sell_Signals");
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd HH:mm");
+      const todayDateStr = today.substring(0, 10);
+
       if (data.signals && data.signals.length > 0 && sheet) {
-        const existingData = sheet.getLastRow() > 1 ? sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues() : [];
+        const lastRow = sheet.getLastRow();
+        const existingData = lastRow > 1 ? sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues() : [];
+        
         data.signals.forEach(s => {
-          // Avoid duplicate sell alert for same ticker on same day
-          const exists = existingData.some(row => String(row[0]).substring(0, 10) === today.substring(0, 10) && String(row[1]) === String(s.ticker));
-          if (!exists) {
-            const detailsText = Array.isArray(s.details) ? s.details.join(", ") : String(s.details || "");
-            sheet.appendRow([today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, s.adx, s.signalLevel, detailsText]);
+          const tickerStr = String(s.ticker).trim();
+          let existingIndex = -1;
+          for (let i = 0; i < existingData.length; i++) {
+            const rowDateStr = String(existingData[i][0]).substring(0, 10);
+            const rowTickerStr = String(existingData[i][1]).trim();
+            if (rowDateStr === todayDateStr && rowTickerStr === tickerStr) {
+              existingIndex = i;
+              break;
+            }
+          }
+
+          const detailsText = Array.isArray(s.details) ? s.details.join(", ") : String(s.details || "");
+          const newRowData = [today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, s.adx, s.signalLevel, detailsText];
+
+          if (existingIndex >= 0) {
+            sheet.getRange(existingIndex + 2, 1, 1, newRowData.length).setValues([newRowData]);
+          } else {
+            sheet.appendRow(newRowData);
           }
         });
       }
