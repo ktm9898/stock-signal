@@ -273,8 +273,10 @@ def evaluate_sell_signal(df, buy_price):
 
     curr_rsi = df['rsi'].iloc[-1] if 'rsi' in df.columns else 0.0
 
+    curr_rsi = df['rsi'].iloc[-1] if 'rsi' in df.columns else 0.0
+
     if not details:
-        return None
+        details = [f"ADX: {curr_adx:.1f} (정상 관망)"]
 
     return {
         "buyPrice": buy_price,
@@ -288,7 +290,8 @@ def evaluate_sell_signal(df, buy_price):
         "prev_minus_di": round(prev_mdi, 2),
         "rsi": round(curr_rsi, 2),
         "signalLevel": level,
-        "details": details
+        "details": details,
+        "isAlert": (level != "관망")
     }
 
 def post_to_google_sheets(url, action, data):
@@ -385,9 +388,9 @@ if __name__ == "__main__":
             "log": log_payload
         })
 
-    # 4. Check Sell Signals for User Holdings
+    # 4. Check Sell Signals & Monitor Indicators for User Holdings
     if gas_url:
-        print("[4/4] Checking Sell Signals for User Holdings...")
+        print("[4/4] Evaluating Indicators & Sell Signals for User Holdings...")
         try:
             pin = os.environ.get("AUTH_PIN", "")
             req_url = f"{gas_url}?action=holdings"
@@ -396,6 +399,7 @@ if __name__ == "__main__":
             h_res = requests.get(req_url, timeout=10)
             if h_res.status_code == 200 and h_res.json().get("success"):
                 holdings_list = h_res.json().get("userHoldings", [])
+                holdings_status = []
                 sell_signals = []
                 for h in holdings_list:
                     h_ticker = str(h.get("Ticker") or h.get("ticker") or h.get("code") or "").strip()
@@ -421,9 +425,15 @@ if __name__ == "__main__":
                     if sell_res:
                         sell_res["ticker"] = h_ticker
                         sell_res["name"] = h_name
-                        sell_signals.append(sell_res)
-                        print(f"  ⚠️ [SELL ALERT] {h_name} ({h_ticker}) - {sell_res['signalLevel']} | {', '.join(sell_res['details'])}")
+                        holdings_status.append(sell_res)
+                        if sell_res.get("isAlert"):
+                            sell_signals.append(sell_res)
+                            print(f"  ⚠️ [SELL ALERT] {h_name} ({h_ticker}) - {sell_res['signalLevel']} | {', '.join(sell_res['details'])}")
+                        else:
+                            print(f"  🛡️ [HOLDING MONITOR] {h_name} ({h_ticker}) - 관망 (ADX: {sell_res['adx']}, 수익률: {sell_res['returnRate']}%)")
                 
+                if holdings_status:
+                    post_to_google_sheets(gas_url, "update_holdings_status", {"holdings_status": holdings_status})
                 if sell_signals:
                     post_to_google_sheets(gas_url, "update_sell_signals", {"signals": sell_signals})
                 else:

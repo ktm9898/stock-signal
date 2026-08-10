@@ -34,6 +34,11 @@ function setupSheets() {
   let allSheet = ss.getSheetByName("KOSPI200_All_Metrics") || ss.insertSheet("KOSPI200_All_Metrics");
   allSheet.getRange("A1:K1").setValues([["Date", "Ticker", "Name", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "RSI", "ClosePrice", "Status"]]);
   allSheet.getRange("A1:K1").setFontWeight("bold").setBackground("#f3e8ff");
+
+  // 6. User Holdings Status Sheet Header Enforce
+  let hStatusSheet = ss.getSheetByName("User_Holdings_Status") || ss.insertSheet("User_Holdings_Status");
+  hStatusSheet.getRange("A1:M1").setValues([["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Prev_ADX", "Plus_DI", "Minus_DI", "RSI", "Status", "Details"]]);
+  hStatusSheet.getRange("A1:M1").setFontWeight("bold").setBackground("#e0f2fe");
 }
 
 function doGet(e) {
@@ -155,6 +160,22 @@ function doPost(e) {
             ]);
           }
         });
+      }
+    if (data.action === "update_holdings_status") {
+      setupSheets();
+      const sheet = ss.getSheetByName("User_Holdings_Status");
+      const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd HH:mm");
+
+      if (data.holdings_status && data.holdings_status.length > 0 && sheet) {
+        if (sheet.getLastRow() > 1) {
+          sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
+        }
+        const rows = data.holdings_status.map(s => [
+          today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, 
+          s.adx || '-', s.prev_adx || '-', s.plus_di || '-', s.minus_di || '-', s.rsi || '-', 
+          s.signalLevel, Array.isArray(s.details) ? s.details.join(", ") : String(s.details || "")
+        ]);
+        sheet.getRange(2, 1, rows.length, 13).setValues(rows);
       }
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
         .setMimeType(ContentService.MimeType.JSON);
