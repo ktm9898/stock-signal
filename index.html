@@ -43,6 +43,10 @@
       color: var(--text-main);
       line-height: 1.6;
       padding-bottom: 40px;
+      overscroll-behavior-y: contain; /* Prevent pull-to-refresh */
+    }
+    html {
+      overscroll-behavior-y: contain; /* Prevent pull-to-refresh */
     }
 
     /* Header */
@@ -355,17 +359,22 @@
       </div>
     </div>
 
-    <!-- Tab Navigation (3 Main Tabs) -->
+    <!-- Tab Navigation & Refresh Button -->
     <div class="tabs">
+      <button class="tab-btn" onclick="refreshDataUI(this)">
+        <i class="fa-solid fa-rotate"></i>
+        <span class="tab-label-desktop">새로고침</span>
+        <span class="tab-label-mobile">새로고침</span>
+      </button>
       <button class="tab-btn active" onclick="switchTab('buy-tab')">
         <i class="fa-solid fa-cart-shopping"></i>
-        <span class="tab-label-desktop">매수 후보</span>
-        <span class="tab-label-mobile">매수 후보</span>
+        <span class="tab-label-desktop">매수 신호</span>
+        <span class="tab-label-mobile">매수 신호</span>
       </button>
       <button class="tab-btn" onclick="switchTab('holdings-tab')">
         <i class="fa-solid fa-shield-halved"></i>
-        <span class="tab-label-desktop">보유 감시</span>
-        <span class="tab-label-mobile">보유 감시</span>
+        <span class="tab-label-desktop">매도 신호</span>
+        <span class="tab-label-mobile">매도 신호</span>
       </button>
       <button class="tab-btn" onclick="switchTab('all-stocks-tab')">
         <i class="fa-solid fa-list-ul"></i>
@@ -374,7 +383,7 @@
       </button>
     </div>
 
-    <!-- Tab 1: Buy Candidates -->
+    <!-- Tab 1: Buy Signals -->
     <div id="buy-tab" class="tab-content">
       <div class="table-container">
         <table>
@@ -507,11 +516,11 @@
       <div class="brand-icon" style="margin: 0 auto 16px auto; width: 48px; height: 48px; font-size: 1.4rem;">
         <i class="fa-solid fa-lock"></i>
       </div>
-      <h3 style="font-size: 1.3rem; margin-bottom: 8px;">보안 PIN 비밀번호 입력</h3>
-      <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 20px;">대시보드에 접근하려면 비밀번호 4자리를 입력하세요.</p>
+      <h3 style="font-size: 1.3rem; margin-bottom: 8px;">보안 비밀번호 입력</h3>
+      <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 20px;">대시보드에 접근하려면 비밀번호를 입력하세요.</p>
       
       <div class="form-group" style="margin-top: 15px;">
-        <input type="password" class="form-input" id="input-pin" maxlength="4" placeholder="••••" style="text-align: center; font-size: 2rem; letter-spacing: 12px; font-weight: 700; padding: 12px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
+        <input type="password" class="form-input" id="input-pin" placeholder="••••••••" style="text-align: center; font-size: 1.5rem; letter-spacing: 6px; font-weight: 700; padding: 12px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
       </div>
       <div id="pin-error" style="color: var(--accent-red); font-size: 0.85rem; margin-bottom: 12px; display: none;">비밀번호가 올바르지 않습니다.</div>
       <button class="btn-buy-reg" style="width: 100%; padding: 12px; font-size: 1rem;" onclick="verifyPin()">대시보드 열기</button>
@@ -522,7 +531,7 @@
     // GAS Web App API Endpoint
     const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
 
-    let userPin = (localStorage.getItem("STOCK_SIGNAL_PIN") || "").trim();
+    let userPin = "";
     let buyCandidatesData = [];
     let holdingsData = [];
     let executionLogsData = [];
@@ -535,11 +544,22 @@
       const success = await loadDataFromGAS(pinVal);
       if (success) {
         userPin = pinVal;
-        localStorage.setItem("STOCK_SIGNAL_PIN", userPin);
         document.getElementById('pin-modal').style.display = 'none';
         document.getElementById('pin-error').style.display = 'none';
       } else {
         document.getElementById('pin-error').style.display = 'block';
+      }
+    }
+
+    async function refreshDataUI(btn) {
+      if (btn) {
+        const icon = btn.querySelector('i');
+        if (icon) icon.classList.add('fa-spin');
+      }
+      await loadDataFromGAS(userPin);
+      if (btn) {
+        const icon = btn.querySelector('i');
+        if (icon) icon.classList.remove('fa-spin');
       }
     }
 
@@ -582,6 +602,27 @@
         console.error("Failed to load data from GAS:", err);
         return false;
       }
+    }
+
+    function formatDateOnly(rawDate) {
+      if (!rawDate) return '-';
+      try {
+        const d = new Date(rawDate);
+        if (!isNaN(d.getTime())) {
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${month}.${day}`;
+        }
+      } catch (e) {}
+
+      const str = String(rawDate).trim();
+      if (str.length >= 10) {
+        const parts = str.split('T')[0].split(' ')[0].split('-');
+        if (parts.length >= 3) {
+          return `${parts[1].padStart(2, '0')}.${parts[2].padStart(2, '0')}`;
+        }
+      }
+      return str.split(' ')[0];
     }
 
     function formatShortDate(rawDate) {
@@ -723,7 +764,7 @@
     function renderHoldings(list, metricsList = [], statusList = []) {
       const tbody = document.getElementById('holdings-body');
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-sub); padding:30px;">매수 등록된 보유 종목이 없습니다. 오른쪽 상단 '종목 추가' 버튼으로 추가하세요.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--text-sub); padding:30px;">매수 등록된 보유 종목이 없습니다. 오른쪽 상단 '종목 추가' 버튼으로 추가하세요.</td></tr>`;
         return;
       }
       tbody.innerHTML = list.map(item => {
@@ -749,6 +790,8 @@
         const buyPrice = Number(item.BuyPrice || item.buyPrice || 0);
         const currPrice = metric ? Number(metric.ClosePrice || metric.close || metric.CurrPrice || metric.currPrice || 0) : 0;
         const adx = formatDec(metric ? (metric.ADX || metric.adx || '-') : '-');
+        const mdi = formatDec(metric ? (metric.Minus_DI || metric.minus_di || metric.minusDi || '-') : '-');
+        const rsi = formatDec(metric ? (metric.RSI || metric.rsi || '-') : '-');
         
         const statusText = statusItem ? (statusItem.Status || statusItem.signalLevel || '관망') : '관망';
         let badgeClass = 'badge-neutral';
@@ -769,12 +812,14 @@
 
         return `
           <tr>
-            <td><span style="color:var(--text-sub); font-size:0.85rem;">${formatShortDate(item.DateAdded || item.date)}</span></td>
+            <td><span style="color:var(--text-sub); font-size:0.85rem;">${formatDateOnly(item.DateAdded || item.date)}</span></td>
             <td><strong>${displayName}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${displayTicker})</span></td>
             <td>${buyPrice > 0 ? buyPrice.toLocaleString() + ' 원' : '-'}</td>
             <td>${currPrice > 0 ? currPrice.toLocaleString() + ' 원' : '-'}</td>
             <td><strong style="color:${returnRateColor}">${returnRateStr}</strong></td>
             <td><strong style="color:var(--accent-cyan);">${adx}</strong></td>
+            <td>${mdi}</td>
+            <td><span style="color: ${Number(rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
             <td><span class="badge ${badgeClass}">${statusText}</span></td>
             <td style="font-size:0.85rem; color:var(--text-sub);">${detailsText}</td>
             <td><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${rawTicker !== '-' ? rawTicker : rawName}')" title="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
@@ -787,7 +832,7 @@
       const tbody = document.getElementById('sell-signals-body');
       if (!tbody) return;
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-sub); padding:30px;">
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-sub); padding:30px;">
           🟢 감지된 매도 경고 또는 매도 신호 이력이 없습니다.
         </td></tr>`;
         return;
@@ -828,7 +873,7 @@
             <td><strong style="color:${rateColor}">${rateSign}${rate.toFixed(2)}%</strong></td>
             <td><strong style="color:var(--accent-cyan);">${adx}</strong></td>
             <td>${mdi}</td>
-            <td>${rsi}</td>
+            <td><span style="color: ${Number(rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
             <td><span class="badge ${badgeClass}">${level}</span></td>
             <td style="font-size:0.85rem; color:var(--text-sub);">${detailsText}</td>
           </tr>
@@ -840,7 +885,9 @@
       document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.getElementById(tabId).style.display = 'block';
-      event.currentTarget.classList.add('active');
+      if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+      }
     }
 
     function onStockSearchInput() {
@@ -1061,7 +1108,7 @@
       });
     }
 
-    // Startup check: authenticate stored PIN or attempt PIN-free load
+    // Startup check: authenticate PIN or attempt PIN-free load
     loadDataFromGAS(userPin).then(success => {
       if (success) {
         document.getElementById('pin-modal').style.display = 'none';
