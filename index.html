@@ -792,7 +792,8 @@
       const reversedList = [...list].reverse();
       tbody.innerHTML = reversedList.map(item => {
         const rawTier = String(item.Tier || item.tier || 'Tier 3');
-        const tierText = rawTier.includes('1') ? '1단계' : rawTier.includes('2') ? '2단계' : '3단계';
+        // Inverted: Tier 3 = 1단계 (일반), Tier 2 = 2단계 (우수), Tier 1 = 3단계 (최고)
+        const tierText = rawTier.includes('1') ? '3단계' : rawTier.includes('2') ? '2단계' : '1단계';
         const tierClass = rawTier.includes('1') ? 'badge-t1' : rawTier.includes('2') ? 'badge-t2' : 'badge-t3';
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
         const name = (item.Name || item.name || '').replace(/'/g, "\\'");
@@ -802,7 +803,7 @@
           <tr>
             <td><span style="color:var(--text-sub); font-size:0.85rem; font-weight:500;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
             <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
-            <td><span class="badge ${tierClass}" onclick="showDetailsModal('${name}', '${tierText}', '${reason}', '${tierClass}')">${tierText}</span></td>
+            <td><span class="badge ${tierClass}" onclick="showDetailsModal('${name}', '${tierText}', '${reason}', '${tierClass}')" title="클릭 시 포착 사유 확인">${tierText}</span></td>
             <td><strong style="color:var(--accent-cyan);">${formatDec(item.ADX || item.adx)}</strong></td>
             <td>${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}</td>
             <td><span style="color: ${Number(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${formatDec(item.RSI || item.rsi)}</span></td>
@@ -820,15 +821,16 @@
         return;
       }
       tbody.innerHTML = list.map(item => {
-        const rawStatus = item.Status || item.status || '관망';
+        const rawStatus = String(item.Status || item.status || '관망');
         let statusText = rawStatus;
         let badgeClass = 'badge-neutral';
-        if (rawStatus.includes('Tier 1')) { badgeClass = 'badge-t1'; statusText = 'Tier 1'; }
-        else if (rawStatus.includes('Tier 2')) { badgeClass = 'badge-t2'; statusText = 'Tier 2'; }
-        else if (rawStatus.includes('Tier 3')) { badgeClass = 'badge-t3'; statusText = 'Tier 3'; }
+        if (rawStatus.includes('Tier 1')) { badgeClass = 'badge-t1'; statusText = '3단계'; }
+        else if (rawStatus.includes('Tier 2')) { badgeClass = 'badge-t2'; statusText = '2단계'; }
+        else if (rawStatus.includes('Tier 3')) { badgeClass = 'badge-t3'; statusText = '1단계'; }
         else if (rawStatus.includes('추세강함')) { badgeClass = 'badge-sell-warn'; statusText = '추세 강함'; }
         else { statusText = '관망'; }
 
+        const name = (item.Name || item.name || '').replace(/'/g, "\\'");
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
         const currAdx = formatDec(item.ADX || item.adx);
         const prevAdx = formatDec(item.Prev_ADX || item.prev_adx);
@@ -836,6 +838,8 @@
         const prevMdi = formatDec(item.Prev_Minus_DI || item.prev_minus_di);
         const currPdi = formatDec(item.Plus_DI || item.plus_di);
         const rsi = formatDec(item.RSI || item.rsi);
+
+        const reason = `ADX: ${currAdx} (전일: ${prevAdx}), -DI: ${currMdi} (전일: ${prevMdi}), +DI: ${currPdi}, RSI: ${rsi}`;
 
         return `
           <tr>
@@ -847,7 +851,7 @@
             <td>${currPdi}</td>
             <td><span style="color: ${Number(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
             <td>${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
-            <td><span class="badge ${badgeClass}">${statusText}</span></td>
+            <td><span class="badge ${badgeClass}" onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 세부 지표 확인">${statusText}</span></td>
           </tr>
         `;
       }).join('');
