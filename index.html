@@ -280,8 +280,10 @@
           <thead>
             <tr>
               <th>종목명 / 코드</th>
-              <th>ADX (14)</th>
-              <th>-DI</th>
+              <th>금일 ADX</th>
+              <th>전일 ADX</th>
+              <th>금일 -DI</th>
+              <th>전일 -DI</th>
               <th>+DI</th>
               <th>RSI</th>
               <th>현재가</th>
@@ -443,7 +445,7 @@
     function renderAllStocks(list) {
       const tbody = document.getElementById('all-stocks-body');
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-sub); padding:30px;">저장된 KOSPI 200 전체 종목 지표 데이터가 없습니다. (다음 스크리너 실행 시 자동으로 수집됩니다)</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-sub); padding:30px;">저장된 KOSPI 200 전체 종목 지표 데이터가 없습니다. (다음 스크리너 실행 시 자동으로 수집됩니다)</td></tr>`;
         return;
       }
       tbody.innerHTML = list.map(item => {
@@ -453,11 +455,18 @@
         else if (status.includes('Tier 2')) badgeClass = 'badge-t2';
         else if (status.includes('추세강함')) badgeClass = 'badge-sell-warn';
 
+        const currAdx = item.ADX || item.adx || '-';
+        const prevAdx = item.Prev_ADX || item.prev_adx || '-';
+        const currMdi = item.Minus_DI || item.minus_di || '-';
+        const prevMdi = item.Prev_Minus_DI || item.prev_minus_di || '-';
+
         return `
           <tr>
             <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.Ticker || item.code})</span></td>
-            <td><strong style="color: ${(item.ADX || item.adx) >= 30 ? 'var(--accent-cyan)' : 'inherit'}">${item.ADX || item.adx}</strong></td>
-            <td>${item.Minus_DI || item.minus_di || '-'}</td>
+            <td><strong style="color: ${Number(currAdx) >= 30 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
+            <td style="color:var(--text-sub);">${prevAdx}</td>
+            <td>${currMdi}</td>
+            <td style="color:var(--text-sub);">${prevMdi}</td>
             <td>${item.Plus_DI || item.plus_di || '-'}</td>
             <td><span style="color: ${(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${item.RSI || item.rsi || '-'}</span></td>
             <td>${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>

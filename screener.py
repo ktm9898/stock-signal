@@ -197,9 +197,11 @@ if __name__ == "__main__":
                 continue
             df = calculate_indicators(df)
             
-            # Record current indicators for all stocks
+            # Record current and previous indicators for all stocks
             curr_adx = float(df['adx'].iloc[-1]) if 'adx' in df.columns and not np.isnan(df['adx'].iloc[-1]) else 0.0
+            prev_adx = float(df['adx'].iloc[-2]) if len(df) >= 2 and 'adx' in df.columns and not np.isnan(df['adx'].iloc[-2]) else 0.0
             curr_mdi = float(df['minus_di'].iloc[-1]) if 'minus_di' in df.columns and not np.isnan(df['minus_di'].iloc[-1]) else 0.0
+            prev_mdi = float(df['minus_di'].iloc[-2]) if len(df) >= 2 and 'minus_di' in df.columns and not np.isnan(df['minus_di'].iloc[-2]) else 0.0
             curr_pdi = float(df['plus_di'].iloc[-1]) if 'plus_di' in df.columns and not np.isnan(df['plus_di'].iloc[-1]) else 0.0
             curr_rsi = float(df['rsi'].iloc[-1]) if 'rsi' in df.columns and not np.isnan(df['rsi'].iloc[-1]) else 0.0
             curr_close = int(df['종가'].iloc[-1]) if '종가' in df.columns else 0
@@ -209,6 +211,8 @@ if __name__ == "__main__":
             if buy_res:
                 buy_res['ticker'] = ticker
                 buy_res['name'] = name
+                buy_res['prev_adx'] = round(prev_adx, 2)
+                buy_res['prev_minus_di'] = round(prev_mdi, 2)
                 buy_candidates.append(buy_res)
                 status_text = buy_res['priority']
                 print(f"  🔥 [BUY SIGNAL] {name} ({ticker}) - {buy_res['priority']} | ADX: {buy_res['adx']} | RSI: {buy_res['rsi']}")
@@ -219,7 +223,9 @@ if __name__ == "__main__":
                 "ticker": ticker,
                 "name": name,
                 "adx": round(curr_adx, 2),
+                "prev_adx": round(prev_adx, 2),
                 "minus_di": round(curr_mdi, 2),
+                "prev_minus_di": round(prev_mdi, 2),
                 "plus_di": round(curr_pdi, 2),
                 "rsi": round(curr_rsi, 2),
                 "close": curr_close,

@@ -8,8 +8,8 @@ function setupSheets() {
 
   let buySheet = ss.getSheetByName("Buy_Candidates") || ss.insertSheet("Buy_Candidates");
   if (buySheet.getLastRow() === 0) {
-    buySheet.appendRow(["Date", "Ticker", "Name", "Tier", "ADX", "Minus_DI", "Plus_DI", "RSI", "ClosePrice"]);
-    buySheet.getRange("A1:I1").setFontWeight("bold").setBackground("#e0f2fe");
+    buySheet.appendRow(["Date", "Ticker", "Name", "Tier", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "RSI", "ClosePrice"]);
+    buySheet.getRange("A1:K1").setFontWeight("bold").setBackground("#e0f2fe");
   }
 
   let holdingsSheet = ss.getSheetByName("User_Holdings") || ss.insertSheet("User_Holdings");
@@ -32,8 +32,8 @@ function setupSheets() {
 
   let allSheet = ss.getSheetByName("KOSPI200_All_Metrics") || ss.insertSheet("KOSPI200_All_Metrics");
   if (allSheet.getLastRow() === 0) {
-    allSheet.appendRow(["Date", "Ticker", "Name", "ADX", "Minus_DI", "Plus_DI", "RSI", "ClosePrice", "Status"]);
-    allSheet.getRange("A1:I1").setFontWeight("bold").setBackground("#f3e8ff");
+    allSheet.appendRow(["Date", "Ticker", "Name", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "RSI", "ClosePrice", "Status"]);
+    allSheet.getRange("A1:K1").setFontWeight("bold").setBackground("#f3e8ff");
   }
 }
 
@@ -73,11 +73,13 @@ function doPost(e) {
 
     if (data.action === "update_buy_candidates") {
       const buySheet = ss.getSheetByName("Buy_Candidates");
-      if (buySheet.getLastRow() > 1) buySheet.getRange(2, 1, buySheet.getLastRow() - 1, buySheet.getLastColumn()).clearContent();
+      if (buySheet && buySheet.getLastRow() > 1) {
+        buySheet.getRange(2, 1, buySheet.getLastRow() - 1, buySheet.getLastColumn()).clearContent();
+      }
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd HH:mm");
-      if (data.candidates && data.candidates.length > 0) {
+      if (data.candidates && data.candidates.length > 0 && buySheet) {
         data.candidates.forEach(c => {
-          buySheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.minus_di, c.plus_di, c.rsi, c.close]);
+          buySheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.prev_adx, c.minus_di, c.prev_minus_di, c.plus_di, c.rsi, c.close]);
         });
       }
 
@@ -104,9 +106,9 @@ function doPost(e) {
           allSheet.getRange(2, 1, allSheet.getLastRow() - 1, allSheet.getLastColumn()).clearContent();
         }
         const rows = data.all_stocks.map(s => [
-          today, s.ticker, s.name, s.adx, s.minus_di, s.plus_di, s.rsi, s.close, s.status
+          today, s.ticker, s.name, s.adx, s.prev_adx, s.minus_di, s.prev_minus_di, s.plus_di, s.rsi, s.close, s.status
         ]);
-        allSheet.getRange(2, 1, rows.length, 9).setValues(rows);
+        allSheet.getRange(2, 1, rows.length, 11).setValues(rows);
       }
 
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success", count: data.candidates ? data.candidates.length : 0 }))
@@ -115,7 +117,7 @@ function doPost(e) {
 
     if (data.action === "update_sell_signals") {
       const sheet = ss.getSheetByName("Sell_Signals");
-      if (sheet.getLastRow() > 1) sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
+      if (sheet && sheet.getLastRow() > 1) sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd HH:mm");
       data.signals.forEach(s => {
         sheet.appendRow([today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, s.adx, s.signalLevel, s.details.join(", ")]);
