@@ -838,7 +838,7 @@
       }
 
       try {
-        await fetch(GAS_WEBAPP_URL, {
+        const resp = await fetch(GAS_WEBAPP_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({
@@ -846,17 +846,25 @@
             pin: userPin
           })
         });
-        alert("🚀 수동 스크리닝이 깃허브 서버에서 즉시 시작되었습니다!\n\n약 1~2분 후 200개 종목 수식 계산이 완료되면 시트와 화면이 자동 갱신됩니다.");
-        
-        setTimeout(() => {
-          loadDataFromGAS(userPin);
+        const result = await resp.json();
+        if (result.success) {
+          alert("🚀 수동 스크리닝이 깃허브 서버에서 즉시 시작되었습니다!\n\n약 1~2분 후 200개 종목 수식 계산이 완료되면 시트와 화면이 자동 갱신됩니다.");
+          setTimeout(() => {
+            loadDataFromGAS(userPin);
+            if (btn) {
+              btn.disabled = false;
+              btn.innerHTML = '수동 실행';
+            }
+          }, 90000);
+        } else {
+          alert("❌ 수동 스크리닝 실행 실패:\n\n" + (result.message || "권한 또는 설정 오류가 발생했습니다."));
           if (btn) {
             btn.disabled = false;
             btn.innerHTML = '수동 실행';
           }
-        }, 90000);
+        }
       } catch (err) {
-        alert("스크리닝 요청 완료! 약 1~2분 후 화면이 갱신됩니다.");
+        alert("스크리닝 요청 실패: " + err);
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = '수동 실행';

@@ -158,25 +158,44 @@ function doPost(e) {
 
     if (data.action === "trigger_screener") {
       const githubToken = PropertiesService.getScriptProperties().getProperty("GITHUB_TOKEN");
+      if (!githubToken) {
+        return ContentService.createTextOutput(JSON.stringify({ 
+          success: false, 
+          status: "error", 
+          message: "구글 앱스 스크립트에 GITHUB_TOKEN 이 설정되어 있지 않습니다. Script Properties에 GITHUB_TOKEN을 추가해주세요." 
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
       const url = "https://api.github.com/repos/ktm9898/stock-signal/actions/workflows/screener.yml/dispatches";
       const options = {
         method: "post",
         contentType: "application/json",
         headers: {
           "Accept": "application/vnd.github+json",
-          "User-Agent": "GoogleAppsScript"
+          "User-Agent": "GoogleAppsScript",
+          "Authorization": "Bearer " + githubToken.trim()
         },
         payload: JSON.stringify({ ref: "main" }),
         muteHttpExceptions: true
       };
-      if (githubToken) {
-        options.headers["Authorization"] = "Bearer " + githubToken;
-      }
+      
       try {
-        UrlFetchApp.fetch(url, options);
-      } catch (err) {}
-      return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success", message: "수동 스크리닝이 깃허브 서버에서 시작되었습니다." }))
-        .setMimeType(ContentService.MimeType.JSON);
+        const resp = UrlFetchApp.fetch(url, options);
+        const code = resp.getResponseCode();
+        if (code === 204 || code === 200) {
+          return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success", message: "수동 스크리닝이 깃허브 서버에서 시작되었습니다." }))
+            .setMimeType(ContentService.MimeType.JSON);
+        } else {
+          return ContentService.createTextOutput(JSON.stringify({ 
+            success: false, 
+            status: "error", 
+            message: "깃허브 API 오류 (HTTP " + code + "): " + resp.getContentText() 
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
+      } catch (err) {
+        return ContentService.createTextOutput(JSON.stringify({ success: false, status: "error", message: "통신 오류: " + err.toString() }))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
     }
 
     if (data.action === "add_user_holding") {
