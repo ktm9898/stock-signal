@@ -749,7 +749,7 @@
         const rate = Number(item.ReturnRate || item.returnRate || 0);
         const rateColor = rate > 0 ? 'var(--accent-red)' : rate < 0 ? 'var(--accent-blue)' : 'inherit';
         const rateSign = rate > 0 ? '+' : '';
-        const level = item.Status || item.signalLevel || '매도 경고';
+        const level = String(item.Status || item.signalLevel || '매도 경고');
         let badgeClass = 'badge-sell-warn';
         if (level.includes('강력') || level.includes('손절')) badgeClass = 'badge-sell-danger';
         else if (level.includes('수익') || level.includes('익절')) badgeClass = 'badge-t1';
