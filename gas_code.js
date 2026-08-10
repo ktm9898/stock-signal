@@ -74,7 +74,7 @@ function doPost(e) {
       setupSheets();
       const buySheet = ss.getSheetByName("Buy_Candidates");
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd HH:mm");
-      const todayDateStr = today.substring(0, 10);
+      const todayYMD = extractYMD(new Date());
       
       if (data.candidates && data.candidates.length > 0 && buySheet) {
         const lastRow = buySheet.getLastRow();
@@ -84,15 +84,15 @@ function doPost(e) {
           const tickerStr = String(c.ticker).trim();
           let exists = false;
           for (let i = 0; i < existingRows.length; i++) {
-            const rowDateStr = String(existingRows[i][0]).substring(0, 10);
+            const rowYMD = extractYMD(existingRows[i][0]);
             const rowTickerStr = String(existingRows[i][1]).trim();
-            if (rowDateStr === todayDateStr && rowTickerStr === tickerStr) {
+            if (rowYMD === todayYMD && rowTickerStr === tickerStr) {
               exists = true;
               break;
             }
           }
 
-          // Keep the FIRST signal timestamp & metrics of the day (do not overwrite with later times)
+          // Keep the FIRST signal timestamp & metrics of the day (do not duplicate)
           if (!exists) {
             buySheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.prev_adx, c.minus_di, c.prev_minus_di, c.plus_di, c.rsi, c.close]);
           }
@@ -127,7 +127,7 @@ function doPost(e) {
       setupSheets();
       const sheet = ss.getSheetByName("Sell_Signals");
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd HH:mm");
-      const todayDateStr = today.substring(0, 10);
+      const todayYMD = extractYMD(new Date());
 
       if (data.signals && data.signals.length > 0 && sheet) {
         const lastRow = sheet.getLastRow();
@@ -137,9 +137,9 @@ function doPost(e) {
           const tickerStr = String(s.ticker).trim();
           let exists = false;
           for (let i = 0; i < existingData.length; i++) {
-            const rowDateStr = String(existingData[i][0]).substring(0, 10);
+            const rowYMD = extractYMD(existingData[i][0]);
             const rowTickerStr = String(existingData[i][1]).trim();
-            if (rowDateStr === todayDateStr && rowTickerStr === tickerStr) {
+            if (rowYMD === todayYMD && rowTickerStr === tickerStr) {
               exists = true;
               break;
             }
@@ -242,6 +242,14 @@ function getSheetData(sheet) {
     data.push(rowObj);
   }
   return data;
+}
+
+function extractYMD(val) {
+  if (!val) return "";
+  if (val instanceof Date) {
+    return Utilities.formatDate(val, "GMT+9", "yyyyMMdd");
+  }
+  return String(val).replace(/[^0-9]/g, "").substring(0, 8);
 }
 
 /**
