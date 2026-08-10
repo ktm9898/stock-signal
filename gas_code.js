@@ -52,7 +52,6 @@ function doGet(e) {
   }
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const action = e.parameter.action || "all";
   let result = { success: true, status: "success" };
 
   if (action === "all" || action === "buy") result.buyCandidates = getSheetData(ss.getSheetByName("Buy_Candidates"));
