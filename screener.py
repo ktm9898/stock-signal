@@ -5,8 +5,12 @@ Calculates ADX, +DI, -DI, RSI, and Moving Averages for KOSPI 200 components.
 
 import sys
 import datetime
+import os
+import re
+import json
 import pandas as pd
 import numpy as np
+import requests
 
 try:
     from pykrx import stock
@@ -14,27 +18,88 @@ try:
 except ImportError:
     print("[WARN] Required packages ('pykrx', 'ta', 'pandas') missing. Install via pip.")
 
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    BeautifulSoup = None
+
 def get_kospi200_tickers():
-    """Retrieve KOSPI 200 list of tickers and names using PyKRX."""
-    today = datetime.datetime.now().strftime("%Y%m%d")
+    """Retrieve KOSPI 200 list of tickers and names (PyKRX with Naver Finance fallback)."""
+    items = []
+    
+    # 1. Try PyKRX
     try:
-        # 1028 is KOSPI 200 index code
         tickers = stock.get_index_portfolio_deposit_file("1028")
-        items = []
-        for ticker in tickers:
-            name = stock.get_market_ticker_name(ticker)
-            items.append({"ticker": ticker, "name": name})
-        return items
+        if tickers and len(tickers) > 0:
+            for ticker in tickers:
+                name = stock.get_market_ticker_name(ticker)
+                items.append({"ticker": ticker, "name": name})
+            if len(items) >= 100:
+                return items
     except Exception as e:
-        print(f"[ERROR] Failed to fetch KOSPI 200 list: {e}")
-        return []
+        print(f"[WARN] PyKRX get_index_portfolio_deposit_file failed: {e}")
+
+    # 2. Fallback: Naver Finance KOSPI 200 Scraping
+    print("[INFO] Using Naver Finance fallback to fetch KOSPI 200 list...")
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    try:
+        for page in range(1, 21):
+            url = f"https://finance.naver.com/sise/entryJongmok.naver?page={page}"
+            res = requests.get(url, headers=headers, timeout=5)
+            if BeautifulSoup:
+                soup = BeautifulSoup(res.text, "html.parser")
+                tds = soup.find_all("td", class_="ctg")
+                for td in tds:
+                    a = td.find("a")
+                    if a and 'code=' in a.get('href', ''):
+                        match = re.search(r'code=(\d+)', a['href'])
+                        if match:
+                            items.append({"ticker": match.group(1), "name": a.text.strip()})
+            else:
+                matches = re.findall(r'href="/item/main\.naver\?code=(\d+)">(.*?)</a>', res.text)
+                for code, name in matches:
+                    items.append({"ticker": code, "name": name.strip()})
+    except Exception as e:
+        print(f"[ERROR] Naver Finance KOSPI 200 fallback failed: {e}")
+
+    return items
+
+def get_ohlcv_data(ticker, start_date, end_date):
+    """Retrieve OHLCV DataFrame for a ticker (PyKRX with Naver Finance fallback)."""
+    # 1. Try PyKRX
+    try:
+        df = stock.get_market_ohlcv_by_date(start_date, end_date, ticker)
+        if df is not None and len(df) >= 30 and '고가' in df.columns:
+            return df
+    except Exception:
+        pass
+
+    # 2. Fallback: Naver Finance API
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    try:
+        url = f"https://api.finance.naver.com/siseJson.naver?symbol={ticker}&requestType=1&startTime={start_date}&endTime={end_date}&timeframe=day"
+        res = requests.get(url, headers=headers, timeout=5)
+        clean_text = res.text.strip().replace("'", '"')
+        data = json.loads(clean_text)
+        if len(data) > 1:
+            headers_row = [c.strip() for c in data[0]]
+            df = pd.DataFrame(data[1:], columns=headers_row)
+            df.rename(columns={'날짜': 'Date'}, inplace=True)
+            for col in ['시가', '고가', '저가', '종가', '거래량']:
+                if col in df.columns:
+                    df[col] = pd.to_numeric(df[col], errors='coerce')
+            return df
+    except Exception:
+        pass
+
+    return pd.DataFrame()
 
 def calculate_indicators(df):
     """
     Calculate ADX(14), +DI, -DI, RSI(14), 5MA, 20MA for OHLCV dataframe.
     Columns expected: ['고가', '저가', '종가', '거래량']
     """
-    if len(df) < 30:
+    if len(df) < 30 or not {'고가', '저가', '종가', '거래량'}.issubset(df.columns):
         return df
 
     # ADX & DI
@@ -97,55 +162,16 @@ def evaluate_buy_signal(df):
         "close": int(df['종가'].iloc[-1])
     }
 
-def evaluate_sell_signal(df):
-    """
-    Evaluate Sensitive 3-Stage Sell Signals for registered holdings.
-    Stage 1 (Warning): +DI peak downturn OR RSI >= 70 breakdown
-    Stage 2 (Execution): Close < 5MA OR +DI cross down ADX
-    Stage 3 (Exit/StopLoss): Close < 20MA OR -DI cross up +DI
-    """
-    if len(df) < 3 or 'adx' not in df.columns:
-        return None
-
-    curr_adx = df['adx'].iloc[-1]
-    curr_pdi, prev_pdi = df['plus_di'].iloc[-1], df['plus_di'].iloc[-2]
-    curr_mdi = df['minus_di'].iloc[-1]
-    curr_rsi, prev_rsi = df['rsi'].iloc[-1], df['rsi'].iloc[-2]
-    curr_close = df['종가'].iloc[-1]
-    curr_ma5 = df['ma5'].iloc[-1]
-    curr_ma20 = df['ma20'].iloc[-1]
-
-    signals = []
-
-    # Stage 1: +DI peak downturn or RSI 70 exit
-    if (curr_pdi > curr_adx) and (curr_pdi < prev_pdi):
-        signals.append("1단계 경고 (+DI 고점 꺾임)")
-    if (prev_rsi >= 70) and (curr_rsi < 70):
-        signals.append("1단계 경고 (RSI 70 과열 탈출)")
-
-    # Stage 2: Close < 5MA or +DI cross down ADX
-    if curr_close < curr_ma5:
-        signals.append("2단계 익절 (5일선 하향 이탈)")
-    if (prev_pdi > prev_adx) and (curr_pdi <= curr_adx):
-        signals.append("2단계 익절 (+DI ADX 하향 돌파)")
-
-    # Stage 3: Close < 20MA or Dead Cross (-DI > +DI)
-    if curr_close < curr_ma20:
-        signals.append("3단계 청산 (20일선 하향 이탈)")
-    if curr_mdi > curr_pdi:
-        signals.append("3단계 청산 (-DI/+DI 데드크로스)")
-
-    return {
-        "has_sell_signal": len(signals) > 0,
-        "signal_level": f"{len(signals)}개 경고/매도 조건 포착" if signals else "안정",
-        "details": signals,
-        "adx": round(curr_adx, 2),
-        "rsi": round(curr_rsi, 2) if not np.isnan(curr_rsi) else None,
-        "close": int(curr_close)
-    }
+def post_to_google_sheets(url, action, data):
+    """Post screening results to Google Apps Script Web App."""
+    payload = {"action": action, **data}
+    try:
+        res = requests.post(url, json=payload, timeout=15)
+        print(f" -> GAS Response: Status {res.status_code} | {res.text[:200]}")
+    except Exception as e:
+        print(f"[ERROR] Failed to post to Google Sheets: {e}")
 
 if __name__ == "__main__":
-    import os
     print("[INFO] KOSPI 200 Stock Signal Screener Engine Starting...")
     
     gas_url = os.environ.get("GAS_WEBAPP_URL", "")
@@ -165,7 +191,7 @@ if __name__ == "__main__":
         ticker = item['ticker']
         name = item['name']
         try:
-            df = stock.get_market_ohlcv_by_date(start_date, end_date, ticker)
+            df = get_ohlcv_data(ticker, start_date, end_date)
             if len(df) < 30:
                 continue
             df = calculate_indicators(df)
@@ -190,4 +216,3 @@ if __name__ == "__main__":
         print("[WARN] GAS_WEBAPP_URL environment variable is not set. Results printed above.")
 
     print("[INFO] Screener Execution Completed.")
-
