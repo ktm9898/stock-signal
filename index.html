@@ -118,6 +118,8 @@
       width: 32px; height: 32px; border-radius: 8px; background: #eff6ff;
       display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #2563eb;
     }
+    .label-desktop { display: inline; }
+    .label-mobile { display: none; }
 
     /* Tab Navigation */
     .tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--card-border); padding-bottom: 10px; }
@@ -264,6 +266,9 @@
       .metric-value { font-size: 1.1rem; flex-wrap: wrap; }
       .metric-icon { display: none; }
 
+      .label-desktop { display: none !important; }
+      .label-mobile { display: inline !important; }
+
       /* Mobile App Bottom Fixed Navigation Bar (Toss / Native App Style: 4 Tabs) */
       .tabs {
         position: fixed !important;
@@ -370,7 +375,9 @@
           <div class="metric-title">보유 종목</div>
           <div class="metric-value">
             <span id="count-holdings" style="color: var(--accent-cyan);">0</span>
-            <span style="font-size: 0.78rem; font-weight: 500; color: var(--text-sub); margin-left: 6px;">(수익 <span id="count-profit" style="color:var(--accent-red); font-weight:700;">0</span> / 손실 <span id="count-loss" style="color:var(--accent-blue); font-weight:700;">0</span>)</span>
+            <span style="font-size: 0.78rem; font-weight: 500; color: var(--text-sub); margin-left: 4px;">
+              (<span class="label-desktop">수익 </span><span id="count-profit" style="color:var(--accent-red); font-weight:700;">0</span><span class="label-desktop"> / 손실 </span><span class="label-mobile"> / </span><span id="count-loss" style="color:var(--accent-blue); font-weight:700;">0</span>)
+            </span>
           </div>
         </div>
         <div class="metric-icon"><i class="fa-solid fa-briefcase"></i></div>
