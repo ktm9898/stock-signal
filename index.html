@@ -414,6 +414,7 @@
               <th>수익률</th>
               <th>ADX</th>
               <th>상태</th>
+              <th>사유</th>
               <th>삭제</th>
             </tr>
           </thead>
@@ -710,7 +711,7 @@
     function renderHoldings(list, metricsList = [], statusList = []) {
       const tbody = document.getElementById('holdings-body');
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-sub); padding:30px;">매수 등록된 보유 종목이 없습니다. 오른쪽 상단 '종목 추가' 버튼으로 추가하세요.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-sub); padding:30px;">매수 등록된 보유 종목이 없습니다. 오른쪽 상단 '종목 추가' 버튼으로 추가하세요.</td></tr>`;
         return;
       }
       tbody.innerHTML = list.map(item => {
@@ -752,6 +753,8 @@
           returnRateStr = (rate > 0 ? '+' : '') + rate.toFixed(2) + '%';
         }
 
+        const detailsText = statusItem ? (statusItem.Details || statusItem.details || '-') : '-';
+
         return `
           <tr>
             <td><span style="color:var(--text-sub); font-size:0.85rem;">${formatShortDate(item.DateAdded || item.date)}</span></td>
@@ -761,6 +764,7 @@
             <td><strong style="color:${returnRateColor}">${returnRateStr}</strong></td>
             <td><strong style="color:var(--accent-cyan);">${adx}</strong></td>
             <td><span class="badge ${badgeClass}">${statusText}</span></td>
+            <td style="font-size:0.85rem; color:var(--text-sub);">${detailsText}</td>
             <td><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${rawTicker !== '-' ? rawTicker : rawName}')" title="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
           </tr>
         `;
@@ -799,7 +803,7 @@
         const rsi = formatDec(item.RSI || item.rsi);
 
         let detailsText = String(item.Details || item.details || '-').trim();
-        if (!isNaN(Number(detailsText))) {
+        if (!detailsText || detailsText === 'undefined' || !isNaN(Number(detailsText))) {
           detailsText = '-';
         }
 
