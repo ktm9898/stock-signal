@@ -118,22 +118,23 @@
       display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #2563eb;
     }
 
-    /* Summary Metric Cards (5 Cards Layout) */
+    /* Summary Metric Cards (3 Cards Layout) */
     .metrics-grid {
-      display: grid; grid-template-columns: repeat(5, 1fr);
-      gap: 10px; margin-bottom: 18px;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 12px; margin-bottom: 18px;
     }
     .metric-card {
       background: var(--card-bg); border: 1px solid var(--card-border);
-      border-radius: 12px; padding: 10px 14px;
+      border-radius: 12px; padding: 12px 18px;
       display: flex; align-items: center; justify-content: space-between;
       box-shadow: 0 2px 6px rgba(0,0,0,0.02);
     }
-    .metric-title { font-size: 0.78rem; font-weight: 600; color: var(--text-sub); white-space: nowrap; }
-    .metric-value { font-size: 1.35rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
+    .metric-title { font-size: 0.8rem; font-weight: 600; color: var(--text-sub); white-space: nowrap; }
+    .metric-value { font-size: 1.4rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
+    .metric-sub { font-size: 0.75rem; font-weight: 500; color: var(--text-sub); margin-top: 2px; }
     .metric-icon {
-      width: 32px; height: 32px; border-radius: 8px; background: #eff6ff;
-      display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #2563eb;
+      width: 36px; height: 36px; border-radius: 10px; background: #eff6ff;
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #2563eb;
     }
 
     /* Tab Navigation */
@@ -266,19 +267,20 @@
       .container { padding: 0 10px; margin: 10px auto; }
       
       .metrics-grid {
-        grid-template-columns: repeat(5, 1fr);
-        gap: 4px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
         margin-bottom: 12px;
       }
       .metric-card {
-        padding: 6px 6px;
-        border-radius: 8px;
+        padding: 8px 10px;
+        border-radius: 10px;
         flex-direction: column;
         align-items: flex-start;
         gap: 2px;
       }
-      .metric-title { font-size: 0.58rem; margin-bottom: 0; letter-spacing: -0.5px; }
-      .metric-value { font-size: 1.1rem; }
+      .metric-title { font-size: 0.65rem; margin-bottom: 0; }
+      .metric-value { font-size: 1.2rem; }
+      .metric-sub { font-size: 0.65rem; margin-top: 0; }
       .metric-icon { display: none; }
 
       /* Mobile App Bottom Fixed Navigation Bar (Toss / Native App Style: 4 Tabs) */
@@ -364,7 +366,7 @@
   </header>
 
   <div class="container">
-    <!-- Metric Overview (5 Cards) -->
+    <!-- Metric Overview (3 Cards Layout) -->
     <div class="metrics-grid">
       <div class="metric-card">
         <div>
@@ -386,24 +388,9 @@
         <div>
           <div class="metric-title">보유 종목</div>
           <div class="metric-value" id="count-holdings" style="color: var(--accent-cyan);">0</div>
+          <div class="metric-sub">(수익 <span id="count-profit" style="color:var(--accent-red); font-weight:700;">0</span> / 손실 <span id="count-loss" style="color:var(--accent-blue); font-weight:700;">0</span>)</div>
         </div>
         <div class="metric-icon"><i class="fa-solid fa-briefcase"></i></div>
-      </div>
-
-      <div class="metric-card">
-        <div>
-          <div class="metric-title">수익 종목</div>
-          <div class="metric-value" id="count-profit" style="color: var(--accent-red);">0</div>
-        </div>
-        <div class="metric-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
-      </div>
-
-      <div class="metric-card">
-        <div>
-          <div class="metric-title">손실 종목</div>
-          <div class="metric-value" id="count-loss" style="color: var(--accent-blue);">0</div>
-        </div>
-        <div class="metric-icon"><i class="fa-solid fa-arrow-trend-down"></i></div>
       </div>
     </div>
 
@@ -476,9 +463,6 @@
 
     <!-- Tab 3: User Holdings -->
     <div id="holdings-tab" class="tab-content" style="display: none;">
-      <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px;">
-        <button class="btn-buy-reg" onclick="openRegisterModal()"><i class="fa-solid fa-plus"></i> 종목 추가</button>
-      </div>
       <div class="table-container">
         <table>
           <thead>
@@ -499,6 +483,9 @@
             <!-- Dynamic Content -->
           </tbody>
         </table>
+      </div>
+      <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 12px;">
+        <button class="btn-buy-reg" onclick="openRegisterModal()"><i class="fa-solid fa-plus"></i> 종목 추가</button>
       </div>
     </div>
 
