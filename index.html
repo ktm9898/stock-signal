@@ -197,6 +197,7 @@
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('buy-tab')"><i class="fa-solid fa-cart-shopping"></i> KOSPI 200 매수 후보 목록</button>
       <button class="tab-btn" onclick="switchTab('holdings-tab')"><i class="fa-solid fa-shield-halved"></i> 보유 종목 감시 (매도 신호)</button>
+      <button class="tab-btn" onclick="switchTab('logs-tab')"><i class="fa-solid fa-clock-rotate-left"></i> 시스템 실행 이력 (Execution Logs)</button>
     </div>
 
     <!-- Tab 1: Buy Candidates -->
@@ -241,6 +242,26 @@
             </tr>
           </thead>
           <tbody id="holdings-body">
+            <!-- Dynamic Content -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 3: Execution Logs -->
+    <div id="logs-tab" class="tab-content" style="display: none;">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>실행 일시</th>
+              <th>상태</th>
+              <th>검사한 종목 수</th>
+              <th>포착된 매수 신호</th>
+              <th>상세 결과</th>
+            </tr>
+          </thead>
+          <tbody id="logs-body">
             <!-- Dynamic Content -->
           </tbody>
         </table>
@@ -291,6 +312,7 @@
     let userPin = localStorage.getItem("STOCK_SIGNAL_PIN") || "";
     let buyCandidatesData = [];
     let holdingsData = [];
+    let executionLogsData = [];
 
     async function verifyPin() {
       const pinVal = document.getElementById('input-pin').value;
@@ -320,14 +342,22 @@
 
         buyCandidatesData = data.buyCandidates || [];
         holdingsData = data.userHoldings || [];
+        executionLogsData = data.executionLogs || [];
 
-        renderBuyCandidates(buyCandidatesData);
+        renderLogs(executionLogsData);
+        renderBuyCandidates(buyCandidatesData, executionLogsData);
         renderHoldings(holdingsData);
         
         document.getElementById('count-buy').textContent = buyCandidatesData.length;
         const tier1Count = buyCandidatesData.filter(item => String(item.Tier).includes('1')).length;
         document.getElementById('count-tier1').textContent = tier1Count;
         document.getElementById('count-sell').textContent = (data.sellSignals || []).length;
+
+        if (executionLogsData.length > 0) {
+          const lastLog = executionLogsData[executionLogsData.length - 1];
+          document.getElementById('sync-time').textContent = `최후 스크리닝: ${lastLog.Timestamp || lastLog.date} (${lastLog.Message || '정상 완료'})`;
+        }
+
         return true;
       } catch (err) {
         console.error("Failed to load data from GAS:", err);
@@ -335,10 +365,14 @@
       }
     }
 
-    function renderBuyCandidates(list) {
+    function renderBuyCandidates(list, logs = []) {
       const tbody = document.getElementById('buy-candidates-body');
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-sub); padding:30px;">오늘 감시 조건(ADX >= 30 및 -DI 하향 돌파)에 포착된 매수 종목이 없습니다.</td></tr>`;
+        const lastLog = logs.length > 0 ? logs[logs.length - 1] : null;
+        const lastTime = lastLog ? (lastLog.Timestamp || lastLog.date) : '최근';
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-sub); padding:30px;">
+          🟢 [${lastTime}] 스크리너가 정상 실행 완료되었으며(KOSPI 200개 종목 검사), 감시 조건(ADX >= 30 및 -DI 하향 돌파)에 포착된 매수 종목이 0개입니다.
+        </td></tr>`;
         return;
       }
       tbody.innerHTML = list.map(item => `
@@ -354,6 +388,25 @@
           <td><span style="color: ${(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${item.RSI || item.rsi || '-'}</span></td>
           <td>${(item.ClosePrice || item.price) ? Number(item.ClosePrice || item.price).toLocaleString() + ' 원' : '-'}</td>
           <td><button class="btn-buy-reg" onclick="quickRegister('${item.Name || item.name}', '${item.Ticker || item.code}', ${item.ClosePrice || item.price || 0})">매수 등록</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderLogs(logs) {
+      const tbody = document.getElementById('logs-body');
+      if (!logs || logs.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-sub); padding:30px;">기록된 시스템 실행 로그가 없습니다.</td></tr>`;
+        return;
+      }
+      // Render reverse order (newest on top)
+      const reversedLogs = [...logs].reverse();
+      tbody.innerHTML = reversedLogs.map(log => `
+        <tr>
+          <td><strong>${log.Timestamp || log.date || '-'}</strong></td>
+          <td><span class="badge badge-t1">🟢 ${log.Status || log.status || 'SUCCESS'}</span></td>
+          <td>${log.ScannedCount || log.scanned || 200}개 종목</td>
+          <td><strong style="color: ${(log.CandidatesCount || log.count) > 0 ? 'var(--accent-cyan)' : 'var(--text-sub)'}">${log.CandidatesCount || log.count || 0}건 포착</strong></td>
+          <td>${log.Message || log.message || '정상 완료'}</td>
         </tr>
       `).join('');
     }

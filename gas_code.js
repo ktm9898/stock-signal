@@ -23,6 +23,12 @@ function setupSheets() {
     sellSheet.appendRow(["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Status", "Details"]);
     sellSheet.getRange("A1:I1").setFontWeight("bold").setBackground("#fee2e2");
   }
+
+  let logSheet = ss.getSheetByName("Execution_Logs") || ss.insertSheet("Execution_Logs");
+  if (logSheet.getLastRow() === 0) {
+    logSheet.appendRow(["Timestamp", "Status", "ScannedCount", "CandidatesCount", "Message"]);
+    logSheet.getRange("A1:E1").setFontWeight("bold").setBackground("#dcfce7");
+  }
 }
 
 function doGet(e) {
@@ -41,6 +47,7 @@ function doGet(e) {
   if (action === "all" || action === "buy") result.buyCandidates = getSheetData(ss.getSheetByName("Buy_Candidates"));
   if (action === "all" || action === "holdings") result.userHoldings = getSheetData(ss.getSheetByName("User_Holdings"));
   if (action === "all" || action === "sell") result.sellSignals = getSheetData(ss.getSheetByName("Sell_Signals"));
+  if (action === "all" || action === "logs") result.executionLogs = getSheetData(ss.getSheetByName("Execution_Logs"));
 
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
@@ -58,12 +65,25 @@ function doPost(e) {
     }
 
     if (data.action === "update_buy_candidates") {
-      const sheet = ss.getSheetByName("Buy_Candidates");
-      if (sheet.getLastRow() > 1) sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
+      const buySheet = ss.getSheetByName("Buy_Candidates");
+      if (buySheet.getLastRow() > 1) buySheet.getRange(2, 1, buySheet.getLastRow() - 1, buySheet.getLastColumn()).clearContent();
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd HH:mm");
       data.candidates.forEach(c => {
-        sheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.minus_di, c.plus_di, c.rsi, c.close]);
+        buySheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.minus_di, c.plus_di, c.rsi, c.close]);
       });
+
+      // Record Execution Log
+      let logSheet = ss.getSheetByName("Execution_Logs");
+      if (!logSheet) {
+        setupSheets();
+        logSheet = ss.getSheetByName("Execution_Logs");
+      }
+      if (data.log) {
+        logSheet.appendRow([today, data.log.status || "SUCCESS", data.log.scanned || 0, data.candidates.length, data.log.message || "정상 완료"]);
+      } else {
+        logSheet.appendRow([today, "SUCCESS", 200, data.candidates.length, "정상 완료"]);
+      }
+
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success", count: data.candidates.length }))
         .setMimeType(ContentService.MimeType.JSON);
     }
@@ -109,4 +129,3 @@ function getSheetData(sheet) {
   }
   return data;
 }
-

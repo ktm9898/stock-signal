@@ -211,7 +211,16 @@ if __name__ == "__main__":
     # 3. Post to Google Sheets API
     if gas_url:
         print("[3/3] Posting screening results to Google Sheets...")
-        post_to_google_sheets(gas_url, "update_buy_candidates", {"candidates": buy_candidates})
+        log_payload = {
+            "status": "SUCCESS",
+            "scanned": len(items),
+            "count": len(buy_candidates),
+            "message": f"KOSPI 200 {len(items)}개 종목 검사 완료 (매수 신호: {len(buy_candidates)}개)"
+        }
+        post_to_google_sheets(gas_url, "update_buy_candidates", {
+            "candidates": buy_candidates,
+            "log": log_payload
+        })
     else:
         print("[WARN] GAS_WEBAPP_URL environment variable is not set. Results printed above.")
 
