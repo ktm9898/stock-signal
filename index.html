@@ -55,82 +55,95 @@
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--card-border);
       position: sticky; top: 0; z-index: 100;
-      padding: 16px 24px;
+      padding: 12px 24px;
       display: flex; align-items: center; justify-content: space-between;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    .brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.25rem; color: #0f172a; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; color: #0f172a; }
     .brand-icon {
-      width: 36px; height: 36px; border-radius: 10px;
+      width: 32px; height: 32px; border-radius: 8px;
       background: linear-gradient(135deg, #2563eb, #0284c7);
-      display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.1rem;
+      display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1rem;
     }
 
+    .header-right-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
     .time-badge {
-      font-size: 0.85rem; color: #475569; background: #f1f5f9;
-      padding: 6px 14px; border-radius: 20px; border: 1px solid #cbd5e1;
-      display: flex; align-items: center; gap: 8px;
+      font-size: 0.78rem; color: #64748b; background: #f1f5f9;
+      padding: 4px 10px; border-radius: 12px; border: 1px solid #cbd5e1;
+      display: flex; align-items: center; gap: 6px; white-space: nowrap;
     }
     .pulse-dot {
-      width: 8px; height: 8px; border-radius: 50%; background-color: #10b981;
-      box-shadow: 0 0 10px #10b981;
+      width: 6px; height: 6px; border-radius: 50%; background-color: #10b981;
+      box-shadow: 0 0 8px #10b981;
       animation: pulse 1.8s infinite;
     }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
-    /* Layout Containers */
-    .container { max-width: 1280px; margin: 24px auto; padding: 0 20px; }
+    .btn-header-refresh {
+      background: #ffffff; border: 1px solid #cbd5e1; color: #475569;
+      width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+    .btn-header-refresh:hover { background: #f1f5f9; color: #2563eb; }
 
-    /* Summary Metric Cards */
+    /* Layout Containers */
+    .container { max-width: 1280px; margin: 16px auto; padding: 0 20px; }
+
+    /* Summary Metric Cards (Compact Design) */
     .metrics-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px; margin-bottom: 28px;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 12px; margin-bottom: 18px;
     }
     .metric-card {
       background: var(--card-bg); border: 1px solid var(--card-border);
-      border-radius: 16px; padding: 20px;
+      border-radius: 12px; padding: 12px 18px;
       display: flex; align-items: center; justify-content: space-between;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
     }
-    .metric-title { font-size: 0.85rem; color: var(--text-sub); margin-bottom: 6px; }
-    .metric-value { font-size: 1.8rem; font-weight: 700; color: #0f172a; }
+    .metric-title { font-size: 0.8rem; font-weight: 600; color: var(--text-sub); }
+    .metric-value { font-size: 1.4rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
     .metric-icon {
-      width: 48px; height: 48px; border-radius: 14px; background: #eff6ff;
-      display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: #2563eb;
+      width: 36px; height: 36px; border-radius: 10px; background: #eff6ff;
+      display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #2563eb;
     }
 
     /* Tab Navigation */
-    .tabs { display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 1px solid var(--card-border); padding-bottom: 12px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--card-border); padding-bottom: 10px; }
     .tab-btn {
-      background: #ffffff; border: 1px solid #cbd5e1; color: var(--text-sub); font-size: 0.95rem; font-weight: 600;
-      padding: 10px 20px; border-radius: 12px; cursor: pointer; transition: all 0.2s ease;
-      display: flex; align-items: center; gap: 8px;
+      background: #ffffff; border: 1px solid #cbd5e1; color: var(--text-sub); font-size: 0.9rem; font-weight: 600;
+      padding: 8px 16px; border-radius: 10px; cursor: pointer; transition: all 0.2s ease;
+      display: flex; align-items: center; gap: 6px;
     }
     .tab-btn.active {
       background: #eff6ff; color: #2563eb;
       border: 1px solid #bfdbfe;
-      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08);
     }
 
     /* Tables */
     .table-container {
       background: var(--card-bg); border: 1px solid var(--card-border);
-      border-radius: 18px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+      border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
+    table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
     th {
       background: #f8fafc; color: #475569;
-      font-size: 0.85rem; font-weight: 600; text-transform: uppercase;
-      padding: 16px 20px; border-bottom: 1px solid #e2e8f0;
+      font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
+      padding: 12px 16px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;
     }
-    td { padding: 18px 20px; border-bottom: 1px solid #f1f5f9; font-size: 0.95rem; color: #0f172a; }
+    td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; color: #0f172a; white-space: nowrap; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: #f8fafc; }
 
     /* Badges & Action Buttons */
     .badge {
-      display: inline-block; padding: 4px 12px; border-radius: 20px;
-      font-size: 0.75rem; font-weight: 700; color: #fff;
+      display: inline-block; padding: 4px 10px; border-radius: 16px;
+      font-size: 0.75rem; font-weight: 700; color: #fff; cursor: pointer;
     }
     .badge-t1 { background: var(--badge-tier1); }
     .badge-t2 { background: var(--badge-tier2); }
@@ -141,8 +154,8 @@
 
     .btn-buy-reg {
       background: linear-gradient(135deg, #2563eb, #0284c7);
-      color: #fff; border: none; border-radius: 8px; padding: 8px 16px;
-      font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: transform 0.1s;
+      color: #fff; border: none; border-radius: 8px; padding: 6px 14px;
+      font-weight: 600; font-size: 0.82rem; cursor: pointer; transition: transform 0.1s;
       box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
     }
     .btn-buy-reg:hover { transform: translateY(-1px); }
@@ -200,10 +213,10 @@
       background: #eff6ff;
       border: 1px solid #bfdbfe;
       color: #2563eb;
-      padding: 6px 12px;
+      padding: 5px 10px;
       border-radius: 8px;
       font-weight: 600;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       cursor: pointer;
       transition: all 0.2s ease;
       white-space: nowrap;
@@ -213,7 +226,7 @@
     /* Mobile Responsive & App-like Navigation Optimizations */
     @media (max-width: 768px) {
       body {
-        padding-bottom: 80px;
+        padding-bottom: 70px;
       }
       header {
         padding: 10px 14px;
@@ -225,26 +238,26 @@
       .header-right-group {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
       }
       .time-badge { display: none; }
 
-      .container { padding: 0 10px; margin: 12px auto; }
+      .container { padding: 0 10px; margin: 10px auto; }
       
       .metrics-grid {
         grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-        margin-bottom: 16px;
+        gap: 6px;
+        margin-bottom: 12px;
       }
       .metric-card {
-        padding: 10px 12px;
-        border-radius: 12px;
+        padding: 8px 10px;
+        border-radius: 10px;
         flex-direction: column;
         align-items: flex-start;
-        gap: 4px;
+        gap: 2px;
       }
-      .metric-title { font-size: 0.68rem; margin-bottom: 0; }
-      .metric-value { font-size: 1.3rem; }
+      .metric-title { font-size: 0.65rem; margin-bottom: 0; }
+      .metric-value { font-size: 1.2rem; }
       .metric-icon { display: none; }
 
       /* Mobile App Bottom Fixed Navigation Bar (Toss / Native App Style) */
@@ -253,18 +266,18 @@
         bottom: 0 !important;
         left: 0 !important;
         width: 100% !important;
-        height: 60px !important;
+        height: 56px !important;
         background: rgba(255, 255, 255, 0.98) !important;
         backdrop-filter: blur(12px) !important;
         border-top: 1px solid #e2e8f0 !important;
         border-bottom: none !important;
         z-index: 9999 !important;
         display: flex !important;
-        justify-content: space-between !important;
+        justify-content: space-around !important;
         align-items: center !important;
-        padding: 4px 2px !important;
+        padding: 2px !important;
         margin: 0 !important;
-        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06) !important;
       }
       .tab-btn {
         flex: 1 1 0px !important;
@@ -274,16 +287,16 @@
         align-items: center !important;
         justify-content: center !important;
         gap: 2px !important;
-        font-size: 0.68rem !important;
+        font-size: 0.65rem !important;
         padding: 4px 0 !important;
-        border-radius: 8px !important;
+        border-radius: 6px !important;
         border: none !important;
         background: transparent !important;
         color: #64748b !important;
         white-space: nowrap !important;
       }
       .tab-btn i {
-        font-size: 1.15rem !important;
+        font-size: 1.05rem !important;
       }
       .tab-btn.active {
         color: #2563eb !important;
@@ -297,15 +310,16 @@
       .table-container {
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
       }
-      th { font-size: 0.75rem !important; padding: 10px 12px !important; white-space: nowrap !important; }
-      td { font-size: 0.85rem !important; padding: 10px 12px !important; white-space: nowrap !important; }
+      th { font-size: 0.72rem !important; padding: 8px 10px !important; white-space: nowrap !important; }
+      td { font-size: 0.82rem !important; padding: 8px 10px !important; white-space: nowrap !important; }
     }
 
     @media (min-width: 769px) {
       .tab-label-desktop { display: inline !important; }
       .tab-label-mobile { display: none !important; }
+      .tab-btn-mobile-only { display: none !important; }
     }
   </style>
 </head>
@@ -316,23 +330,26 @@
     <div class="brand">
       <div class="brand-icon"><i class="fa-solid fa-chart-line"></i></div>
       <div style="display: flex; flex-direction: column;">
-        <span style="font-size: 1.15rem; font-weight: 700; color: #0f172a; line-height: 1.1;">StockSignal</span>
-        <span style="font-size: 0.75rem; color: #2563eb; font-weight: 600; margin-top: 2px;">KOSPI 200</span>
+        <span style="font-size: 1.1rem; font-weight: 700; color: #0f172a; line-height: 1.1;">StockSignal</span>
+        <span style="font-size: 0.7rem; color: #2563eb; font-weight: 600; margin-top: 1px;">KOSPI 200</span>
       </div>
     </div>
     <div class="header-right-group">
+      <button class="btn-header-refresh" onclick="refreshDataUI(this)" title="데이터 새로고침">
+        <i class="fa-solid fa-rotate"></i>
+      </button>
       <button class="btn-manual-exec" id="manual-trigger-btn" onclick="triggerManualScreening()">
         수동 실행
       </button>
       <div class="time-badge">
         <div class="pulse-dot"></div>
-        <span id="sync-time">자동 & 수동 스크리닝</span>
+        <span id="sync-time">최근 갱신: -</span>
       </div>
     </div>
   </header>
 
   <div class="container">
-    <!-- Metric Overview -->
+    <!-- Metric Overview (Sleek Compact Cards) -->
     <div class="metrics-grid">
       <div class="metric-card">
         <div>
@@ -359,11 +376,10 @@
       </div>
     </div>
 
-    <!-- Tab Navigation & Refresh Button -->
+    <!-- Tab Navigation -->
     <div class="tabs">
-      <button class="tab-btn" onclick="refreshDataUI(this)">
+      <button class="tab-btn tab-btn-mobile-only" onclick="refreshDataUI(this)">
         <i class="fa-solid fa-rotate"></i>
-        <span class="tab-label-desktop">새로고침</span>
         <span class="tab-label-mobile">새로고침</span>
       </button>
       <button class="tab-btn active" onclick="switchTab('buy-tab')">
@@ -408,11 +424,11 @@
 
     <!-- Tab 2: Holdings & Sell Signals -->
     <div id="holdings-tab" class="tab-content" style="display: none;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px;">
-        <h3 style="font-weight: 600; font-size: 1.05rem;"><i class="fa-solid fa-briefcase"></i> 보유 종목</h3>
-        <button class="btn-buy-reg" style="padding: 6px 12px; font-size: 0.8rem;" onclick="openRegisterModal()"><i class="fa-solid fa-plus"></i> 종목 추가</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px;">
+        <h3 style="font-weight: 600; font-size: 1rem; color: #0f172a;">보유 종목</h3>
+        <button class="btn-buy-reg" onclick="openRegisterModal()"><i class="fa-solid fa-plus"></i> 종목 추가</button>
       </div>
-      <div class="table-container" style="margin-bottom: 24px;">
+      <div class="table-container" style="margin-bottom: 20px;">
         <table>
           <thead>
             <tr>
@@ -425,7 +441,6 @@
               <th>-DI</th>
               <th>RSI</th>
               <th>상태</th>
-              <th>사유</th>
               <th>삭제</th>
             </tr>
           </thead>
@@ -435,8 +450,8 @@
         </table>
       </div>
 
-      <div style="margin-bottom: 14px;">
-        <h3 style="font-weight: 600; font-size: 1.05rem; color: var(--accent-red);"><i class="fa-solid fa-triangle-exclamation"></i> 매도 신호 이력</h3>
+      <div style="margin-bottom: 10px;">
+        <h3 style="font-weight: 600; font-size: 1rem; color: var(--accent-red);">매도 신호 이력</h3>
       </div>
       <div class="table-container">
         <table>
@@ -451,7 +466,6 @@
               <th>-DI</th>
               <th>RSI</th>
               <th>신호</th>
-              <th>사유</th>
             </tr>
           </thead>
           <tbody id="sell-signals-body">
@@ -463,9 +477,9 @@
 
     <!-- Tab 3: All 200 Stocks Metrics -->
     <div id="all-stocks-tab" class="tab-content" style="display: none;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px; flex-wrap: wrap;">
-        <h3 style="font-weight: 600; font-size: 1.05rem;">KOSPI 200 지표</h3>
-        <input type="text" id="all-stocks-search" placeholder="🔍 종목 검색..." class="form-input" style="max-width: 180px; padding: 6px 12px; font-size: 0.85rem;" oninput="filterAllStocksTable()">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
+        <h3 style="font-weight: 600; font-size: 1rem;">KOSPI 200 지표</h3>
+        <input type="text" id="all-stocks-search" placeholder="🔍 종목 검색..." class="form-input" style="max-width: 180px; padding: 5px 10px; font-size: 0.82rem;" oninput="filterAllStocksTable()">
       </div>
       <div class="table-container">
         <table>
@@ -513,17 +527,17 @@
   <!-- PIN Modal -->
   <div class="modal-overlay" id="pin-modal" style="display: flex;">
     <div class="modal-content" style="text-align: center; max-width: 380px;">
-      <div class="brand-icon" style="margin: 0 auto 16px auto; width: 48px; height: 48px; font-size: 1.4rem;">
+      <div class="brand-icon" style="margin: 0 auto 16px auto; width: 44px; height: 44px; font-size: 1.3rem;">
         <i class="fa-solid fa-lock"></i>
       </div>
-      <h3 style="font-size: 1.3rem; margin-bottom: 8px;">보안 비밀번호 입력</h3>
-      <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 20px;">대시보드에 접근하려면 비밀번호를 입력하세요.</p>
+      <h3 style="font-size: 1.25rem; margin-bottom: 8px;">보안 비밀번호 입력</h3>
+      <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 16px;">대시보드에 접근하려면 비밀번호를 입력하세요.</p>
       
-      <div class="form-group" style="margin-top: 15px;">
-        <input type="password" class="form-input" id="input-pin" placeholder="••••••••" style="text-align: center; font-size: 1.5rem; letter-spacing: 6px; font-weight: 700; padding: 12px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
+      <div class="form-group" style="margin-top: 10px;">
+        <input type="password" class="form-input" id="input-pin" placeholder="••••••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; font-weight: 700; padding: 10px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
       </div>
       <div id="pin-error" style="color: var(--accent-red); font-size: 0.85rem; margin-bottom: 12px; display: none;">비밀번호가 올바르지 않습니다.</div>
-      <button class="btn-buy-reg" style="width: 100%; padding: 12px; font-size: 1rem;" onclick="verifyPin()">대시보드 열기</button>
+      <button class="btn-buy-reg" style="width: 100%; padding: 10px; font-size: 0.95rem;" onclick="verifyPin()">대시보드 열기</button>
     </div>
   </div>
 
@@ -552,13 +566,14 @@
     }
 
     async function refreshDataUI(btn) {
-      if (btn) {
-        const icon = btn.querySelector('i');
+      const targetBtn = btn || document.querySelector('.btn-header-refresh');
+      if (targetBtn) {
+        const icon = targetBtn.querySelector('i');
         if (icon) icon.classList.add('fa-spin');
       }
       await loadDataFromGAS(userPin);
-      if (btn) {
-        const icon = btn.querySelector('i');
+      if (targetBtn) {
+        const icon = targetBtn.querySelector('i');
         if (icon) icon.classList.remove('fa-spin');
       }
     }
@@ -594,7 +609,7 @@
 
         if (executionLogsData.length > 0) {
           const lastLog = executionLogsData[executionLogsData.length - 1];
-          document.getElementById('sync-time').textContent = `최후 스크리닝: ${formatShortDate(lastLog.Timestamp || lastLog.date)} (${lastLog.Message || '정상 완료'})`;
+          document.getElementById('sync-time').textContent = `최근 갱신: ${formatShortDate(lastLog.Timestamp || lastLog.date)}`;
         }
 
         return true;
@@ -662,14 +677,9 @@
       return num.toFixed(decimals);
     }
 
-    function getVal(obj, ...keys) {
-      if (!obj) return '-';
-      for (const k of keys) {
-        if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '' && obj[k] !== '-') {
-          return obj[k];
-        }
-      }
-      return '-';
+    function showDetailsAlert(stockName, statusText, detailsText) {
+      const desc = (detailsText && detailsText !== '-' && detailsText !== 'undefined') ? detailsText : "상세 사유 기록이 없습니다.";
+      alert(`[${stockName}] ${statusText}\n\n📌 사유: ${desc}`);
     }
 
     function renderBuyCandidates(list, logs = []) {
@@ -677,13 +687,12 @@
       if (!list || list.length === 0) {
         const lastLog = logs.length > 0 ? logs[logs.length - 1] : null;
         const lastTime = lastLog ? formatShortDate(lastLog.Timestamp || lastLog.date) : '최근';
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-sub); padding:30px;">
-          🟢 [${lastTime}] 스크리너가 정상 실행 완료되었으며(KOSPI 200개 종목 검사), 감시 조건(ADX >= 30 및 -DI 하향 돌파)에 포착된 매수 종목이 0개입니다.
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-sub); padding:24px;">
+          [${lastTime}] 스크리너 정상 완료 (KOSPI 200개 종목 검사). 포착된 매수 신호 종목이 없습니다.
         </td></tr>`;
         return;
       }
 
-      // Render reverse order (newest buy signals on top)
       const reversedList = [...list].reverse();
       tbody.innerHTML = reversedList.map(item => {
         const rawTier = String(item.Tier || item.tier || 'Tier 3');
@@ -709,7 +718,7 @@
     function renderAllStocks(list) {
       const tbody = document.getElementById('all-stocks-body');
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-sub); padding:30px;">저장된 KOSPI 200 전체 종목 지표 데이터가 없습니다. (다음 스크리너 실행 시 자동으로 수집됩니다)</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-sub); padding:24px;">저장된 KOSPI 200 전체 종목 지표 데이터가 없습니다.</td></tr>`;
         return;
       }
       tbody.innerHTML = list.map(item => {
@@ -764,14 +773,13 @@
     function renderHoldings(list, metricsList = [], statusList = []) {
       const tbody = document.getElementById('holdings-body');
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--text-sub); padding:30px;">매수 등록된 보유 종목이 없습니다. 오른쪽 상단 '종목 추가' 버튼으로 추가하세요.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-sub); padding:24px;">매수 등록된 보유 종목이 없습니다.</td></tr>`;
         return;
       }
       tbody.innerHTML = list.map(item => {
         const rawTicker = formatTicker(item.Ticker || item.ticker || item.code || '');
         const rawName = String(item.Name || item.name || '').trim();
         
-        // Find in statusList first (User_Holdings_Status), fallback to metricsList (allMetrics)
         const statusItem = statusList.find(s => {
           const sTicker = formatTicker(s.Ticker || s.ticker || '');
           const sName = String(s.Name || s.name || '').trim();
@@ -809,6 +817,7 @@
         }
 
         const detailsText = statusItem ? (statusItem.Details || statusItem.details || '-') : '-';
+        const escapedDetails = String(detailsText).replace(/'/g, "\\'").replace(/"/g, "&quot;");
 
         return `
           <tr>
@@ -820,8 +829,7 @@
             <td><strong style="color:var(--accent-cyan);">${adx}</strong></td>
             <td>${mdi}</td>
             <td><span style="color: ${Number(rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
-            <td><span class="badge ${badgeClass}">${statusText}</span></td>
-            <td style="font-size:0.85rem; color:var(--text-sub);">${detailsText}</td>
+            <td><span class="badge ${badgeClass}" onclick="showDetailsAlert('${displayName}', '${statusText}', '${escapedDetails}')" title="클릭 시 감시 사유 확인">${statusText}</span></td>
             <td><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${rawTicker !== '-' ? rawTicker : rawName}')" title="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
           </tr>
         `;
@@ -832,8 +840,8 @@
       const tbody = document.getElementById('sell-signals-body');
       if (!tbody) return;
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-sub); padding:30px;">
-          🟢 감지된 매도 경고 또는 매도 신호 이력이 없습니다.
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-sub); padding:24px;">
+          감지된 매도 경고 또는 매도 신호 이력이 없습니다.
         </td></tr>`;
         return;
       }
@@ -863,6 +871,7 @@
         if (!detailsText || detailsText === 'undefined' || !isNaN(Number(detailsText))) {
           detailsText = '-';
         }
+        const escapedDetails = String(detailsText).replace(/'/g, "\\'").replace(/"/g, "&quot;");
 
         return `
           <tr>
@@ -874,12 +883,250 @@
             <td><strong style="color:var(--accent-cyan);">${adx}</strong></td>
             <td>${mdi}</td>
             <td><span style="color: ${Number(rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
-            <td><span class="badge ${badgeClass}">${level}</span></td>
-            <td style="font-size:0.85rem; color:var(--text-sub);">${detailsText}</td>
+            <td><span class="badge ${badgeClass}" onclick="showDetailsAlert('${item.Name || item.name}', '${level}', '${escapedDetails}')" title="클릭 시 감시 사유 확인">${level}</span></td>
           </tr>
         `;
       }).join('');
     }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(tabId).style.display = 'block';
+      if (event && event.currentTarget) {
+        event.currentTarget.classList.add('active');
+      }
+    }
+
+    function onStockSearchInput() {
+      const input = document.getElementById('reg-stock-name').value.trim().toLowerCase();
+      const resultsDiv = document.getElementById('stock-search-results');
+      if (!input || !allMetricsData || allMetricsData.length === 0) {
+        resultsDiv.style.display = 'none';
+        return;
+      }
+
+      const matches = allMetricsData.filter(m => {
+        const name = String(m.Name || m.name || '').toLowerCase();
+        const ticker = formatTicker(m.Ticker || m.ticker || '').toLowerCase();
+        return name.includes(input) || ticker.includes(input);
+      }).slice(0, 10);
+
+      if (matches.length === 0) {
+        resultsDiv.style.display = 'none';
+        return;
+      }
+
+      resultsDiv.innerHTML = matches.map(m => {
+        const name = m.Name || m.name;
+        const ticker = formatTicker(m.Ticker || m.ticker);
+        const price = Number(m.ClosePrice || m.close || 0);
+        const priceStr = price > 0 ? price.toLocaleString() + '원' : '';
+        return `
+          <div class="search-item" onclick="selectStockSearchResult('${name}', '${ticker}', ${price})">
+            <div><strong>${name}</strong> <span style="color:var(--text-sub); font-size:0.8rem;">(${ticker})</span></div>
+            <div style="color:#2563eb; font-weight:600; font-size:0.85rem;">${priceStr}</div>
+          </div>
+        `;
+      }).join('');
+      resultsDiv.style.display = 'block';
+    }
+
+    function selectStockSearchResult(name, ticker, price) {
+      document.getElementById('reg-stock-name').value = `${name} (${ticker})`;
+      if (price > 0) {
+        document.getElementById('reg-stock-price').value = price;
+      }
+      document.getElementById('stock-search-results').style.display = 'none';
+    }
+
+    document.addEventListener('click', function(e) {
+      const resultsDiv = document.getElementById('stock-search-results');
+      const input = document.getElementById('reg-stock-name');
+      if (resultsDiv && input && !input.contains(e.target) && !resultsDiv.contains(e.target)) {
+        resultsDiv.style.display = 'none';
+      }
+    });
+
+    function openRegisterModal() { 
+      document.getElementById('register-modal').style.display = 'flex'; 
+      const resultsDiv = document.getElementById('stock-search-results');
+      if (resultsDiv) resultsDiv.style.display = 'none';
+    }
+    function closeRegisterModal() { 
+      document.getElementById('register-modal').style.display = 'none'; 
+      const resultsDiv = document.getElementById('stock-search-results');
+      if (resultsDiv) resultsDiv.style.display = 'none';
+    }
+
+    function quickRegister(name, ticker, price) {
+      const cleanTicker = formatTicker(ticker);
+      document.getElementById('reg-stock-name').value = `${name} (${cleanTicker})`;
+      document.getElementById('reg-stock-price').value = price || '';
+      openRegisterModal();
+    }
+
+    async function saveHolding() {
+      const rawInput = document.getElementById('reg-stock-name').value.trim();
+      const buyPrice = document.getElementById('reg-stock-price').value.trim();
+      if (!rawInput || !buyPrice) {
+        alert("종목명(또는 코드)과 매수가격(원)을 모두 입력해주세요.");
+        return;
+      }
+
+      let name = rawInput;
+      let ticker = "";
+      const match = rawInput.match(/\((.*?)\)/);
+      if (match) {
+        ticker = formatTicker(match[1]);
+        name = rawInput.replace(/\(.*?\)/, '').trim();
+      } else {
+        const cleanInput = rawInput.replace(/\s+/g, '');
+        const found = allMetricsData.find(m => {
+          const mName = String(m.Name || m.name || '').replace(/\s+/g, '');
+          const mTicker = formatTicker(m.Ticker || m.ticker || '').replace(/\s+/g, '');
+          return mName === cleanInput || mTicker === cleanInput;
+        });
+        if (found) {
+          name = found.Name || found.name;
+          ticker = formatTicker(found.Ticker || found.ticker);
+        } else {
+          name = rawInput;
+          ticker = formatTicker(rawInput);
+        }
+      }
+
+      try {
+        const resp = await fetch(GAS_WEBAPP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: "add_user_holding",
+            pin: userPin,
+            ticker: ticker,
+            name: name,
+            buyPrice: Number(buyPrice)
+          })
+        });
+        const result = await resp.json();
+        if (result.success) {
+          alert(`[${name} (${ticker})] 보유 종목이 성공적으로 매수 등록되었습니다!`);
+          closeRegisterModal();
+          loadDataFromGAS(userPin);
+        } else {
+          alert("등록 실패: " + (result.message || "오류가 발생했습니다."));
+        }
+      } catch (err) {
+        alert("등록 중 네트워크 오류가 발생했습니다: " + err);
+      }
+    }
+
+    async function deleteHolding(ticker) {
+      if (!confirm(`종목코드 [${ticker}] 보유 종목을 삭제하시겠습니까?`)) return;
+      try {
+        const resp = await fetch(GAS_WEBAPP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: "delete_user_holding",
+            pin: userPin,
+            ticker: ticker
+          })
+        });
+        const result = await resp.json();
+        if (result.success) {
+          loadDataFromGAS(userPin);
+        } else {
+          alert("삭제 실패: " + (result.message || "오류가 발생했습니다."));
+        }
+      } catch (err) {
+        alert("삭제 중 오류가 발생했습니다: " + err);
+      }
+    }
+
+    async function triggerManualScreening() {
+      if (!confirm("⚡ KOSPI 200 종목 수동 스크리닝을 즉시 실행하시겠습니까?\n\n(200개 종목 수집 및 한국투자증권 ADX 정밀 계산에 약 1~2분이 소요됩니다)")) return;
+      
+      const btn = document.getElementById('manual-trigger-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 분석 중...';
+      }
+
+      try {
+        const resp = await fetch(GAS_WEBAPP_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: "trigger_screener",
+            pin: userPin
+          })
+        });
+        const result = await resp.json();
+        if (result.success) {
+          alert("🚀 수동 스크리닝이 깃허브 서버에서 즉시 시작되었습니다!\n\n약 1~2분 후 200개 종목 수식 계산이 완료되면 시트와 화면이 자동 갱신됩니다.");
+          setTimeout(() => {
+            loadDataFromGAS(userPin);
+            if (btn) {
+              btn.disabled = false;
+              btn.innerHTML = '수동 실행';
+            }
+          }, 90000);
+        } else {
+          alert("❌ 수동 스크리닝 실행 실패:\n\n" + (result.message || "권한 또는 설정 오류가 발생했습니다."));
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '수동 실행';
+          }
+        }
+      } catch (err) {
+        alert("스크리닝 요청 실패: " + err);
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '수동 실행';
+        }
+      }
+    }
+
+    // PWA Installation Prompt Logic
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const installBtn = document.getElementById('pwa-install-btn');
+      if (installBtn) installBtn.style.display = 'inline-flex';
+    });
+
+    async function installPWA() {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        const installBtn = document.getElementById('pwa-install-btn');
+        if (installBtn) installBtn.style.display = 'none';
+      }
+      deferredPrompt = null;
+    }
+
+    // Register Service Worker for Mobile PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW reg failed:', err));
+      });
+    }
+
+    // Startup check: authenticate PIN or attempt PIN-free load
+    loadDataFromGAS(userPin).then(success => {
+      if (success) {
+        document.getElementById('pin-modal').style.display = 'none';
+        document.getElementById('pin-error').style.display = 'none';
+      } else {
+        document.getElementById('pin-modal').style.display = 'flex';
+      }
+    });
+  </script>
+</body>
+</html>
 
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
