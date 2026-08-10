@@ -131,6 +131,7 @@
     .badge-t1 { background: var(--badge-tier1); }
     .badge-t2 { background: var(--badge-tier2); }
     .badge-t3 { background: var(--badge-tier3); }
+    .badge-neutral { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; font-weight: 500; }
     .badge-sell-warn { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
     .badge-sell-exit { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
 
@@ -321,26 +322,21 @@
       </div>
     </div>
 
-    <!-- Tab Navigation -->
+    <!-- Tab Navigation (3 Main Tabs) -->
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('buy-tab')">
         <i class="fa-solid fa-cart-shopping"></i>
-        <span class="tab-label-desktop">KOSPI 200 매수 후보 목록</span>
+        <span class="tab-label-desktop">매수 후보</span>
         <span class="tab-label-mobile">매수 후보</span>
       </button>
       <button class="tab-btn" onclick="switchTab('holdings-tab')">
         <i class="fa-solid fa-shield-halved"></i>
-        <span class="tab-label-desktop">보유 종목 감시 (매도 신호)</span>
+        <span class="tab-label-desktop">보유 감시</span>
         <span class="tab-label-mobile">보유 감시</span>
-      </button>
-      <button class="tab-btn" onclick="switchTab('logs-tab')">
-        <i class="fa-solid fa-clock-rotate-left"></i>
-        <span class="tab-label-desktop">시스템 실행 이력</span>
-        <span class="tab-label-mobile">실행 이력</span>
       </button>
       <button class="tab-btn" onclick="switchTab('all-stocks-tab')">
         <i class="fa-solid fa-list-ul"></i>
-        <span class="tab-label-desktop">KOSPI 200 전체 종목 지표</span>
+        <span class="tab-label-desktop">전체 종목</span>
         <span class="tab-label-mobile">전체 종목</span>
       </button>
     </div>
@@ -351,14 +347,14 @@
         <table>
           <thead>
             <tr>
-              <th>신호 포착 일시</th>
-              <th>종목명 / 코드</th>
-              <th>우선순위 Tier</th>
-              <th>ADX (14)</th>
+              <th>포착 일시</th>
+              <th>종목</th>
+              <th>우선순위</th>
+              <th>ADX</th>
               <th>-DI</th>
               <th>RSI</th>
-              <th>신호 발생가</th>
-              <th>매수 등록 Action</th>
+              <th>현재가</th>
+              <th>액션</th>
             </tr>
           </thead>
           <tbody id="buy-candidates-body">
@@ -370,22 +366,22 @@
 
     <!-- Tab 2: Holdings & Sell Signals -->
     <div id="holdings-tab" class="tab-content" style="display: none;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="font-weight: 600;"><i class="fa-solid fa-briefcase"></i> 내가 매수한 감시 종목 목록</h3>
-        <button class="btn-buy-reg" onclick="openRegisterModal()"><i class="fa-solid fa-plus"></i> 직접 종목 매수 등록</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px;">
+        <h3 style="font-weight: 600; font-size: 1.05rem;"><i class="fa-solid fa-briefcase"></i> 내 보유 종목</h3>
+        <button class="btn-buy-reg" style="padding: 6px 12px; font-size: 0.8rem;" onclick="openRegisterModal()"><i class="fa-solid fa-plus"></i> 종목 추가</button>
       </div>
-      <div class="table-container" style="margin-bottom: 32px;">
+      <div class="table-container" style="margin-bottom: 24px;">
         <table>
           <thead>
             <tr>
-              <th>등록 일자</th>
-              <th>종목명 / 코드</th>
+              <th>등록일</th>
+              <th>종목</th>
               <th>매수가</th>
               <th>현재가</th>
               <th>수익률</th>
-              <th>ADX (14)</th>
+              <th>ADX</th>
               <th>상태</th>
-              <th>관리</th>
+              <th>삭제</th>
             </tr>
           </thead>
           <tbody id="holdings-body">
@@ -394,21 +390,21 @@
         </table>
       </div>
 
-      <div style="margin-bottom: 16px;">
-        <h3 style="font-weight: 600; color: var(--accent-red);"><i class="fa-solid fa-triangle-exclamation"></i> 매도 경고 & 매도 신호 포착 이력</h3>
+      <div style="margin-bottom: 14px;">
+        <h3 style="font-weight: 600; font-size: 1.05rem; color: var(--accent-red);"><i class="fa-solid fa-triangle-exclamation"></i> 매도 신호 이력</h3>
       </div>
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>신호 포착 일시</th>
-              <th>종목명 / 코드</th>
+              <th>포착 일시</th>
+              <th>종목</th>
               <th>매수가</th>
               <th>현재가</th>
               <th>수익률</th>
-              <th>ADX (14)</th>
-              <th>매도 신호 상태</th>
-              <th>상세 사유</th>
+              <th>ADX</th>
+              <th>신호</th>
+              <th>사유</th>
             </tr>
           </thead>
           <tbody id="sell-signals-body">
@@ -418,45 +414,25 @@
       </div>
     </div>
 
-    <!-- Tab 3: Execution Logs -->
-    <div id="logs-tab" class="tab-content" style="display: none;">
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>실행 일시</th>
-              <th>상태</th>
-              <th>검사한 종목 수</th>
-              <th>포착된 매수 신호</th>
-              <th>상세 결과</th>
-            </tr>
-          </thead>
-          <tbody id="logs-body">
-            <!-- Dynamic Content -->
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Tab 4: All 200 Stocks Metrics -->
+    <!-- Tab 3: All 200 Stocks Metrics -->
     <div id="all-stocks-tab" class="tab-content" style="display: none;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h3 style="font-weight: 600;">KOSPI 200 전체 종목 보조지표 현황</h3>
-        <input type="text" id="all-stocks-search" placeholder="🔍 종목명 또는 코드 검색..." class="form-input" style="max-width: 300px; padding: 8px 14px;" oninput="filterAllStocksTable()">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px; flex-wrap: wrap;">
+        <h3 style="font-weight: 600; font-size: 1.05rem;">KOSPI 200 지표</h3>
+        <input type="text" id="all-stocks-search" placeholder="🔍 종목 검색..." class="form-input" style="max-width: 180px; padding: 6px 12px; font-size: 0.85rem;" oninput="filterAllStocksTable()">
       </div>
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>종목명 / 코드</th>
-              <th>금일 ADX</th>
-              <th>전일 ADX</th>
-              <th>금일 -DI</th>
-              <th>전일 -DI</th>
+              <th>종목</th>
+              <th>ADX</th>
+              <th>전일ADX</th>
+              <th>-DI</th>
+              <th>전일-DI</th>
               <th>+DI</th>
               <th>RSI</th>
               <th>현재가</th>
-              <th>상태 / 신호</th>
+              <th>상태</th>
             </tr>
           </thead>
           <tbody id="all-stocks-body">
@@ -545,7 +521,6 @@
         allMetricsData = data.allMetrics || [];
         const sellSignalsData = data.sellSignals || [];
 
-        renderLogs(executionLogsData);
         renderBuyCandidates(buyCandidatesData, executionLogsData);
         renderHoldings(holdingsData, allMetricsData);
         renderSellSignals(sellSignalsData);
@@ -601,40 +576,24 @@
 
       // Render reverse order (newest buy signals on top)
       const reversedList = [...list].reverse();
-      tbody.innerHTML = reversedList.map(item => `
-        <tr>
-          <td><span style="color:var(--text-sub); font-size:0.85rem; font-weight:500;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
-          <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.Ticker || item.code})</span></td>
-          <td>
-            <span class="badge ${String(item.Tier || item.tier).includes('1') ? 'badge-t1' : String(item.Tier || item.tier).includes('2') ? 'badge-t2' : 'badge-t3'}">
-              ${item.Tier || item.tier}
-            </span>
-          </td>
-          <td><strong style="color:var(--accent-cyan);">${item.ADX || item.adx}</strong></td>
-          <td>${item.Minus_DI || item.minusDi}</td>
-          <td><span style="color: ${(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${item.RSI || item.rsi || '-'}</span></td>
-          <td>${(item.ClosePrice || item.price) ? Number(item.ClosePrice || item.price).toLocaleString() + ' 원' : '-'}</td>
-          <td><button class="btn-buy-reg" onclick="quickRegister('${item.Name || item.name}', '${item.Ticker || item.code}', ${item.ClosePrice || item.price || 0})"><i class="fa-solid fa-plus"></i> 매수 등록</button></td>
-        </tr>
-      `).join('');
-    }
+      tbody.innerHTML = reversedList.map(item => {
+        const rawTier = String(item.Tier || item.tier || 'Tier 3');
+        const tierText = rawTier.includes('1') ? 'Tier 1' : rawTier.includes('2') ? 'Tier 2' : 'Tier 3';
+        const tierClass = rawTier.includes('1') ? 'badge-t1' : rawTier.includes('2') ? 'badge-t2' : 'badge-t3';
 
-    function renderLogs(logs) {
-      const tbody = document.getElementById('logs-body');
-      if (!logs || logs.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-sub); padding:30px;">기록된 시스템 실행 로그가 없습니다.</td></tr>`;
-        return;
-      }
-      const reversedLogs = [...logs].reverse();
-      tbody.innerHTML = reversedLogs.map(log => `
-        <tr>
-          <td><strong>${log.Timestamp || log.date || '-'}</strong></td>
-          <td><span class="badge badge-t1">🟢 ${log.Status || log.status || 'SUCCESS'}</span></td>
-          <td>${log.ScannedCount || log.scanned || 200}개 종목</td>
-          <td><strong style="color: ${(log.CandidatesCount || log.count) > 0 ? 'var(--accent-cyan)' : 'var(--text-sub)'}">${log.CandidatesCount || log.count || 0}건 포착</strong></td>
-          <td>${log.Message || log.message || '정상 완료'}</td>
-        </tr>
-      `).join('');
+        return `
+          <tr>
+            <td><span style="color:var(--text-sub); font-size:0.85rem; font-weight:500;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
+            <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${item.Ticker || item.code})</span></td>
+            <td><span class="badge ${tierClass}">${tierText}</span></td>
+            <td><strong style="color:var(--accent-cyan);">${item.ADX || item.adx}</strong></td>
+            <td>${item.Minus_DI || item.minusDi}</td>
+            <td><span style="color: ${(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${item.RSI || item.rsi || '-'}</span></td>
+            <td>${(item.ClosePrice || item.price) ? Number(item.ClosePrice || item.price).toLocaleString() + ' 원' : '-'}</td>
+            <td><button class="btn-buy-reg" style="padding: 4px 10px; font-size: 0.8rem;" onclick="quickRegister('${item.Name || item.name}', '${item.Ticker || item.code}', ${item.ClosePrice || item.price || 0})"><i class="fa-solid fa-plus"></i> 매수</button></td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function renderAllStocks(list) {
@@ -644,11 +603,14 @@
         return;
       }
       tbody.innerHTML = list.map(item => {
-        const status = item.Status || item.status || '관망';
-        let badgeClass = 'badge-t3';
-        if (status.includes('Tier 1')) badgeClass = 'badge-t1';
-        else if (status.includes('Tier 2')) badgeClass = 'badge-t2';
-        else if (status.includes('추세강함')) badgeClass = 'badge-sell-warn';
+        const rawStatus = item.Status || item.status || '관망';
+        let statusText = rawStatus;
+        let badgeClass = 'badge-neutral';
+        if (rawStatus.includes('Tier 1')) { badgeClass = 'badge-t1'; statusText = 'Tier 1'; }
+        else if (rawStatus.includes('Tier 2')) { badgeClass = 'badge-t2'; statusText = 'Tier 2'; }
+        else if (rawStatus.includes('Tier 3')) { badgeClass = 'badge-t3'; statusText = 'Tier 3'; }
+        else if (rawStatus.includes('추세강함')) { badgeClass = 'badge-sell-warn'; statusText = '추세 강함'; }
+        else { statusText = '관망'; }
 
         const currAdx = item.ADX || item.adx || '-';
         const prevAdx = item.Prev_ADX || item.prev_adx || '-';
@@ -665,7 +627,7 @@
             <td>${item.Plus_DI || item.plus_di || '-'}</td>
             <td><span style="color: ${(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${item.RSI || item.rsi || '-'}</span></td>
             <td>${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
-            <td><span class="badge ${badgeClass}">${status}</span></td>
+            <td><span class="badge ${badgeClass}">${statusText}</span></td>
           </tr>
         `;
       }).join('');
