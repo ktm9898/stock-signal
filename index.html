@@ -37,15 +37,16 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    html {
+      overflow-y: scroll; /* Lock scrollbar space to prevent layout shift */
+      overscroll-behavior-y: contain; /* Prevent pull-to-refresh */
+    }
     body {
       font-family: 'Outfit', 'Noto Sans KR', sans-serif;
       background-color: var(--bg-dark);
       color: var(--text-main);
       line-height: 1.6;
       padding-bottom: 40px;
-      overscroll-behavior-y: contain; /* Prevent pull-to-refresh */
-    }
-    html {
       overscroll-behavior-y: contain; /* Prevent pull-to-refresh */
     }
 
@@ -100,25 +101,7 @@
     /* Layout Containers */
     .container { max-width: 1280px; margin: 16px auto; padding: 0 20px; }
 
-    /* Summary Metric Cards (Compact Design) */
-    .metrics-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 12px; margin-bottom: 18px;
-    }
-    .metric-card {
-      background: var(--card-bg); border: 1px solid var(--card-border);
-      border-radius: 12px; padding: 12px 18px;
-      display: flex; align-items: center; justify-content: space-between;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
-    }
-    .metric-title { font-size: 0.8rem; font-weight: 600; color: var(--text-sub); }
-    .metric-value { font-size: 1.4rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
-    .metric-icon {
-      width: 36px; height: 36px; border-radius: 10px; background: #eff6ff;
-      display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #2563eb;
-    }
-
-    /* Summary Metric Cards (3 Cards Layout) */
+    /* Summary Metric Cards (3 Compact Cards Layout) */
     .metrics-grid {
       display: grid; grid-template-columns: repeat(3, 1fr);
       gap: 12px; margin-bottom: 16px;
