@@ -161,6 +161,10 @@ function doPost(e) {
           }
         });
       }
+      return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     if (data.action === "update_holdings_status") {
       setupSheets();
       const sheet = ss.getSheetByName("User_Holdings_Status");
