@@ -118,6 +118,24 @@
       display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #2563eb;
     }
 
+    /* Summary Metric Cards (5 Cards Layout) */
+    .metrics-grid {
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      gap: 10px; margin-bottom: 18px;
+    }
+    .metric-card {
+      background: var(--card-bg); border: 1px solid var(--card-border);
+      border-radius: 12px; padding: 10px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+    }
+    .metric-title { font-size: 0.78rem; font-weight: 600; color: var(--text-sub); white-space: nowrap; }
+    .metric-value { font-size: 1.35rem; font-weight: 700; color: #0f172a; line-height: 1.2; }
+    .metric-icon {
+      width: 32px; height: 32px; border-radius: 8px; background: #eff6ff;
+      display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #2563eb;
+    }
+
     /* Tab Navigation */
     .tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--card-border); padding-bottom: 10px; }
     .tab-btn {
@@ -248,19 +266,19 @@
       .container { padding: 0 10px; margin: 10px auto; }
       
       .metrics-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 6px;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
         margin-bottom: 12px;
       }
       .metric-card {
-        padding: 8px 10px;
-        border-radius: 10px;
+        padding: 6px 6px;
+        border-radius: 8px;
         flex-direction: column;
         align-items: flex-start;
         gap: 2px;
       }
-      .metric-title { font-size: 0.65rem; margin-bottom: 0; }
-      .metric-value { font-size: 1.2rem; }
+      .metric-title { font-size: 0.58rem; margin-bottom: 0; letter-spacing: -0.5px; }
+      .metric-value { font-size: 1.1rem; }
       .metric-icon { display: none; }
 
       /* Mobile App Bottom Fixed Navigation Bar (Toss / Native App Style: 4 Tabs) */
@@ -346,7 +364,7 @@
   </header>
 
   <div class="container">
-    <!-- Metric Overview (Sleek Compact Cards) -->
+    <!-- Metric Overview (5 Cards) -->
     <div class="metrics-grid">
       <div class="metric-card">
         <div>
@@ -358,34 +376,50 @@
 
       <div class="metric-card">
         <div>
-          <div class="metric-title">Tier 1</div>
-          <div class="metric-value" id="count-tier1" style="color: var(--accent-cyan);">0</div>
-        </div>
-        <div class="metric-icon"><i class="fa-solid fa-fire"></i></div>
-      </div>
-
-      <div class="metric-card">
-        <div>
           <div class="metric-title">매도 신호</div>
           <div class="metric-value" id="count-sell" style="color: var(--accent-red);">0</div>
         </div>
         <div class="metric-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
       </div>
+
+      <div class="metric-card">
+        <div>
+          <div class="metric-title">보유 종목</div>
+          <div class="metric-value" id="count-holdings" style="color: var(--accent-cyan);">0</div>
+        </div>
+        <div class="metric-icon"><i class="fa-solid fa-briefcase"></i></div>
+      </div>
+
+      <div class="metric-card">
+        <div>
+          <div class="metric-title">수익 종목</div>
+          <div class="metric-value" id="count-profit" style="color: var(--accent-red);">0</div>
+        </div>
+        <div class="metric-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+      </div>
+
+      <div class="metric-card">
+        <div>
+          <div class="metric-title">손실 종목</div>
+          <div class="metric-value" id="count-loss" style="color: var(--accent-blue);">0</div>
+        </div>
+        <div class="metric-icon"><i class="fa-solid fa-arrow-trend-down"></i></div>
+      </div>
     </div>
 
-    <!-- Tab Navigation (4 Standalone Tabs) -->
+    <!-- Tab Navigation (4 Standalone Tabs: 매수 신호, 매도 신호, 보유 종목, 전체 종목) -->
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('buy-tab')">
         <i class="fa-solid fa-cart-shopping"></i>
         <span>매수 신호</span>
       </button>
-      <button class="tab-btn" onclick="switchTab('holdings-tab')">
-        <i class="fa-solid fa-briefcase"></i>
-        <span>보유 종목</span>
-      </button>
       <button class="tab-btn" onclick="switchTab('sell-signals-tab')">
         <i class="fa-solid fa-triangle-exclamation"></i>
         <span>매도 신호</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('holdings-tab')">
+        <i class="fa-solid fa-briefcase"></i>
+        <span>보유 종목</span>
       </button>
       <button class="tab-btn" onclick="switchTab('all-stocks-tab')">
         <i class="fa-solid fa-list-ul"></i>
@@ -416,10 +450,33 @@
       </div>
     </div>
 
-    <!-- Tab 2: User Holdings -->
+    <!-- Tab 2: Sell Signals History -->
+    <div id="sell-signals-tab" class="tab-content" style="display: none;">
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>포착 일시</th>
+              <th>종목</th>
+              <th>매수가</th>
+              <th>현재가</th>
+              <th>수익률</th>
+              <th>ADX</th>
+              <th>-DI</th>
+              <th>RSI</th>
+              <th>신호</th>
+            </tr>
+          </thead>
+          <tbody id="sell-signals-body">
+            <!-- Dynamic Content -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 3: User Holdings -->
     <div id="holdings-tab" class="tab-content" style="display: none;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px;">
-        <h3 style="font-weight: 600; font-size: 1rem; color: #0f172a;">보유 종목</h3>
+      <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 10px;">
         <button class="btn-buy-reg" onclick="openRegisterModal()"><i class="fa-solid fa-plus"></i> 종목 추가</button>
       </div>
       <div class="table-container">
@@ -439,33 +496,6 @@
             </tr>
           </thead>
           <tbody id="holdings-body">
-            <!-- Dynamic Content -->
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Tab 3: Sell Signals History -->
-    <div id="sell-signals-tab" class="tab-content" style="display: none;">
-      <div style="margin-bottom: 10px;">
-        <h3 style="font-weight: 600; font-size: 1rem; color: var(--accent-red);">매도 신호 이력</h3>
-      </div>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>포착 일시</th>
-              <th>종목</th>
-              <th>매수가</th>
-              <th>현재가</th>
-              <th>수익률</th>
-              <th>ADX</th>
-              <th>-DI</th>
-              <th>RSI</th>
-              <th>신호</th>
-            </tr>
-          </thead>
-          <tbody id="sell-signals-body">
             <!-- Dynamic Content -->
           </tbody>
         </table>
@@ -600,9 +630,37 @@
         renderAllStocks(allMetricsData);
         
         document.getElementById('count-buy').textContent = buyCandidatesData.length;
-        const tier1Count = buyCandidatesData.filter(item => String(item.Tier).includes('1')).length;
-        document.getElementById('count-tier1').textContent = tier1Count;
         document.getElementById('count-sell').textContent = sellSignalsData.length;
+        document.getElementById('count-holdings').textContent = holdingsData.length;
+
+        // Calculate profit & loss counts from holdingsData & allMetricsData
+        let profitCount = 0;
+        let lossCount = 0;
+        holdingsData.forEach(item => {
+          const rawTicker = formatTicker(item.Ticker || item.ticker || item.code || '');
+          const rawName = String(item.Name || item.name || '').trim();
+          const buyPrice = Number(item.BuyPrice || item.buyPrice || 0);
+          
+          const metric = holdingsStatusData.find(s => {
+            const sTicker = formatTicker(s.Ticker || s.ticker || '');
+            const sName = String(s.Name || s.name || '').trim();
+            return (rawTicker && rawTicker !== '-' && sTicker === rawTicker) || (rawName && sName === rawName);
+          }) || allMetricsData.find(m => {
+            const mTicker = formatTicker(m.Ticker || m.ticker || '');
+            const mName = String(m.Name || m.name || '').trim();
+            return (rawTicker && rawTicker !== '-' && mTicker === rawTicker) || (rawName && mName === rawName);
+          });
+
+          const currPrice = metric ? Number(metric.ClosePrice || metric.close || metric.CurrPrice || metric.currPrice || 0) : 0;
+          if (buyPrice > 0 && currPrice > 0) {
+            const rate = ((currPrice - buyPrice) / buyPrice) * 100;
+            if (rate > 0) profitCount++;
+            else if (rate < 0) lossCount++;
+          }
+        });
+
+        document.getElementById('count-profit').textContent = profitCount;
+        document.getElementById('count-loss').textContent = lossCount;
 
         if (executionLogsData.length > 0) {
           const lastLog = executionLogsData[executionLogsData.length - 1];
