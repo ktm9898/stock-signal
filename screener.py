@@ -162,7 +162,7 @@ def calculate_indicators(df, period=14):
     dm_ema = calc_ema(dm_m)
     
     pdi = [100 * p / t if t != 0 else 0 for p, t in zip(dp_ema, tr_ema)]
-    mdi = [100 * m / t if t != 0 else 0 for p, t in zip(dm_ema, tr_ema)]
+    mdi = [100 * m / t if t != 0 else 0 for m, t in zip(dm_ema, tr_ema)]
     
     dx = [100 * abs(p - m) / (p + m) if (p + m) != 0 else 0 for p, m in zip(pdi, mdi)]
     adx = calc_ema(dx)
