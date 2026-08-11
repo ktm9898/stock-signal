@@ -568,7 +568,7 @@
         <input type="password" class="form-input" id="input-pin" placeholder="••••••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; font-weight: 700; padding: 10px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
       </div>
       <div id="pin-error" style="color: var(--accent-red); font-size: 0.85rem; margin-bottom: 12px; display: none;">비밀번호가 올바르지 않습니다.</div>
-      <button class="btn-buy-reg" style="width: 100%; padding: 10px; font-size: 0.95rem;" onclick="verifyPin()">대시보드 열기</button>
+      <button class="btn-buy-reg" id="btn-pin-submit" style="width: 100%; padding: 10px; font-size: 0.95rem;" onclick="verifyPin()">대시보드 열기</button>
     </div>
   </div>
 
@@ -584,15 +584,32 @@
 
     async function verifyPin() {
       const pinVal = document.getElementById('input-pin').value.trim();
+      const pinBtn = document.getElementById('btn-pin-submit');
+      const errorEl = document.getElementById('pin-error');
       if (!pinVal) return;
 
-      const success = await loadDataFromGAS(pinVal);
-      if (success) {
-        userPin = pinVal;
-        document.getElementById('pin-modal').style.display = 'none';
-        document.getElementById('pin-error').style.display = 'none';
-      } else {
-        document.getElementById('pin-error').style.display = 'block';
+      if (pinBtn) {
+        pinBtn.disabled = true;
+        pinBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 6px;"></i> 확인 중...`;
+      }
+      errorEl.style.display = 'none';
+
+      try {
+        const success = await loadDataFromGAS(pinVal);
+        if (success) {
+          userPin = pinVal;
+          document.getElementById('pin-modal').style.display = 'none';
+        } else {
+          errorEl.style.display = 'block';
+        }
+      } catch (err) {
+        errorEl.textContent = '확인 중 오류가 발생했습니다.';
+        errorEl.style.display = 'block';
+      } finally {
+        if (pinBtn) {
+          pinBtn.disabled = false;
+          pinBtn.innerHTML = `대시보드 열기`;
+        }
       }
     }
 
