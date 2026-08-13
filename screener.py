@@ -257,7 +257,7 @@ def evaluate_sell_signal(df, buy_price):
 
     # Check Conditions
     rsi_high = (curr_rsi >= 60.0)
-    pdi_drop = (prev_pdi > curr_pdi)
+    pdi_drop = (prev_pdi >= 20.0) and (prev_pdi > curr_pdi)
     curr_gap = curr_mdi - curr_pdi
     prev_gap = prev_mdi - prev_pdi
     mdi_rebound = (curr_mdi > prev_mdi) and (curr_gap > prev_gap)
@@ -268,7 +268,7 @@ def evaluate_sell_signal(df, buy_price):
         details.append(f"하락 압력 재확대 (-DI: {prev_mdi:.1f} → {curr_mdi:.1f}, 격차: {prev_gap:.1f} → {curr_gap:.1f})")
     elif pdi_drop:
         level = "2단계: 적극 매도"
-        details.append(f"상승 동력(+DI) 꺾임 (+DI: {prev_pdi:.1f} → {curr_pdi:.1f})")
+        details.append(f"상승 동력(+DI) 꺾임 (+DI: {prev_pdi:.1f} → {curr_pdi:.1f} >= 20)")
     elif rsi_high:
         level = "1단계: 매도 추천"
         details.append(f"RSI 단기 과매수 상단 도달 (RSI: {curr_rsi:.1f} >= 60)")
