@@ -8,7 +8,7 @@ function setupSheets() {
 
   // 1. Buy Candidates Sheet Header Enforce
   let buySheet = ss.getSheetByName("Buy_Candidates") || ss.insertSheet("Buy_Candidates");
-  buySheet.getRange("A1:K1").setValues([["Date", "Ticker", "Name", "Tier", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "RSI", "ClosePrice"]]);
+  buySheet.getRange("A1:K1").setValues([["Date", "Ticker", "Name", "Stage", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "RSI", "ClosePrice"]]);
   buySheet.getRange("A1:K1").setFontWeight("bold").setBackground("#e0f2fe");
 
   // 2. User Holdings Sheet Header Enforce

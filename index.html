@@ -808,10 +808,13 @@
 
       const reversedList = [...list].reverse();
       tbody.innerHTML = reversedList.map(item => {
-        const rawTier = String(item.Tier || item.tier || 'Tier 3');
-        // Inverted: Tier 3 = 1단계 (일반), Tier 2 = 2단계 (우수), Tier 1 = 3단계 (최고)
-        const tierText = rawTier.includes('1') ? '3단계' : rawTier.includes('2') ? '2단계' : '1단계';
-        const tierClass = rawTier.includes('1') ? 'badge-t1' : rawTier.includes('2') ? 'badge-t2' : 'badge-t3';
+        const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || '1단계');
+        let stageText = '1단계';
+        let tierClass = 'badge-t3';
+        if (rawStage.includes('3')) { stageText = '3단계'; tierClass = 'badge-t1'; }
+        else if (rawStage.includes('2')) { stageText = '2단계'; tierClass = 'badge-t2'; }
+        else { stageText = '1단계'; tierClass = 'badge-t3'; }
+
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
         const name = (item.Name || item.name || '').replace(/'/g, "\\'");
         const reason = (item.Reason || item.reason || item.Notes || item.notes || `ADX: ${formatDec(item.ADX || item.adx)}, -DI: ${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}, RSI: ${formatDec(item.RSI || item.rsi)} 조건 충족`).replace(/'/g, "\\'");
@@ -820,10 +823,10 @@
           <tr>
             <td><span style="color:var(--text-sub); font-size:0.85rem; font-weight:500;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
             <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
-            <td><span class="badge ${tierClass}" onclick="showDetailsModal('${name}', '${tierText}', '${reason}', '${tierClass}')" title="클릭 시 포착 사유 확인">${tierText}</span></td>
+            <td><span class="badge ${tierClass}" onclick="showDetailsModal('${name}', '${stageText}', '${reason}', '${tierClass}')" title="클릭 시 포착 사유 확인">${stageText}</span></td>
             <td><strong style="color:var(--accent-cyan);">${formatDec(item.ADX || item.adx)}</strong></td>
             <td>${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}</td>
-            <td><span style="color: ${Number(item.RSI || item.rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${formatDec(item.RSI || item.rsi)}</span></td>
+            <td><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${formatDec(item.RSI || item.rsi)}</span></td>
             <td>${(item.ClosePrice || item.price) ? Number(item.ClosePrice || item.price).toLocaleString() + ' 원' : '-'}</td>
             <td><button class="btn-buy-reg" style="padding: 4px 10px; font-size: 0.8rem;" onclick="quickRegister('${name}', '${ticker}', ${item.ClosePrice || item.price || 0})"><i class="fa-solid fa-plus"></i> 매수</button></td>
           </tr>
@@ -841,9 +844,9 @@
         const rawStatus = String(item.Status || item.status || '관망');
         let statusText = rawStatus;
         let badgeClass = 'badge-neutral';
-        if (rawStatus.includes('Tier 1')) { badgeClass = 'badge-t1'; statusText = '3단계'; }
-        else if (rawStatus.includes('Tier 2')) { badgeClass = 'badge-t2'; statusText = '2단계'; }
-        else if (rawStatus.includes('Tier 3')) { badgeClass = 'badge-t3'; statusText = '1단계'; }
+        if (rawStatus.includes('3단계') || rawStatus.includes('Tier 1')) { badgeClass = 'badge-t1'; statusText = '3단계'; }
+        else if (rawStatus.includes('2단계') || rawStatus.includes('Tier 2')) { badgeClass = 'badge-t2'; statusText = '2단계'; }
+        else if (rawStatus.includes('1단계') || rawStatus.includes('Tier 3')) { badgeClass = 'badge-t3'; statusText = '1단계'; }
         else if (rawStatus.includes('추세강함')) { badgeClass = 'badge-sell-warn'; statusText = '추세 강함'; }
         else { statusText = '관망'; }
 
@@ -922,10 +925,9 @@
         
         const statusText = statusItem ? (statusItem.Status || statusItem.signalLevel || '관망') : '관망';
         let badgeClass = 'badge-neutral';
-        if (statusText.includes('4단계') || statusText.includes('강력')) badgeClass = 'badge-sell-danger';
-        else if (statusText.includes('3단계') || statusText.includes('매도 신호')) badgeClass = 'badge-sell-warn';
-        else if (statusText.includes('2단계') || statusText.includes('매도 주의')) badgeClass = 'badge-t3';
-        else if (statusText.includes('1단계') || statusText.includes('매도 준비')) badgeClass = 'badge-t2';
+        if (statusText.includes('3단계') || statusText.includes('매도 신호') || statusText.includes('손절')) badgeClass = 'badge-sell-danger';
+        else if (statusText.includes('2단계') || statusText.includes('매도 주의') || statusText.includes('상승 둔화')) badgeClass = 'badge-sell-warn';
+        else if (statusText.includes('1단계') || statusText.includes('매도 준비') || statusText.includes('익절 준비')) badgeClass = 'badge-t2';
 
         let returnRateStr = '-';
         let returnRateColor = 'inherit';
@@ -947,7 +949,7 @@
             <td><strong style="color:${returnRateColor}">${returnRateStr}</strong></td>
             <td><strong style="color:var(--accent-cyan);">${adx}</strong></td>
             <td>${mdi}</td>
-            <td><span style="color: ${Number(rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
+            <td><span style="color: ${Number(rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
             <td><span class="badge ${badgeClass}" onclick="showDetailsModal('${displayName}', '${statusText}', '${escapedDetails}', '${badgeClass}')" title="클릭 시 감시 사유 확인">${statusText}</span></td>
             <td><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${rawTicker !== '-' ? rawTicker : rawName}')" title="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
           </tr>
@@ -972,14 +974,13 @@
         
         let level = String(item.Status || item.signalLevel || '관망').trim();
         if (!level || !isNaN(Number(level)) || level === 'undefined') {
-          level = '2단계: 매도 주의';
+          level = '1단계: 매도 준비';
         }
 
         let badgeClass = 'badge-neutral';
-        if (level.includes('4단계') || level.includes('강력')) badgeClass = 'badge-sell-danger';
-        else if (level.includes('3단계') || level.includes('매도 신호')) badgeClass = 'badge-sell-warn';
-        else if (level.includes('2단계') || level.includes('매도 주의')) badgeClass = 'badge-t3';
-        else if (level.includes('1단계') || level.includes('매도 준비')) badgeClass = 'badge-t2';
+        if (level.includes('3단계') || level.includes('매도 신호') || level.includes('손절')) badgeClass = 'badge-sell-danger';
+        else if (level.includes('2단계') || level.includes('매도 주의') || level.includes('상승 둔화')) badgeClass = 'badge-sell-warn';
+        else if (level.includes('1단계') || level.includes('매도 준비') || level.includes('익절 준비')) badgeClass = 'badge-t2';
 
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
         const adx = formatDec(item.ADX || item.adx);

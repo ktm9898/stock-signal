@@ -190,9 +190,9 @@ def evaluate_buy_signal(df):
     Evaluate ADX Reversal Buy Signal.
     Condition: ADX >= 30 AND Prev(-DI) > Prev(ADX) AND Curr(-DI) <= Curr(ADX)
     Priority Rating:
-      - Tier 1: Buy Signal + RSI <= 35
-      - Tier 2: Buy Signal + Volume >= 1.5x 5-day avg volume
-      - Tier 3: General Buy Signal
+      - 3단계: Buy Signal + RSI <= 40 (최우선 과매도)
+      - 2단계: Buy Signal + Volume >= 1.2x 5-day avg volume (거래량 급증)
+      - 1단계: General Buy Signal (일반)
     """
     if len(df) < 2 or 'adx' not in df.columns:
         return None
@@ -209,13 +209,13 @@ def evaluate_buy_signal(df):
     if not is_buy:
         return None
 
-    priority = "Tier 3 (일반)"
-    score = 3
-    if curr_rsi <= 35:
-        priority = "Tier 1 (최우선 과매도)"
-        score = 1
-    elif avg_vol5 > 0 and (curr_vol >= avg_vol5 * 1.5):
-        priority = "Tier 2 (거래량 급증)"
+    priority = "1단계 (일반)"
+    score = 1
+    if curr_rsi <= 40:
+        priority = "3단계 (최우선 과매도)"
+        score = 3
+    elif avg_vol5 > 0 and (curr_vol >= avg_vol5 * 1.2):
+        priority = "2단계 (거래량 급증)"
         score = 2
 
     return {
@@ -231,11 +231,11 @@ def evaluate_buy_signal(df):
 
 def evaluate_sell_signal(df, buy_price):
     """
-    Evaluate Sell Signal for a held stock using Korea Investment & Securities (KIS MTS Standard) ADX.
+    Evaluate Sell Signal for a held stock.
     Conditions:
-    1. ADX Trend Reversal: ADX was >= 30 and starts declining (Prev_ADX > Curr_ADX)
-    2. Bearish Cross: +DI crosses below -DI (Prev(+DI) > Prev(-DI) and Curr(+DI) <= Curr(-DI))
-    3. Profit/Loss Alerts: Return Rate <= -5.0% (Stop Loss) or >= +15.0% (Profit Take)
+    1단계: RSI >= 60 (익절 준비 - 과매도 탈출 후 단기 목표 도달)
+    2단계: Prev(+DI) > Curr(+DI) (상승 둔화 - 반등 모멘텀 약화)
+    3단계: Curr(-DI) > Prev(-DI) AND Gap(-DI - +DI) 확대 OR 손절률 <= -5.0% (하락 재발동 / 손절)
     """
     if len(df) < 2 or 'adx' not in df.columns or 'plus_di' not in df.columns:
         return None
@@ -247,44 +247,34 @@ def evaluate_sell_signal(df, buy_price):
     prev_pdi = df['plus_di'].iloc[-2]
     curr_mdi = df['minus_di'].iloc[-1]
     prev_mdi = df['minus_di'].iloc[-2]
+    curr_rsi = df['rsi'].iloc[-1] if 'rsi' in df.columns else 0.0
 
     return_rate = 0.0
     if buy_price and buy_price > 0:
         return_rate = round(((curr_close - buy_price) / buy_price) * 100, 2)
 
     details = []
-    
-    # 1. ADX Peak Drop (ADX >= 30 and dropping)
-    adx_drop = (prev_adx >= 30.0 and curr_adx < prev_adx)
-    if adx_drop:
-        details.append(f"ADX 추세 꺾임 (전일: {prev_adx:.1f} → 금일: {curr_adx:.1f})")
 
-    # 2. +DI Dead Cross (+DI <= -DI)
-    di_dead_cross = (prev_pdi > prev_mdi and curr_pdi <= curr_mdi)
-    if di_dead_cross:
-        details.append(f"+DI가 -DI 하향 데드크로스 (+DI: {curr_pdi:.1f}, -DI: {curr_mdi:.1f})")
+    # Check Conditions
+    rsi_high = (curr_rsi >= 60.0)
+    pdi_drop = (prev_pdi > curr_pdi)
+    curr_gap = curr_mdi - curr_pdi
+    prev_gap = prev_mdi - prev_pdi
+    mdi_rebound = (curr_mdi > prev_mdi) and (curr_gap > prev_gap)
 
-    # 3. -DI Acceleration (-DI >= 30 and -DI > +DI)
-    mdi_strong = (curr_mdi >= 30.0 and curr_mdi > curr_pdi)
-    if mdi_strong:
-        details.append(f"-DI 매도세 우위 이탈 (-DI: {curr_mdi:.1f} >= 30)")
-
-    # Hierarchical Sell Signal Classification (1단계 ~ 4단계)
-    if adx_drop and di_dead_cross:
-        level = "4단계: 강력 매도"
-    elif di_dead_cross:
+    # Priority determination (3단계 -> 2단계 -> 1단계)
+    if mdi_rebound:
         level = "3단계: 매도 신호"
-    elif mdi_strong:
+        details.append(f"하락 압력 재확대 (-DI: {prev_mdi:.1f} → {curr_mdi:.1f}, 격차: {prev_gap:.1f} → {curr_gap:.1f})")
+    elif pdi_drop:
         level = "2단계: 매도 주의"
-    elif adx_drop:
+        details.append(f"상승 동력(+DI) 꺾임 (+DI: {prev_pdi:.1f} → {curr_pdi:.1f})")
+    elif rsi_high:
         level = "1단계: 매도 준비"
+        details.append(f"RSI 단기 과매수 상단 도달 (RSI: {curr_rsi:.1f} >= 60)")
     else:
         level = "관망"
-
-    curr_rsi = df['rsi'].iloc[-1] if 'rsi' in df.columns else 0.0
-
-    if not details:
-        details = [f"정상 관망 (추세 유지 중 | ADX: {curr_adx:.1f})"]
+        details.append(f"정상 관망 (추세 유지 중 | ADX: {curr_adx:.1f})")
 
     return {
         "buyPrice": buy_price,
@@ -298,7 +288,7 @@ def evaluate_sell_signal(df, buy_price):
         "prev_minus_di": round(prev_mdi, 2),
         "rsi": round(curr_rsi, 2),
         "signalLevel": level,
-        "details": details,
+        "details": " / ".join(details),
         "isAlert": (level != "관망")
     }
 
@@ -377,8 +367,8 @@ if __name__ == "__main__":
                 print(f"[ERROR] Screening failed for {name} ({ticker}): {e}")
             continue
 
-    # Sort buy candidates by priority score (Tier 1 -> Tier 2 -> Tier 3)
-    buy_candidates.sort(key=lambda x: x['score'])
+    # Sort buy candidates by priority score (3단계 -> 2단계 -> 1단계)
+    buy_candidates.sort(key=lambda x: x['score'], reverse=True)
     print(f" -> Found {len(buy_candidates)} buy candidate stocks.")
     print(f" -> Calculated indicators for {len(all_stocks)} stocks.")
 
