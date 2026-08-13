@@ -30,7 +30,7 @@ function setupSheets() {
 
   // 5. KOSPI 200 All Metrics Sheet Header Enforce
   let allSheet = ss.getSheetByName("KOSPI200_All_Metrics") || ss.insertSheet("KOSPI200_All_Metrics");
-  allSheet.getRange("A1:L1").setValues([["Date", "Ticker", "Name", "ADX", "Prev_ADX", "Plus_DI", "Prev_Plus_DI", "Minus_DI", "Prev_Minus_DI", "RSI", "ClosePrice", "Status"]]);
+  allSheet.getRange("A1:L1").setValues([["Date", "Ticker", "Name", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "Prev_Plus_DI", "RSI", "ClosePrice", "Status"]]);
   allSheet.getRange("A1:L1").setFontWeight("bold").setBackground("#f3e8ff");
 
   // 6. User Holdings Status Sheet Header Enforce
@@ -124,7 +124,7 @@ function doPost(e) {
           allSheet.getRange(2, 1, allSheet.getLastRow() - 1, allSheet.getLastColumn()).clearContent();
         }
         const rows = data.all_stocks.map(s => [
-          today, s.ticker, s.name, s.adx, s.prev_adx, s.plus_di, s.prev_plus_di, s.minus_di, s.prev_minus_di, s.rsi, s.close, s.status
+          today, s.ticker, s.name, s.adx, s.prev_adx, s.minus_di, s.prev_minus_di, s.plus_di, s.prev_plus_di, s.rsi, s.close, s.status
         ]);
         allSheet.getRange(2, 1, rows.length, 12).setValues(rows);
       }
