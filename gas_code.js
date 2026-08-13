@@ -8,8 +8,8 @@ function setupSheets() {
 
   // 1. Buy Candidates Sheet Header Enforce
   let buySheet = ss.getSheetByName("Buy_Candidates") || ss.insertSheet("Buy_Candidates");
-  buySheet.getRange("A1:K1").setValues([["Date", "Ticker", "Name", "Stage", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "RSI", "ClosePrice"]]);
-  buySheet.getRange("A1:K1").setFontWeight("bold").setBackground("#e0f2fe");
+  buySheet.getRange("A1:L1").setValues([["Date", "Ticker", "Name", "Stage", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "RSI", "BB_Pct", "ClosePrice"]]);
+  buySheet.getRange("A1:L1").setFontWeight("bold").setBackground("#e0f2fe");
 
   // 2. User Holdings Sheet Header Enforce
   let holdingsSheet = ss.getSheetByName("User_Holdings") || ss.insertSheet("User_Holdings");
@@ -20,8 +20,8 @@ function setupSheets() {
 
   // 3. Sell Signals Sheet Header Enforce
   let sellSheet = ss.getSheetByName("Sell_Signals") || ss.insertSheet("Sell_Signals");
-  sellSheet.getRange("A1:M1").setValues([["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Prev_ADX", "Minus_DI", "Plus_DI", "RSI", "Status", "Details"]]);
-  sellSheet.getRange("A1:M1").setFontWeight("bold").setBackground("#fee2e2");
+  sellSheet.getRange("A1:N1").setValues([["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Prev_ADX", "Minus_DI", "Plus_DI", "RSI", "BB_Pct", "Status", "Details"]]);
+  sellSheet.getRange("A1:N1").setFontWeight("bold").setBackground("#fee2e2");
 
   // 4. Execution Logs Sheet Header Enforce
   let logSheet = ss.getSheetByName("Execution_Logs") || ss.insertSheet("Execution_Logs");
@@ -35,8 +35,8 @@ function setupSheets() {
 
   // 6. User Holdings Status Sheet Header Enforce
   let hStatusSheet = ss.getSheetByName("User_Holdings_Status") || ss.insertSheet("User_Holdings_Status");
-  hStatusSheet.getRange("A1:M1").setValues([["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Prev_ADX", "Minus_DI", "Plus_DI", "RSI", "Status", "Details"]]);
-  hStatusSheet.getRange("A1:M1").setFontWeight("bold").setBackground("#e0f2fe");
+  hStatusSheet.getRange("A1:N1").setValues([["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Prev_ADX", "Minus_DI", "Plus_DI", "RSI", "BB_Pct", "Status", "Details"]]);
+  hStatusSheet.getRange("A1:N1").setFontWeight("bold").setBackground("#e0f2fe");
 }
 
 function doGet(e) {
@@ -104,7 +104,7 @@ function doPost(e) {
 
           // Keep the FIRST signal timestamp & metrics of the day (do not duplicate)
           if (!exists) {
-            buySheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.prev_adx, c.minus_di, c.prev_minus_di, c.plus_di, c.rsi, c.close]);
+            buySheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.prev_adx, c.minus_di, c.prev_minus_di, c.plus_di, c.rsi, (c.b_band_pct !== undefined ? c.b_band_pct : (c.BB_Pct !== undefined ? c.BB_Pct : '-')), c.close]);
           }
         });
       }
@@ -124,7 +124,7 @@ function doPost(e) {
           allSheet.getRange(2, 1, allSheet.getLastRow() - 1, allSheet.getLastColumn()).clearContent();
         }
         const rows = data.all_stocks.map(s => [
-          today, s.ticker, s.name, s.adx, s.prev_adx, s.minus_di, s.prev_minus_di, s.plus_di, s.prev_plus_di, s.rsi, (s.b_band_pct !== undefined ? s.b_band_pct : s.BB_Pct), s.close, s.status
+          today, s.ticker, s.name, s.adx, s.prev_adx, s.minus_di, s.prev_minus_di, s.plus_di, s.prev_plus_di, s.rsi, (s.b_band_pct !== undefined ? s.b_band_pct : (s.BB_Pct !== undefined ? s.BB_Pct : '-')), s.close, s.status
         ]);
         allSheet.getRange(2, 1, rows.length, 13).setValues(rows);
       }
@@ -161,6 +161,7 @@ function doPost(e) {
             sheet.appendRow([
               today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, 
               s.adx || '-', s.prev_adx || '-', s.minus_di || '-', s.plus_di || '-', s.rsi || '-', 
+              (s.b_band_pct !== undefined ? s.b_band_pct : (s.BB_Pct !== undefined ? s.BB_Pct : '-')),
               s.signalLevel, detailsText
             ]);
           }
@@ -182,9 +183,10 @@ function doPost(e) {
         const rows = data.holdings_status.map(s => [
           today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, 
           s.adx || '-', s.prev_adx || '-', s.minus_di || '-', s.plus_di || '-', s.rsi || '-', 
+          (s.b_band_pct !== undefined ? s.b_band_pct : (s.BB_Pct !== undefined ? s.BB_Pct : '-')),
           s.signalLevel, Array.isArray(s.details) ? s.details.join(", ") : String(s.details || "")
         ]);
-        sheet.getRange(2, 1, rows.length, 13).setValues(rows);
+        sheet.getRange(2, 1, rows.length, 14).setValues(rows);
       }
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
         .setMimeType(ContentService.MimeType.JSON);

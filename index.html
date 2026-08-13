@@ -417,6 +417,7 @@
               <th>-DI</th>
               <th>+DI</th>
               <th>RSI</th>
+              <th>볼린저%b</th>
               <th>현재가</th>
               <th>액션</th>
             </tr>
@@ -443,6 +444,7 @@
               <th>-DI</th>
               <th>+DI</th>
               <th>RSI</th>
+              <th>볼린저%b</th>
               <th>신호</th>
             </tr>
           </thead>
@@ -468,6 +470,7 @@
               <th>-DI</th>
               <th>+DI</th>
               <th>RSI</th>
+              <th>볼린저%b</th>
               <th>상태</th>
               <th>삭제</th>
             </tr>
@@ -829,7 +832,17 @@
 
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
         const name = (item.Name || item.name || '').replace(/'/g, "\\'");
-        const reason = (item.Reason || item.reason || item.Notes || item.notes || `ADX: ${formatDec(item.ADX || item.adx)}, -DI: ${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}, RSI: ${formatDec(item.RSI || item.rsi)} 조건 충족`).replace(/'/g, "\\'");
+        
+        const rawBB = (item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']));
+        const bBandPctVal = (rawBB !== undefined && rawBB !== null && rawBB !== '') ? Number(rawBB) : NaN;
+        const bBandPctStr = formatDec(rawBB);
+        let bbColor = 'inherit';
+        if (!isNaN(bBandPctVal)) {
+          if (bBandPctVal <= 0.0) bbColor = 'var(--accent-green)';
+          else if (bBandPctVal >= 1.0) bbColor = '#f87171';
+        }
+
+        const reason = (item.Reason || item.reason || item.Notes || item.notes || `ADX: ${formatDec(item.ADX || item.adx)}, -DI: ${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}, RSI: ${formatDec(item.RSI || item.rsi)}, 볼린저%b: ${bBandPctStr} 조건 충족`).replace(/'/g, "\\'");
 
         return `
           <tr>
@@ -840,6 +853,7 @@
             <td>${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}</td>
             <td>${formatDec(item.Plus_DI || item.plus_di || item.plusDi)}</td>
             <td><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${formatDec(item.RSI || item.rsi)}</span></td>
+            <td><span style="color: ${bbColor}">${bBandPctStr}</span></td>
             <td>${(item.ClosePrice || item.price) ? Number(item.ClosePrice || item.price).toLocaleString() + ' 원' : '-'}</td>
             <td><button class="btn-buy-reg" style="padding: 4px 10px; font-size: 0.8rem;" onclick="quickRegister('${name}', '${ticker}', ${item.ClosePrice || item.price || 0})"><i class="fa-solid fa-plus"></i> 매수</button></td>
           </tr>
@@ -949,6 +963,15 @@
         const mdi = formatDec(metric ? (metric.Minus_DI || metric.minus_di || metric.minusDi || '-') : '-');
         const rsi = formatDec(metric ? (metric.RSI || metric.rsi || '-') : '-');
         
+        const rawBB = metric ? (metric.b_band_pct !== undefined ? metric.b_band_pct : (metric.BB_Pct !== undefined ? metric.BB_Pct : (metric.bBandPct || metric['BB_%b']))) : undefined;
+        const bBandPctVal = (rawBB !== undefined && rawBB !== null && rawBB !== '') ? Number(rawBB) : NaN;
+        const bBandPctStr = formatDec(rawBB);
+        let bbColor = 'inherit';
+        if (!isNaN(bBandPctVal)) {
+          if (bBandPctVal <= 0.0) bbColor = 'var(--accent-green)';
+          else if (bBandPctVal >= 1.0) bbColor = '#f87171';
+        }
+        
         const statusText = statusItem ? (statusItem.Status || statusItem.signalLevel || '관망') : '관망';
         let badgeClass = 'badge-neutral';
         if (statusText.includes('3단계') || statusText.includes('강력 매도') || statusText.includes('하락 재발동')) badgeClass = 'badge-sell-danger';
@@ -977,6 +1000,7 @@
             <td>${mdi}</td>
             <td>${pdi}</td>
             <td><span style="color: ${Number(rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
+            <td><span style="color: ${bbColor}">${bBandPctStr}</span></td>
             <td><span class="badge ${badgeClass}" onclick="showDetailsModal('${displayName}', '${statusText}', '${escapedDetails}', '${badgeClass}')" title="클릭 시 감시 사유 확인">${statusText}</span></td>
             <td><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${rawTicker !== '-' ? rawTicker : rawName}')" title="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
           </tr>
@@ -988,7 +1012,7 @@
       const tbody = document.getElementById('sell-signals-body');
       if (!tbody) return;
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-sub); padding:24px;">
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--text-sub); padding:24px;">
           감지된 매도 경고 또는 매도 신호 이력이 없습니다.
         </td></tr>`;
         return;
@@ -1015,6 +1039,15 @@
         const mdi = formatDec(item.Minus_DI || item.minus_di || item.minusDi);
         const rsi = formatDec(item.RSI || item.rsi);
 
+        const rawBB = (item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']));
+        const bBandPctVal = (rawBB !== undefined && rawBB !== null && rawBB !== '') ? Number(rawBB) : NaN;
+        const bBandPctStr = formatDec(rawBB);
+        let bbColor = 'inherit';
+        if (!isNaN(bBandPctVal)) {
+          if (bBandPctVal <= 0.0) bbColor = 'var(--accent-green)';
+          else if (bBandPctVal >= 1.0) bbColor = '#f87171';
+        }
+
         let detailsText = String(item.Details || item.details || '-').trim();
         if (!detailsText || detailsText === 'undefined' || !isNaN(Number(detailsText))) {
           detailsText = '-';
@@ -1032,6 +1065,7 @@
             <td>${mdi}</td>
             <td>${pdi}</td>
             <td><span style="color: ${Number(rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
+            <td><span style="color: ${bbColor}">${bBandPctStr}</span></td>
             <td><span class="badge ${badgeClass}" onclick="showDetailsModal('${item.Name || item.name}', '${level}', '${escapedDetails}', '${badgeClass}')" title="클릭 시 감시 사유 확인">${level}</span></td>
           </tr>
         `;

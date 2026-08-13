@@ -248,6 +248,8 @@ def evaluate_buy_signal(df):
         priority = "2단계: 적극 매수"
         score = 2
 
+    curr_bb_pct = df['b_band_pct'].iloc[-1] if 'b_band_pct' in df.columns else 0.5
+
     return {
         "is_buy": True,
         "priority": priority,
@@ -256,6 +258,7 @@ def evaluate_buy_signal(df):
         "minus_di": round(curr_mdi, 2),
         "plus_di": round(df['plus_di'].iloc[-1], 2),
         "rsi": round(curr_rsi, 2) if not np.isnan(curr_rsi) else None,
+        "b_band_pct": round(curr_bb_pct, 2) if not np.isnan(curr_bb_pct) else None,
         "close": int(df['종가'].iloc[-1])
     }
 
@@ -278,6 +281,7 @@ def evaluate_sell_signal(df, buy_price):
     curr_mdi = df['minus_di'].iloc[-1]
     prev_mdi = df['minus_di'].iloc[-2]
     curr_rsi = df['rsi'].iloc[-1] if 'rsi' in df.columns else 0.0
+    curr_bb_pct = df['b_band_pct'].iloc[-1] if 'b_band_pct' in df.columns else 0.5
 
     return_rate = 0.0
     if buy_price and buy_price > 0:
@@ -317,6 +321,7 @@ def evaluate_sell_signal(df, buy_price):
         "minus_di": round(curr_mdi, 2),
         "prev_minus_di": round(prev_mdi, 2),
         "rsi": round(curr_rsi, 2),
+        "b_band_pct": round(curr_bb_pct, 2) if not np.isnan(curr_bb_pct) else 0.5,
         "signalLevel": level,
         "details": " / ".join(details),
         "isAlert": (level != "관망")
