@@ -357,6 +357,7 @@ if __name__ == "__main__":
             curr_mdi = float(df['minus_di'].iloc[-1]) if 'minus_di' in df.columns and not np.isnan(df['minus_di'].iloc[-1]) else 0.0
             prev_mdi = float(df['minus_di'].iloc[-2]) if len(df) >= 2 and 'minus_di' in df.columns and not np.isnan(df['minus_di'].iloc[-2]) else 0.0
             curr_pdi = float(df['plus_di'].iloc[-1]) if 'plus_di' in df.columns and not np.isnan(df['plus_di'].iloc[-1]) else 0.0
+            prev_pdi = float(df['plus_di'].iloc[-2]) if len(df) >= 2 and 'plus_di' in df.columns and not np.isnan(df['plus_di'].iloc[-2]) else 0.0
             curr_rsi = float(df['rsi'].iloc[-1]) if 'rsi' in df.columns and not np.isnan(df['rsi'].iloc[-1]) else 0.0
             curr_close = int(df['종가'].iloc[-1]) if '종가' in df.columns else 0
 
