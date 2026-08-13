@@ -809,16 +809,16 @@
       const reversedList = [...list].reverse();
       tbody.innerHTML = reversedList.map(item => {
         const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || '1단계');
-        let stageText = '1단계';
+        let stageText = '1단계: 매수 추천';
         let tierClass = 'badge-t3';
-        if (rawStage.includes('3단계') || rawStage.includes('Tier 1') || rawStage.includes('최우선')) {
-          stageText = '3단계';
+        if (rawStage.includes('3단계') || rawStage.includes('강력') || rawStage.includes('Tier 1')) {
+          stageText = '3단계: 강력 매수';
           tierClass = 'badge-t1';
-        } else if (rawStage.includes('2단계') || rawStage.includes('Tier 2') || rawStage.includes('거래량')) {
-          stageText = '2단계';
+        } else if (rawStage.includes('2단계') || rawStage.includes('적극') || rawStage.includes('Tier 2')) {
+          stageText = '2단계: 적극 매수';
           tierClass = 'badge-t2';
         } else {
-          stageText = '1단계';
+          stageText = '1단계: 매수 추천';
           tierClass = 'badge-t3';
         }
 
@@ -932,9 +932,9 @@
         
         const statusText = statusItem ? (statusItem.Status || statusItem.signalLevel || '관망') : '관망';
         let badgeClass = 'badge-neutral';
-        if (statusText.includes('3단계') || statusText.includes('매도 신호') || statusText.includes('손절')) badgeClass = 'badge-sell-danger';
-        else if (statusText.includes('2단계') || statusText.includes('매도 주의') || statusText.includes('상승 둔화')) badgeClass = 'badge-sell-warn';
-        else if (statusText.includes('1단계') || statusText.includes('매도 준비') || statusText.includes('익절 준비')) badgeClass = 'badge-t2';
+        if (statusText.includes('3단계') || statusText.includes('강력 매도') || statusText.includes('하락 재발동')) badgeClass = 'badge-sell-danger';
+        else if (statusText.includes('2단계') || statusText.includes('적극 매도') || statusText.includes('상승 둔화')) badgeClass = 'badge-sell-warn';
+        else if (statusText.includes('1단계') || statusText.includes('매도 추천') || statusText.includes('익절')) badgeClass = 'badge-t2';
 
         let returnRateStr = '-';
         let returnRateColor = 'inherit';
@@ -981,13 +981,13 @@
         
         let level = String(item.Status || item.signalLevel || '관망').trim();
         if (!level || !isNaN(Number(level)) || level === 'undefined') {
-          level = '1단계: 매도 준비';
+          level = '1단계: 매도 추천';
         }
 
         let badgeClass = 'badge-neutral';
-        if (level.includes('3단계') || level.includes('매도 신호') || level.includes('손절')) badgeClass = 'badge-sell-danger';
-        else if (level.includes('2단계') || level.includes('매도 주의') || level.includes('상승 둔화')) badgeClass = 'badge-sell-warn';
-        else if (level.includes('1단계') || level.includes('매도 준비') || level.includes('익절 준비')) badgeClass = 'badge-t2';
+        if (level.includes('3단계') || level.includes('강력 매도') || level.includes('하락 재발동')) badgeClass = 'badge-sell-danger';
+        else if (level.includes('2단계') || level.includes('적극 매도') || level.includes('상승 둔화')) badgeClass = 'badge-sell-warn';
+        else if (level.includes('1단계') || level.includes('매도 추천') || level.includes('익절')) badgeClass = 'badge-t2';
 
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
         const adx = formatDec(item.ADX || item.adx);

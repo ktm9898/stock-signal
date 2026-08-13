@@ -209,13 +209,13 @@ def evaluate_buy_signal(df):
     if not is_buy:
         return None
 
-    priority = "1단계 (일반)"
+    priority = "1단계: 매수 추천"
     score = 1
     if curr_rsi <= 40:
-        priority = "3단계 (최우선 과매도)"
+        priority = "3단계: 강력 매수"
         score = 3
     elif avg_vol5 > 0 and (curr_vol >= avg_vol5 * 1.2):
-        priority = "2단계 (거래량 급증)"
+        priority = "2단계: 적극 매수"
         score = 2
 
     return {
@@ -264,13 +264,13 @@ def evaluate_sell_signal(df, buy_price):
 
     # Priority determination (3단계 -> 2단계 -> 1단계)
     if mdi_rebound:
-        level = "3단계: 매도 신호"
+        level = "3단계: 강력 매도"
         details.append(f"하락 압력 재확대 (-DI: {prev_mdi:.1f} → {curr_mdi:.1f}, 격차: {prev_gap:.1f} → {curr_gap:.1f})")
     elif pdi_drop:
-        level = "2단계: 매도 주의"
+        level = "2단계: 적극 매도"
         details.append(f"상승 동력(+DI) 꺾임 (+DI: {prev_pdi:.1f} → {curr_pdi:.1f})")
     elif rsi_high:
-        level = "1단계: 매도 준비"
+        level = "1단계: 매도 추천"
         details.append(f"RSI 단기 과매수 상단 도달 (RSI: {curr_rsi:.1f} >= 60)")
     else:
         level = "관망"
