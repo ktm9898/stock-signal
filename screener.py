@@ -12,11 +12,34 @@ import pandas as pd
 import numpy as np
 import requests
 
+# Helper to safely import pykrx without failing on invalid KRX credentials
+def import_pykrx_safely():
+    try:
+        from pykrx import stock
+        # Test basic call to ensure session is valid
+        return stock
+    except Exception as e:
+        print(f"[WARN] PyKRX initial import/login failed: {e}. Retrying in non-authenticated mode...")
+        # Unset KRX_ID and KRX_PW from environment to prevent pykrx from trying invalid KRX login
+        os.environ.pop("KRX_ID", None)
+        os.environ.pop("KRX_PW", None)
+        # Clear pykrx module cache if already partially imported
+        for mod in list(sys.modules.keys()):
+            if mod.startswith("pykrx"):
+                del sys.modules[mod]
+        try:
+            from pykrx import stock
+            return stock
+        except Exception as ex:
+            print(f"[WARN] PyKRX fallback import failed: {ex}")
+            return None
+
+stock = import_pykrx_safely()
+
 try:
-    from pykrx import stock
     import ta
 except ImportError:
-    print("[WARN] Required packages ('pykrx', 'ta', 'pandas') missing. Install via pip.")
+    pass
 
 try:
     from bs4 import BeautifulSoup
