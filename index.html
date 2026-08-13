@@ -500,6 +500,7 @@
               <th>+DI</th>
               <th>전일+DI</th>
               <th>RSI</th>
+              <th>볼린저%b</th>
               <th>현재가</th>
               <th>상태</th>
             </tr>
@@ -872,7 +873,16 @@
         const prevPdi = formatDec(item.Prev_Plus_DI || item.prev_plus_di);
         const rsi = formatDec(item.RSI || item.rsi);
 
-        const reason = `ADX: ${currAdx} (전일: ${prevAdx}), -DI: ${currMdi} (전일: ${prevMdi}), +DI: ${currPdi} (전일: ${prevPdi}), RSI: ${rsi}`;
+        const rawBB = (item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']));
+        const bBandPctVal = (rawBB !== undefined && rawBB !== null && rawBB !== '') ? Number(rawBB) : NaN;
+        const bBandPctStr = formatDec(rawBB);
+        let bbColor = 'inherit';
+        if (!isNaN(bBandPctVal)) {
+          if (bBandPctVal <= 0.0) bbColor = 'var(--accent-green)';
+          else if (bBandPctVal >= 1.0) bbColor = '#f87171';
+        }
+
+        const reason = `ADX: ${currAdx} (전일: ${prevAdx}), -DI: ${currMdi} (전일: ${prevMdi}), +DI: ${currPdi} (전일: ${prevPdi}), RSI: ${rsi}, 볼린저%b: ${bBandPctStr}`;
 
         return `
           <tr>
@@ -884,6 +894,7 @@
             <td>${currPdi}</td>
             <td style="color:var(--text-sub);">${prevPdi}</td>
             <td><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
+            <td><span style="color: ${bbColor}">${bBandPctStr}</span></td>
             <td>${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
             <td><span class="badge ${badgeClass}" onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 세부 지표 확인">${statusText}</span></td>
           </tr>

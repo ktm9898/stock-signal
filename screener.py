@@ -206,6 +206,13 @@ def calculate_indicators(df, period=14):
     df['ma5'] = df['종가'].rolling(window=5).mean()
     df['ma20'] = df['종가'].rolling(window=20).mean()
 
+    # Bollinger Bands (20, 2) & %b
+    std20 = df['종가'].rolling(window=20).std(ddof=0)
+    upper_b = df['ma20'] + (2 * std20)
+    lower_b = df['ma20'] - (2 * std20)
+    band_width = upper_b - lower_b
+    df['b_band_pct'] = np.where(band_width != 0, (df['종가'] - lower_b) / band_width, 0.5)
+
     return df
 
 def evaluate_buy_signal(df):
@@ -315,6 +322,38 @@ def evaluate_sell_signal(df, buy_price):
         "isAlert": (level != "관망")
     }
 
+def check_and_trim_incomplete_candle(df):
+    """
+    Check if current time is KST weekday market open hours (09:00 ~ 15:30 KST).
+    If so, and the last candle in df represents today's date, remove the incomplete candle to prevent indicator distortion.
+    """
+    if df is None or len(df) <= 30:
+        return df
+
+    utc_now = datetime.datetime.now(datetime.timezone.utc)
+    kst_now = utc_now.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
+
+    is_weekday = (kst_now.weekday() < 5)
+    market_start = kst_now.replace(hour=9, minute=0, second=0, microsecond=0)
+    market_end = kst_now.replace(hour=15, minute=30, second=0, microsecond=0)
+    is_market_hours = (market_start <= kst_now <= market_end)
+
+    if is_weekday and is_market_hours:
+        today_compact = kst_now.strftime("%Y%m%d")
+        last_date_str = ""
+        if 'Date' in df.columns:
+            last_date_str = str(df['Date'].iloc[-1])
+        elif isinstance(df.index, pd.DatetimeIndex):
+            last_date_str = df.index[-1].strftime("%Y%m%d")
+        else:
+            last_date_str = str(df.index[-1])
+
+        last_date_compact = re.sub(r'[^0-9]', '', last_date_str)[:8]
+        if last_date_compact == today_compact and len(df) > 30:
+            return df.iloc[:-1]
+
+    return df
+
 def post_to_google_sheets(url, action, data):
     """Post screening results to Google Apps Script Web App."""
     pin = os.environ.get("AUTH_PIN", "")
@@ -347,7 +386,8 @@ if __name__ == "__main__":
         name = item['name']
         try:
             df = get_ohlcv_data(ticker, start_date, end_date)
-            if len(df) < 30:
+            df = check_and_trim_incomplete_candle(df)
+            if df is None or len(df) < 30:
                 continue
             df = calculate_indicators(df)
             
@@ -359,6 +399,7 @@ if __name__ == "__main__":
             curr_pdi = float(df['plus_di'].iloc[-1]) if 'plus_di' in df.columns and not np.isnan(df['plus_di'].iloc[-1]) else 0.0
             prev_pdi = float(df['plus_di'].iloc[-2]) if len(df) >= 2 and 'plus_di' in df.columns and not np.isnan(df['plus_di'].iloc[-2]) else 0.0
             curr_rsi = float(df['rsi'].iloc[-1]) if 'rsi' in df.columns and not np.isnan(df['rsi'].iloc[-1]) else 0.0
+            curr_bb_pct = float(df['b_band_pct'].iloc[-1]) if 'b_band_pct' in df.columns and not np.isnan(df['b_band_pct'].iloc[-1]) else 0.5
             curr_close = int(df['종가'].iloc[-1]) if '종가' in df.columns else 0
 
             buy_res = evaluate_buy_signal(df)
@@ -370,7 +411,7 @@ if __name__ == "__main__":
                 buy_res['prev_minus_di'] = round(prev_mdi, 2)
                 buy_candidates.append(buy_res)
                 status_text = buy_res['priority']
-                print(f"  🔥 [BUY SIGNAL] {name} ({ticker}) - {buy_res['priority']} | ADX: {buy_res['adx']} | RSI: {buy_res['rsi']}")
+                print(f"  🔥 [BUY SIGNAL] {name} ({ticker}) - {buy_res['priority']} | ADX: {buy_res['adx']} | RSI: {buy_res['rsi']} | %b: {round(curr_bb_pct, 2)}")
             elif curr_adx >= 30:
                 status_text = "추세강함 (조건미달)"
 
@@ -384,6 +425,7 @@ if __name__ == "__main__":
                 "plus_di": round(curr_pdi, 2),
                 "prev_plus_di": round(prev_pdi, 2),
                 "rsi": round(curr_rsi, 2),
+                "b_band_pct": round(curr_bb_pct, 2),
                 "close": curr_close,
                 "status": status_text
             })
@@ -457,7 +499,8 @@ if __name__ == "__main__":
                             continue
                         
                         h_df = get_ohlcv_data(h_ticker, start_date, end_date)
-                        if len(h_df) < 30:
+                        h_df = check_and_trim_incomplete_candle(h_df)
+                        if h_df is None or len(h_df) < 30:
                             print(f"  [WARN] Insufficient candle data for holding: {h_name} ({h_ticker})")
                             continue
                         h_df = calculate_indicators(h_df)
