@@ -8,11 +8,11 @@ KOSPI 200 종목 대상 ADX 과매도 반전 매수 신호 및 민감 매도 신
    - `RSI <= 40` 중첩 여부 및 거래량 반응(1.2배)에 따른 우선순위(1단계 / 2단계 / 3단계) 산정
 2. **보유 종목 민감 매도 신호 감시**:
    - 사용자 보유 등록 종목 대상 3단계 매도 신호 (1단계: 매도 준비 [RSI >= 60], 2단계: 매도 주의 [+DI 꺾임], 3단계: 매도 신호 [-DI 확대])
-3. **자동화 스케줄링**:
-   - 매일 장중 14:00 (1차) 및 장 마감 후 15:40 (2차 확정) Python 스크립트 수집 & 구글 시트 DB 업데이트
+3. **자동화 스케줄링 및 수집 연동**:
+   - Google Apps Script(GAS) 시간 기반 트리거 및 웹 앱 연동을 통한 수집 & 구글 시트 DB 업데이트
 
 ## 기술 스택
 - **Engine/Backend**: Python, PyKRX, pandas, ta (Technical Analysis Library)
 - **Database/Bridge**: Google Sheets API / Google Apps Script
-- **Scheduler**: GitHub Actions
+- **Scheduler**: Google Apps Script Time-driven Triggers / GitHub Actions (workflow_dispatch)
 - **Frontend**: Single Page HTML Web App (Vanilla JS, Modern CSS, Dark Mode Trading UI)
