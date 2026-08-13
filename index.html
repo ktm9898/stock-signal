@@ -811,9 +811,16 @@
         const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || '1단계');
         let stageText = '1단계';
         let tierClass = 'badge-t3';
-        if (rawStage.includes('3')) { stageText = '3단계'; tierClass = 'badge-t1'; }
-        else if (rawStage.includes('2')) { stageText = '2단계'; tierClass = 'badge-t2'; }
-        else { stageText = '1단계'; tierClass = 'badge-t3'; }
+        if (rawStage.includes('3단계') || rawStage.includes('Tier 1') || rawStage.includes('최우선')) {
+          stageText = '3단계';
+          tierClass = 'badge-t1';
+        } else if (rawStage.includes('2단계') || rawStage.includes('Tier 2') || rawStage.includes('거래량')) {
+          stageText = '2단계';
+          tierClass = 'badge-t2';
+        } else {
+          stageText = '1단계';
+          tierClass = 'badge-t3';
+        }
 
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
         const name = (item.Name || item.name || '').replace(/'/g, "\\'");
