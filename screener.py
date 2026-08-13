@@ -355,9 +355,10 @@ if __name__ == "__main__":
                 "name": name,
                 "adx": round(curr_adx, 2),
                 "prev_adx": round(prev_adx, 2),
+                "plus_di": round(curr_pdi, 2),
+                "prev_plus_di": round(prev_pdi, 2),
                 "minus_di": round(curr_mdi, 2),
                 "prev_minus_di": round(prev_mdi, 2),
-                "plus_di": round(curr_pdi, 2),
                 "rsi": round(curr_rsi, 2),
                 "close": curr_close,
                 "status": status_text
