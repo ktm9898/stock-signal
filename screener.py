@@ -218,7 +218,7 @@ def calculate_indicators(df, period=14):
 def evaluate_buy_signal(df):
     """
     Evaluate ADX Reversal Buy Signal.
-    Condition: ADX >= 30 AND Prev(-DI) > Prev(ADX) AND Curr(-DI) <= Curr(ADX)
+    Condition: ADX >= 25 AND Prev(-DI) > Prev(ADX) AND Curr(-DI) <= Curr(ADX)
     Priority Rating:
       - 3단계: Buy Signal + RSI <= 40 (최우선 과매도)
       - 2단계: Buy Signal + Volume >= 1.2x 5-day avg volume (거래량 급증)
@@ -234,7 +234,7 @@ def evaluate_buy_signal(df):
     avg_vol5 = df['거래량'].iloc[-6:-1].mean() if len(df) >= 6 else curr_vol
 
     # Base Buy Signal
-    is_buy = (curr_adx >= 30) and (prev_mdi > prev_adx) and (curr_mdi <= curr_adx)
+    is_buy = (curr_adx >= 25) and (prev_mdi > prev_adx) and (curr_mdi <= curr_adx)
 
     if not is_buy:
         return None
@@ -384,6 +384,8 @@ if __name__ == "__main__":
     end_date = datetime.datetime.now().strftime("%Y%m%d")
     start_date = (datetime.datetime.now() - datetime.timedelta(days=365)).strftime("%Y%m%d")
 
+    stock_df_map = {}
+
     # 2. Screen Buy Signals across all KOSPI 200
     print("[2/4] Calculating indicators and screening buy signals...")
     for idx, item in enumerate(items):
@@ -395,6 +397,10 @@ if __name__ == "__main__":
             if df is None or len(df) < 30:
                 continue
             df = calculate_indicators(df)
+            
+            clean_ticker = str(ticker).zfill(6)
+            stock_df_map[clean_ticker] = (df, name)
+            stock_df_map[name.replace(' ', '')] = (df, name)
             
             # Record current and previous indicators for all stocks
             curr_adx = float(df['adx'].iloc[-1]) if 'adx' in df.columns and not np.isnan(df['adx'].iloc[-1]) else 0.0
@@ -410,18 +416,18 @@ if __name__ == "__main__":
             buy_res = evaluate_buy_signal(df)
             status_text = "관망"
             if buy_res:
-                buy_res['ticker'] = ticker
+                buy_res['ticker'] = clean_ticker
                 buy_res['name'] = name
                 buy_res['prev_adx'] = round(prev_adx, 2)
                 buy_res['prev_minus_di'] = round(prev_mdi, 2)
                 buy_candidates.append(buy_res)
                 status_text = buy_res['priority']
-                print(f"  🔥 [BUY SIGNAL] {name} ({ticker}) - {buy_res['priority']} | ADX: {buy_res['adx']} | RSI: {buy_res['rsi']} | %b: {round(curr_bb_pct, 2)}")
-            elif curr_adx >= 30:
+                print(f"  🔥 [BUY SIGNAL] {name} ({clean_ticker}) - {buy_res['priority']} | ADX: {buy_res['adx']} | RSI: {buy_res['rsi']} | %b: {round(curr_bb_pct, 2)}")
+            elif curr_adx >= 25:
                 status_text = "추세강함 (조건미달)"
 
             all_stocks.append({
-                "ticker": ticker,
+                "ticker": clean_ticker,
                 "name": name,
                 "adx": round(curr_adx, 2),
                 "prev_adx": round(prev_adx, 2),
@@ -486,39 +492,58 @@ if __name__ == "__main__":
                         if h_ticker.isdigit():
                             h_ticker = h_ticker.zfill(6)
 
-                        # Resolve stock ticker code if h_ticker is stock name (e.g. "삼성전자")
-                        if not h_ticker.isdigit() or not h_name:
+                        # Lookup cached DataFrame by ticker or name
+                        h_df = None
+                        matched_name = h_name
+                        matched_ticker = h_ticker
+
+                        if h_ticker in stock_df_map:
+                            h_df, matched_name = stock_df_map[h_ticker]
+                        elif h_name.replace(' ', '') in stock_df_map:
+                            h_df, matched_name = stock_df_map[h_name.replace(' ', '')]
+                        else:
+                            # Search through items
                             for item in items:
                                 i_name = str(item.get('name', '')).strip()
                                 i_ticker = str(item.get('ticker', '')).strip().zfill(6)
                                 if i_name == h_ticker or i_name == h_name or i_ticker == h_ticker or i_name.replace(' ', '') == h_name.replace(' ', ''):
-                                    h_ticker = i_ticker
-                                    h_name = i_name
+                                    matched_ticker = i_ticker
+                                    matched_name = i_name
+                                    if matched_ticker in stock_df_map:
+                                        h_df, matched_name = stock_df_map[matched_ticker]
                                     break
                         
-                        if h_ticker.isdigit():
-                            h_ticker = h_ticker.zfill(6)
+                        if h_df is None:
+                            # Fallback fetch only if stock is non-KOSPI200 holding
+                            if matched_ticker.isdigit():
+                                matched_ticker = matched_ticker.zfill(6)
+                                h_df = get_ohlcv_data(matched_ticker, start_date, end_date)
+                                if len(h_df) >= 30:
+                                    h_df = calculate_indicators(h_df)
                         
+<<<<<<< HEAD
                         if not h_ticker or not h_ticker.isdigit():
                             print(f"  [WARN] Skipping invalid holding entry: Ticker={h_ticker}, Name={h_name}")
                             continue
                         
                         h_df = get_ohlcv_data(h_ticker, start_date, end_date)
                         h_df = check_and_trim_incomplete_candle(h_df)
+=======
+>>>>>>> 28a9bf9 (refactor: lower ADX buy signal threshold from 30 to 25)
                         if h_df is None or len(h_df) < 30:
                             print(f"  [WARN] Insufficient candle data for holding: {h_name} ({h_ticker})")
                             continue
-                        h_df = calculate_indicators(h_df)
+
                         sell_res = evaluate_sell_signal(h_df, h_price)
                         if sell_res:
-                            sell_res["ticker"] = h_ticker
-                            sell_res["name"] = h_name
+                            sell_res["ticker"] = matched_ticker if matched_ticker.isdigit() else h_ticker
+                            sell_res["name"] = matched_name if matched_name else h_name
                             holdings_status.append(sell_res)
                             if sell_res.get("isAlert"):
                                 sell_signals.append(sell_res)
-                                print(f"  ⚠️ [SELL ALERT] {h_name} ({h_ticker}) - {sell_res['signalLevel']} | {', '.join(sell_res['details'])}")
+                                print(f"  ⚠️ [SELL ALERT] {sell_res['name']} ({sell_res['ticker']}) - {sell_res['signalLevel']} | {sell_res['details']}")
                             else:
-                                print(f"  🛡️ [HOLDING MONITOR] {h_name} ({h_ticker}) - 관망 (ADX: {sell_res['adx']}, 수익률: {sell_res['returnRate']}%)")
+                                print(f"  🛡️ [HOLDING MONITOR] {sell_res['name']} ({sell_res['ticker']}) - 관망 (ADX: {sell_res['adx']}, 수익률: {sell_res['returnRate']}%)")
                     
                     if holdings_status:
                         print(f" -> Posting {len(holdings_status)} holdings status metrics to Google Sheets...")

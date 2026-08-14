@@ -901,7 +901,7 @@
         return `
           <tr>
             <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
-            <td><strong style="color: ${Number(item.ADX || item.adx) >= 30 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
+            <td><strong style="color: ${Number(item.ADX || item.adx) >= 25 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
             <td style="color:var(--text-sub);">${prevAdx}</td>
             <td>${currMdi}</td>
             <td style="color:var(--text-sub);">${prevMdi}</td>
@@ -947,11 +947,14 @@
           return (rawTicker && rawTicker !== '-' && sTicker === rawTicker) || (rawName && sName === rawName);
         });
 
-        const metric = statusItem || metricsList.find(m => {
+        // Prioritize allMetrics (metricsList) so that indicator values match 100% with All Stocks view
+        const allMetricItem = metricsList.find(m => {
           const mTicker = formatTicker(m.Ticker || m.ticker || '');
           const mName = String(m.Name || m.name || '').trim();
           return (rawTicker && rawTicker !== '-' && mTicker === rawTicker) || (rawName && mName === rawName);
         });
+
+        const metric = allMetricItem || statusItem;
 
         const displayTicker = formatTicker(metric ? (metric.Ticker || metric.ticker || rawTicker) : rawTicker);
         const displayName = metric ? (metric.Name || metric.name || rawName) : (rawName || rawTicker);
@@ -1251,11 +1254,7 @@
         if (result.success) {
           showInfoModal('스크리닝 시작', '수동 스크리닝이 시작되었습니다.\n1~2분 후 결과가 자동 갱신됩니다.');
           setTimeout(() => {
-            loadDataFromGAS(userPin);
-            if (btn) {
-              btn.disabled = false;
-              btn.innerHTML = '수동 실행';
-            }
+            window.location.reload();
           }, 90000);
         } else {
           showInfoModal('실패', result.message || "권한 또는 설정 오류가 발생했습니다.");
