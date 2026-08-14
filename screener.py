@@ -521,15 +521,8 @@ if __name__ == "__main__":
                                 if len(h_df) >= 30:
                                     h_df = calculate_indicators(h_df)
                         
-<<<<<<< HEAD
-                        if not h_ticker or not h_ticker.isdigit():
-                            print(f"  [WARN] Skipping invalid holding entry: Ticker={h_ticker}, Name={h_name}")
-                            continue
-                        
-                        h_df = get_ohlcv_data(h_ticker, start_date, end_date)
-                        h_df = check_and_trim_incomplete_candle(h_df)
-=======
->>>>>>> 28a9bf9 (refactor: lower ADX buy signal threshold from 30 to 25)
+                        if h_df is not None:
+                            h_df = check_and_trim_incomplete_candle(h_df)
                         if h_df is None or len(h_df) < 30:
                             print(f"  [WARN] Insufficient candle data for holding: {h_name} ({h_ticker})")
                             continue
