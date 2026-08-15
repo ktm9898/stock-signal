@@ -573,7 +573,7 @@
       <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 16px;">대시보드에 접근하려면 비밀번호를 입력하세요.</p>
       
       <div class="form-group" style="margin-top: 10px;">
-        <input type="password" class="form-input" id="input-pin" inputmode="numeric" pattern="[0-9]*" placeholder="••••••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; font-weight: 700; padding: 10px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
+        <input type="password" class="form-input" id="input-pin" placeholder="••••••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; font-weight: 700; padding: 10px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
       </div>
       <div id="pin-error" style="color: var(--accent-red); font-size: 0.85rem; margin-bottom: 12px; display: none;">비밀번호가 올바르지 않습니다.</div>
       <button class="btn-buy-reg" id="btn-pin-submit" style="width: 100%; padding: 10px; font-size: 0.95rem;" onclick="verifyPin()">대시보드 열기</button>
