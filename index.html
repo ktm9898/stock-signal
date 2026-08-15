@@ -1360,8 +1360,8 @@
     }
 
     // Startup check: authenticate PIN or attempt PIN-free load
-    loadDataFromGAS(userPin).then(success => {
-      if (success) {
+    loadDataFromGAS(userPin).then(res => {
+      if (res && res.success) {
         document.getElementById('pin-modal').style.display = 'none';
         document.getElementById('pin-error').style.display = 'none';
       } else {
