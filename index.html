@@ -604,15 +604,16 @@
       errorEl.style.display = 'none';
 
       try {
-        const success = await loadDataFromGAS(pinVal);
-        if (success) {
+        const res = await loadDataFromGAS(pinVal);
+        if (res.success) {
           userPin = pinVal;
           document.getElementById('pin-modal').style.display = 'none';
         } else {
+          errorEl.textContent = res.message || '비밀번호가 올바르지 않습니다.';
           errorEl.style.display = 'block';
         }
       } catch (err) {
-        errorEl.textContent = '확인 중 오류가 발생했습니다.';
+        errorEl.textContent = '확인 중 오류가 발생했습니다: ' + err.message;
         errorEl.style.display = 'block';
       } finally {
         if (pinBtn) {
@@ -635,6 +636,15 @@
       }
     }
 
+    function parseYMD(val) {
+      if (!val) return '';
+      const str = String(val).trim();
+      if (str.length >= 10) {
+        return str.substring(0, 10).replace(/[^0-9]/g, '');
+      }
+      return str.replace(/[^0-9]/g, '');
+    }
+
     async function loadDataFromGAS(pin = userPin) {
       const cleanPin = String(pin || '').trim();
       try {
@@ -644,7 +654,7 @@
         
         if (data.status === "error" || data.success === false) {
           console.warn("GAS Auth/Fetch Error:", data.message);
-          return false;
+          return { success: false, message: data.message };
         }
 
         buyCandidatesData = data.buyCandidates || [];
@@ -659,8 +669,8 @@
         if (allMetricsData.length > 200) {
           const latestDate = allMetricsData[allMetricsData.length - 1].Date || allMetricsData[allMetricsData.length - 1].date;
           if (latestDate) {
-            const latestYMD = extractYMD(latestDate);
-            latestMetricsData = allMetricsData.filter(item => extractYMD(item.Date || item.date) === latestYMD);
+            const latestYMD = parseYMD(latestDate);
+            latestMetricsData = allMetricsData.filter(item => parseYMD(item.Date || item.date) === latestYMD);
           }
           if (latestMetricsData.length === 0) {
             latestMetricsData = allMetricsData.slice(-200);
@@ -731,10 +741,10 @@
           document.getElementById('sync-time').textContent = `최근 갱신: ${formatShortDate(lastLog.Timestamp || lastLog.date)}`;
         }
 
-        return true;
+        return { success: true };
       } catch (err) {
         console.error("Failed to load data from GAS:", err);
-        return false;
+        return { success: false, message: err.message };
       }
     }
 
