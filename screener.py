@@ -474,9 +474,8 @@ if __name__ == "__main__":
             return None
 
     with ThreadPoolExecutor(max_workers=8) as executor:
-        futures = [executor.submit(process_single_stock, item) for item in items]
-        for future in as_completed(futures):
-            res = future.result()
+        results = list(executor.map(process_single_stock, items))
+        for res in results:
             if res:
                 clean_ticker, name, df, buy_item, stock_item = res
                 stock_df_map[clean_ticker] = (df, name)
