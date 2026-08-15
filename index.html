@@ -1140,7 +1140,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;">${stochK} / ${stochD}</td>
             <td style="text-align:center;"><span style="color: ${Number(disparity) <= 95 ? 'var(--accent-green)' : (Number(disparity) >= 105 ? '#f87171' : 'inherit')}">${disparity}%</span></td>
             <td style="text-align:center;"><strong style="color: ${Number(vr) >= 150 ? 'var(--accent-warning)' : 'inherit'}">${vr}%</strong></td>
-            <td style="text-align:right;">${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
+            <td style="text-align:right; padding-right: 16px;">${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
             <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 세부 지표 확인">${statusText}</span></td>
           </tr>
         `;
