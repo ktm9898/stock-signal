@@ -651,6 +651,9 @@
         holdingsData = data.userHoldings || [];
         const holdingsStatusData = data.holdingsStatus || [];
         executionLogsData = data.executionLogs || [];
+        allMetricsData = data.allMetrics || [];
+        const sellSignalsData = data.sellSignals || [];
+
         // Extract latest date metrics for display in renderAllStocks (from 60-day rolling DB)
         let latestMetricsData = allMetricsData;
         if (allMetricsData.length > 200) {
