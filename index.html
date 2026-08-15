@@ -496,15 +496,15 @@
           <thead>
             <tr>
               <th>종목</th>
-              <th>ADX</th>
-              <th>-DI</th>
-              <th>+DI</th>
-              <th>RSI</th>
-              <th>볼린저%b</th>
-              <th>MACD(Osc)</th>
-              <th>Stoch(%K/%D)</th>
-              <th>이격도(20)</th>
-              <th>거래량비율</th>
+              <th onclick="showIndicatorHelp('ADX')" style="cursor:pointer;" title="클릭 시 ADX 지표 설명 보기">ADX <i class="fa-regular fa-circle-question" style="font-size:0.75rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('-DI')" style="cursor:pointer;" title="클릭 시 -DI 지표 설명 보기">-DI <i class="fa-regular fa-circle-question" style="font-size:0.75rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('+DI')" style="cursor:pointer;" title="클릭 시 +DI 지표 설명 보기">+DI <i class="fa-regular fa-circle-question" style="font-size:0.75rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('RSI')" style="cursor:pointer;" title="클릭 시 RSI 지표 설명 보기">RSI <i class="fa-regular fa-circle-question" style="font-size:0.75rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('BB_Pct')" style="cursor:pointer;" title="클릭 시 볼린저%b 지표 설명 보기">볼린저%b <i class="fa-regular fa-circle-question" style="font-size:0.75rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('MACD')" style="cursor:pointer;" title="클릭 시 MACD 지표 설명 보기">MACD(Osc) <i class="fa-regular fa-circle-question" style="font-size:0.75rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('STOCH')" style="cursor:pointer;" title="클릭 시 스토캐스틱 지표 설명 보기">Stoch(%K/%D) <i class="fa-regular fa-circle-question" style="font-size:0.75rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('DISPARITY')" style="cursor:pointer;" title="클릭 시 이격도 지표 설명 보기">이격도(20) <i class="fa-regular fa-circle-question" style="font-size:0.75rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('VR')" style="cursor:pointer;" title="클릭 시 거래량비율 지표 설명 보기">거래량비율 <i class="fa-regular fa-circle-question" style="font-size:0.75rem; color:#94a3b8;"></i></th>
               <th>현재가</th>
               <th>상태</th>
             </tr>
@@ -753,6 +753,155 @@
         console.error("Failed to load data from GAS:", err);
         return { success: false, message: err.message };
       }
+    }
+
+    function showIndicatorHelp(type) {
+      const helpData = {
+        'ADX': {
+          title: 'ADX (Average Directional Index)',
+          badge: '추세 강도',
+          badgeClass: 'badge-t2',
+          content: `📌 개념
+ADX는 주가의 상승/하락 방향과 관계없이 현재 형성된 '추세의 강도'만을 0~100 수치로 측정하는 지표입니다.
+
+📊 수치별 의미
+• 0 ~ 20 : 추세 없음 (관망 / 횡보 구간)
+• 25 이상 : 🔥 강한 추세 형성 (매매 고려 가능 구간)
+• 40 이상 : 매우 강력한 추세 진행 중
+
+💡 실전 활용 팁
+ADX가 25 이상으로 올라설 때 -DI가 ADX 밑으로 하향 돌파하면 매수 신호, 반대로 상승 추세 후 ADX가 꺾이기 시작하면 익절/매도 준비 타점이 됩니다.`
+        },
+        '-DI': {
+          title: '-DI (Minus Directional Indicator)',
+          badge: '하락 방향성',
+          badgeClass: 'badge-sell-exit',
+          content: `📌 개념
+최근 N일간 주가의 '하락 변동 폭과 압력'을 수치화한 지표입니다.
+
+📊 수치별 의미
+• -DI > ADX : 하락 압력이 우세하여 주가가 눌려있는 상태
+• -DI가 ADX 밑으로 하향 돌파 : 하락 압력이 사라지며 상승 반전 가능성 급증
+
+💡 실전 활용 팁
+ADX가 25 이상일 때 -DI가 ADX 아래로 떨어지는 순간이 본 스크리너의 핵심 [매수 신호] 타점입니다.`
+        },
+        '+DI': {
+          title: '+DI (Plus Directional Indicator)',
+          badge: '상승 방향성',
+          badgeClass: 'badge-t1',
+          content: `📌 개념
+최근 N일간 주가의 '상승 변동 폭과 매수 압력'을 수치화한 지표입니다.
+
+📊 수치별 의미
+• +DI > -DI : 매수세가 매도세보다 우세한 상승 국면
+• +DI 상승 + ADX 상승 : 상승 추세가 본격적으로 탄력을 받는 구간
+
+💡 실전 활용 팁
++DI가 -DI보다 위에 있으면서 ADX가 함께 상승할 때 가장 안정적인 우상향 파동이 연출됩니다.`
+        },
+        'RSI': {
+          title: 'RSI (Relative Strength Index)',
+          badge: '상대강도지수',
+          badgeClass: 'badge-t1',
+          content: `📌 개념
+최근 14일간 주가 상승폭과 하락폭의 비율을 0~100%로 나타내어 매수/매도 세력의 상대적 강도를 측정합니다.
+
+📊 수치별 의미
+• 30 이하 : 📉 과매도 (주가가 지나치게 떨어져 반등 가능성 높음)
+• 40 이하 : 과매도 접근 (본 시스템 3단계 강력매수 우순선위 조건)
+• 70 이상 : 📈 과매수 (과열 구간, 매도/익절 고려)
+
+💡 실전 활용 팁
+매수 신호가 떴을 때 RSI가 40 이하로 낮다면 바닥권 강력 매수(3단계) 타점이 됩니다.`
+        },
+        'BB_Pct': {
+          title: '볼린저 밴드 %b (Bollinger %b)',
+          badge: '밴드위치 비율',
+          badgeClass: 'badge-t2',
+          content: `📌 개념
+주가가 볼린저 밴드(20일, 2표준편차)의 상단과 하단 사이에서 어디에 위치하는지 0~1 비율로 나타냅니다.
+
+📊 수치별 의미
+• 0.0 이하 : 🟢 밴드 하단 이탈/터치 (주가 극단적 바닥권)
+• 0.5 : 밴드 중앙선 (20일 이동평균선 위치)
+• 1.0 이상 : 🔴 밴드 상단 이탈/터치 (주가 단기 과열 상단)
+
+💡 실전 활용 팁
+%b가 0.0 근처에 도달해 있으면서 매수 신호가 발생하면 아주 이상적인 눌림목/바닥 매수 기회가 됩니다.`
+        },
+        'MACD': {
+          title: 'MACD 오실레이터 (MACD Oscillator)',
+          badge: '추세 모멘텀',
+          badgeClass: 'badge-t2',
+          content: `📌 개념
+MACD(12일-26일 이평선 차이)와 Signal(9일 이평선)의 차이를 나타내는 오실레이터 수치입니다.
+
+📊 수치별 의미
+• 양수 (+) / 🔴 : 상승 모멘텀 우세 (MACD가 Signal 위에 위치)
+• 음수 (-) / 🔵 : 하락 모멘텀 우세 (MACD가 Signal 아래에 위치)
+• 음수(-)에서 양수(+)로 전환 : 🚀 MACD 골든크로스 발생
+
+💡 실전 활용 팁
+MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상승 에너지가 강력하게 실립니다.`
+        },
+        'STOCH': {
+          title: '스토캐스틱 슬로우 (Stochastic Slow %K / %D)',
+          badge: '단기 반전 지표',
+          badgeClass: 'badge-t3',
+          content: `📌 개념
+최근 14일간의 최고가-최저가 범위 내에서 현재 주가의 상대적 위치(%K)와 그 이동평균(%D)을 나타냅니다.
+
+📊 수치별 의미
+• 20 이하 : 📉 단기 과매도 (바닥권 반등 임박)
+• 80 이상 : 📈 단기 과매수 (단기 고점 과열)
+• %K가 %D를 상향 돌파 : 스토캐스틱 골든크로스
+
+💡 실전 활용 팁
+%K 수치가 20 이하 바닥권에서 %D를 뚫고 올라갈 때 RSI 및 ADX 신호와 함께 활용하면 승률이 높아집니다.`
+        },
+        'DISPARITY': {
+          title: '20일 이격도 (Disparity 20)',
+          badge: '이동평균 이격률',
+          badgeClass: 'badge-t2',
+          content: `📌 개념
+현재 주가가 20일 이동평균선과 얼마나 떨어져 있는지를 백분율(%)로 나타냅니다.
+
+📊 수치별 의미
+• 95% 이하 : 🟢 20일선 대비 5% 이상 하락 (단기 과매도/눌림목)
+• 100% : 현재 주가가 20일 이동평균선과 일치
+• 105% 이상 : 🔴 20일선 대비 5% 이상 급등 (단기 이격 과열)
+
+💡 실전 활용 팁
+이격도가 95% 이하인 상태에서 매수 신호가 발생하면 20일선 복귀에 따른 단기 반등 수익을 노리기 좋습니다.`
+        },
+        'VR': {
+          title: '거래량 비율 (Volume Ratio, VR5)',
+          badge: '수급 폭발 지표',
+          badgeClass: 'badge-t1',
+          content: `📌 개념
+최근 5일간의 평균 거래량 대비 당일 거래량이 얼마나 터졌는지를 백분율(%)로 나타냅니다.
+
+📊 수치별 의미
+• 100% : 최근 5일 평균과 동일한 거래량
+• 120% 이상 : ⚡ 거래량 급증 (본 시스템 2단계 적극매수 조건)
+• 200% 이상 : 🔥 수급 대폭발 (세력/기관 강한 매수 유입)
+
+💡 실전 활용 팁
+주가가 반전할 때 거래량 비율이 120%~200% 이상 터져줘야 신호의 신뢰도가 크게 상승합니다.`
+        }
+      };
+
+      const item = helpData[type];
+      if (!item) return;
+
+      document.getElementById('info-modal-title').textContent = item.title;
+      const badgeEl = document.getElementById('info-modal-badge');
+      badgeEl.textContent = item.badge;
+      badgeEl.className = 'badge ' + item.badgeClass;
+      
+      document.getElementById('info-modal-body').textContent = item.content;
+      document.getElementById('info-modal').style.display = 'flex';
     }
 
     function showDetailsModal(stockName, statusText, detailsText, badgeClass = 'badge-t1') {
