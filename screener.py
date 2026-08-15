@@ -423,8 +423,8 @@ if __name__ == "__main__":
                 buy_candidates.append(buy_res)
                 status_text = buy_res['priority']
                 print(f"  🔥 [BUY SIGNAL] {name} ({clean_ticker}) - {buy_res['priority']} | ADX: {buy_res['adx']} | RSI: {buy_res['rsi']} | %b: {round(curr_bb_pct, 2)}")
-            elif curr_adx >= 25:
-                status_text = "추세강함 (조건미달)"
+            elif curr_adx >= 25 and curr_mdi > curr_adx:
+                status_text = "관심종목"
 
             all_stocks.append({
                 "ticker": clean_ticker,

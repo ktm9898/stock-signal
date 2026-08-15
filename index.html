@@ -573,7 +573,7 @@
       <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 16px;">대시보드에 접근하려면 비밀번호를 입력하세요.</p>
       
       <div class="form-group" style="margin-top: 10px;">
-        <input type="password" class="form-input" id="input-pin" placeholder="••••••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; font-weight: 700; padding: 10px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
+        <input type="password" class="form-input" id="input-pin" inputmode="numeric" pattern="[0-9]*" placeholder="••••••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; font-weight: 700; padding: 10px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
       </div>
       <div id="pin-error" style="color: var(--accent-red); font-size: 0.85rem; margin-bottom: 12px; display: none;">비밀번호가 올바르지 않습니다.</div>
       <button class="btn-buy-reg" id="btn-pin-submit" style="width: 100%; padding: 10px; font-size: 0.95rem;" onclick="verifyPin()">대시보드 열기</button>
@@ -653,7 +653,26 @@
         allMetricsData = data.allMetrics || [];
         const sellSignalsData = data.sellSignals || [];
 
-        renderBuyCandidates(buyCandidatesData, executionLogsData);
+        // Dynamically add today's '관심종목' from allMetricsData without storing them in historical database
+        const todayWatchlist = allMetricsData
+          .filter(item => String(item.Status || item.status || '').includes('관심종목'))
+          .map(item => ({
+            date: item.Date || item.date || item.Timestamp || (executionLogsData.length > 0 ? executionLogsData[executionLogsData.length - 1].Timestamp : new Date().toISOString()),
+            name: item.Name || item.name,
+            ticker: item.Ticker || item.ticker || item.code,
+            stage: '관심종목',
+            adx: item.ADX || item.adx,
+            minus_di: item.Minus_DI || item.minus_di,
+            plus_di: item.Plus_DI || item.plus_di,
+            rsi: item.RSI || item.rsi,
+            b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
+            price: item.ClosePrice || item.price || item.close,
+            reason: `ADX: ${item.ADX || item.adx}, -DI: ${item.Minus_DI || item.minus_di} (추세 강함 + -DI 상단 위치로 매수 신호 임박 대기)`
+          }));
+
+        const combinedBuyList = [...buyCandidatesData, ...todayWatchlist];
+
+        renderBuyCandidates(combinedBuyList, executionLogsData);
         renderHoldings(holdingsData, allMetricsData, holdingsStatusData);
         renderSellSignals(sellSignalsData);
         renderAllStocks(allMetricsData);
@@ -825,6 +844,9 @@
         } else if (rawStage.includes('2단계') || rawStage.includes('적극') || rawStage.includes('Tier 2')) {
           stageText = '2단계: 적극 매수';
           tierClass = 'badge-t2';
+        } else if (rawStage.includes('관심종목') || rawStage.includes('추세강함')) {
+          stageText = '관심종목';
+          tierClass = 'badge-sell-warn';
         } else {
           stageText = '1단계: 매수 추천';
           tierClass = 'badge-t3';
@@ -874,7 +896,7 @@
         if (rawStatus.includes('3단계') || rawStatus.includes('Tier 1')) { badgeClass = 'badge-t1'; statusText = '3단계'; }
         else if (rawStatus.includes('2단계') || rawStatus.includes('Tier 2')) { badgeClass = 'badge-t2'; statusText = '2단계'; }
         else if (rawStatus.includes('1단계') || rawStatus.includes('Tier 3')) { badgeClass = 'badge-t3'; statusText = '1단계'; }
-        else if (rawStatus.includes('추세강함')) { badgeClass = 'badge-sell-warn'; statusText = '추세 강함'; }
+        else if (rawStatus.includes('관심종목') || rawStatus.includes('추세강함')) { badgeClass = 'badge-sell-warn'; statusText = '관심종목'; }
         else { statusText = '관망'; }
 
         const name = (item.Name || item.name || '').replace(/'/g, "\\'");
