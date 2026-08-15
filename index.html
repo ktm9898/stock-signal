@@ -1179,7 +1179,6 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           return (rawTicker && rawTicker !== '-' && sTicker === rawTicker) || (rawName && sName === rawName);
         });
 
-        // Prioritize allMetrics (metricsList) so that indicator values match 100% with All Stocks view
         const allMetricItem = metricsList.find(m => {
           const mTicker = formatTicker(m.Ticker || m.ticker || '');
           const mName = String(m.Name || m.name || '').trim();
@@ -1305,11 +1304,6 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           </tr>
         `;
       }).join('');
-    }tle="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
-          </tr>
-        `;
-      }).join('');
-    }
 
     function renderSellSignals(list) {
       const tbody = document.getElementById('sell-signals-body');
