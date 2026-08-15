@@ -611,7 +611,11 @@
       const pinVal = document.getElementById('input-pin').value.trim();
       const pinBtn = document.getElementById('btn-pin-submit');
       const errorEl = document.getElementById('pin-error');
-      if (!pinVal) return;
+      if (!pinVal) {
+        errorEl.textContent = '비밀번호를 입력하세요.';
+        errorEl.style.display = 'block';
+        return;
+      }
 
       if (pinBtn) {
         pinBtn.disabled = true;
@@ -620,16 +624,21 @@
       errorEl.style.display = 'none';
 
       try {
-        const res = await loadDataFromGAS(pinVal);
-        if (res.success) {
+        // Timeout promise to catch hanging network requests
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("응답 시간이 초과되었습니다. 다시 시도해 주세요.")), 12000)
+        );
+
+        const res = await Promise.race([loadDataFromGAS(pinVal), timeoutPromise]);
+        if (res && res.success) {
           userPin = pinVal;
           document.getElementById('pin-modal').style.display = 'none';
         } else {
-          errorEl.textContent = res.message || '비밀번호가 올바르지 않습니다.';
+          errorEl.textContent = (res && res.message) ? res.message : '비밀번호가 올바르지 않습니다.';
           errorEl.style.display = 'block';
         }
       } catch (err) {
-        errorEl.textContent = '확인 중 오류가 발생했습니다: ' + err.message;
+        errorEl.textContent = '확인 중 오류: ' + (err.message || '네트워크 접속 상태를 확인해 주세요.');
         errorEl.style.display = 'block';
       } finally {
         if (pinBtn) {
