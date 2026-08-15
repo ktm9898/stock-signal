@@ -172,52 +172,28 @@ def calculate_indicators(df, period=14):
         dm_p.append(dp)
         dm_m.append(dm)
         
-    # Welles Wilder's Standard ADX Algorithm (Matching KIS MTS / HTS Exact Values)
-    def calc_wilder_smooth(arr, p=14):
-        num_len = len(arr)
-        if num_len < p:
-            return [0.0] * num_len
-        res = [0.0] * num_len
-        # Initial Seed: First 14 days sum
-        first_sum = sum(arr[:p])
-        res[p - 1] = first_sum
-        for i in range(p, num_len):
-            res[i] = res[i - 1] - (res[i - 1] / p) + arr[i]
+    # KIS HTS Exact Matching ADX Algorithm (EMA alpha = 2 / (period + 1))
+    alpha = 2.0 / (period + 1)
+    
+    def calc_ema(arr):
+        res = [arr[0]]
+        for val in arr[1:]:
+            res.append(val * alpha + res[-1] * (1 - alpha))
         return res
 
-    tr_smooth = calc_wilder_smooth(tr, period)
-    dp_smooth = calc_wilder_smooth(dm_p, period)
-    dm_smooth = calc_wilder_smooth(dm_m, period)
+    tr_ema = calc_ema(tr)
+    dp_ema = calc_ema(dm_p)
+    dm_ema = calc_ema(dm_m)
     
-    pdi = []
-    mdi = []
-    for i in range(len(tr)):
-        if i < period - 1 or tr_smooth[i] == 0:
-            pdi.append(0.0)
-            mdi.append(0.0)
-        else:
-            pdi.append(100.0 * dp_smooth[i] / tr_smooth[i])
-            mdi.append(100.0 * dm_smooth[i] / tr_smooth[i])
+    pdi = [100 * p / t if t != 0 else 0 for p, t in zip(dp_ema, tr_ema)]
+    mdi = [100 * m / t if t != 0 else 0 for m, t in zip(dm_ema, tr_ema)]
     
-    dx = []
-    for i in range(len(tr)):
-        if i < period - 1 or (pdi[i] + mdi[i]) == 0:
-            dx.append(0.0)
-        else:
-            dx.append(100.0 * abs(pdi[i] - mdi[i]) / (pdi[i] + mdi[i]))
-            
-    # ADX smoothing: Initial Seed is average of first 14 valid DX values
-    adx_res = [0.0] * len(tr)
-    valid_dx = dx[period - 1 : 2 * period - 1]
-    if len(valid_dx) == period:
-        first_adx = sum(valid_dx) / period
-        adx_res[2 * period - 2] = first_adx
-        for i in range(2 * period - 1, len(tr)):
-            adx_res[i] = (adx_res[i - 1] * (period - 1) + dx[i]) / period
-
+    dx = [100 * abs(p - m) / (p + m) if (p + m) != 0 else 0 for p, m in zip(pdi, mdi)]
+    adx = calc_ema(dx)
+    
     pdi = [np.nan] + pdi
     mdi = [np.nan] + mdi
-    adx = [np.nan] + adx_res
+    adx = [np.nan] + adx
     
     df['adx'] = adx
     df['plus_di'] = pdi
