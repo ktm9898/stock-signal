@@ -213,6 +213,24 @@ def calculate_indicators(df, period=14):
     band_width = upper_b - lower_b
     df['b_band_pct'] = np.where(band_width != 0, (df['종가'] - lower_b) / band_width, 0.5)
 
+    # MACD (12, 26, 9)
+    macd_ind = ta.trend.MACD(close=df['종가'], window_slow=26, window_fast=12, window_sign=9)
+    df['macd'] = macd_ind.macd()
+    df['macd_signal'] = macd_ind.macd_signal()
+    df['macd_osc'] = macd_ind.macd_diff()
+
+    # Stochastic Slow (14, 3, 3)
+    stoch_ind = ta.momentum.StochasticOscillator(high=df['고가'], low=df['저가'], close=df['종가'], window=14, smooth_window=3)
+    df['stoch_k'] = stoch_ind.stoch()
+    df['stoch_d'] = stoch_ind.stoch_signal()
+
+    # Disparity (20-day 이격도: 종가 / 20MA * 100)
+    df['disparity20'] = np.where(df['ma20'] > 0, (df['종가'] / df['ma20']) * 100, 100.0)
+
+    # Volume Ratio (VR5: 5일 평균 거래량 대비 당일 거래량 비율 %)
+    avg_vol5 = df['거래량'].rolling(window=5).mean()
+    df['volume_ratio'] = np.where(avg_vol5 > 0, (df['거래량'] / avg_vol5) * 100, 100.0)
+
     return df
 
 def evaluate_buy_signal(df):
@@ -408,9 +426,15 @@ if __name__ == "__main__":
             curr_mdi = float(df['minus_di'].iloc[-1]) if 'minus_di' in df.columns and not np.isnan(df['minus_di'].iloc[-1]) else 0.0
             prev_mdi = float(df['minus_di'].iloc[-2]) if len(df) >= 2 and 'minus_di' in df.columns and not np.isnan(df['minus_di'].iloc[-2]) else 0.0
             curr_pdi = float(df['plus_di'].iloc[-1]) if 'plus_di' in df.columns and not np.isnan(df['plus_di'].iloc[-1]) else 0.0
-            prev_pdi = float(df['plus_di'].iloc[-2]) if len(df) >= 2 and 'plus_di' in df.columns and not np.isnan(df['plus_di'].iloc[-2]) else 0.0
             curr_rsi = float(df['rsi'].iloc[-1]) if 'rsi' in df.columns and not np.isnan(df['rsi'].iloc[-1]) else 0.0
             curr_bb_pct = float(df['b_band_pct'].iloc[-1]) if 'b_band_pct' in df.columns and not np.isnan(df['b_band_pct'].iloc[-1]) else 0.5
+            curr_macd = float(df['macd'].iloc[-1]) if 'macd' in df.columns and not np.isnan(df['macd'].iloc[-1]) else 0.0
+            curr_macd_sig = float(df['macd_signal'].iloc[-1]) if 'macd_signal' in df.columns and not np.isnan(df['macd_signal'].iloc[-1]) else 0.0
+            curr_macd_osc = float(df['macd_osc'].iloc[-1]) if 'macd_osc' in df.columns and not np.isnan(df['macd_osc'].iloc[-1]) else 0.0
+            curr_stoch_k = float(df['stoch_k'].iloc[-1]) if 'stoch_k' in df.columns and not np.isnan(df['stoch_k'].iloc[-1]) else 50.0
+            curr_stoch_d = float(df['stoch_d'].iloc[-1]) if 'stoch_d' in df.columns and not np.isnan(df['stoch_d'].iloc[-1]) else 50.0
+            curr_disparity = float(df['disparity20'].iloc[-1]) if 'disparity20' in df.columns and not np.isnan(df['disparity20'].iloc[-1]) else 100.0
+            curr_vr = float(df['volume_ratio'].iloc[-1]) if 'volume_ratio' in df.columns and not np.isnan(df['volume_ratio'].iloc[-1]) else 100.0
             curr_close = int(df['종가'].iloc[-1]) if '종가' in df.columns else 0
 
             buy_res = evaluate_buy_signal(df)
@@ -430,13 +454,17 @@ if __name__ == "__main__":
                 "ticker": clean_ticker,
                 "name": name,
                 "adx": round(curr_adx, 2),
-                "prev_adx": round(prev_adx, 2),
                 "minus_di": round(curr_mdi, 2),
-                "prev_minus_di": round(prev_mdi, 2),
                 "plus_di": round(curr_pdi, 2),
-                "prev_plus_di": round(prev_pdi, 2),
                 "rsi": round(curr_rsi, 2),
                 "b_band_pct": round(curr_bb_pct, 2),
+                "macd": round(curr_macd, 2),
+                "macd_signal": round(curr_macd_sig, 2),
+                "macd_osc": round(curr_macd_osc, 2),
+                "stoch_k": round(curr_stoch_k, 2),
+                "stoch_d": round(curr_stoch_d, 2),
+                "disparity20": round(curr_disparity, 2),
+                "volume_ratio": round(curr_vr, 2),
                 "close": curr_close,
                 "status": status_text
             })

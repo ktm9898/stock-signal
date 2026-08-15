@@ -30,8 +30,8 @@ function setupSheets() {
 
   // 5. KOSPI 200 All Metrics Sheet Header Enforce
   let allSheet = ss.getSheetByName("KOSPI200_All_Metrics") || ss.insertSheet("KOSPI200_All_Metrics");
-  allSheet.getRange("A1:M1").setValues([["Date", "Ticker", "Name", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "Prev_Plus_DI", "RSI", "BB_Pct", "ClosePrice", "Status"]]);
-  allSheet.getRange("A1:M1").setFontWeight("bold").setBackground("#f3e8ff");
+  allSheet.getRange("A1:Q1").setValues([["Date", "Ticker", "Name", "ADX", "Minus_DI", "Plus_DI", "RSI", "BB_Pct", "MACD", "MACD_Signal", "MACD_Osc", "Stoch_K", "Stoch_D", "Disparity20", "VolumeRatio", "ClosePrice", "Status"]]);
+  allSheet.getRange("A1:Q1").setFontWeight("bold").setBackground("#f3e8ff");
 
   // 6. User Holdings Status Sheet Header Enforce
   let hStatusSheet = ss.getSheetByName("User_Holdings_Status") || ss.insertSheet("User_Holdings_Status");
@@ -117,16 +117,33 @@ function doPost(e) {
         logSheet.appendRow([today, "SUCCESS", 200, data.candidates ? data.candidates.length : 0, "정상 완료"]);
       }
 
-      // Record All 200 Stocks Metrics
+      // Record All 200 Stocks Metrics (60-day Rolling Storage: Max ~12,000 rows)
       if (data.all_stocks && data.all_stocks.length > 0) {
         let allSheet = ss.getSheetByName("KOSPI200_All_Metrics");
-        if (allSheet.getLastRow() > 1) {
-          allSheet.getRange(2, 1, allSheet.getLastRow() - 1, allSheet.getLastColumn()).clearContent();
-        }
         const rows = data.all_stocks.map(s => [
-          today, s.ticker, s.name, s.adx, s.prev_adx, s.minus_di, s.prev_minus_di, s.plus_di, s.prev_plus_di, s.rsi, (s.b_band_pct !== undefined ? s.b_band_pct : (s.BB_Pct !== undefined ? s.BB_Pct : '-')), s.close, s.status
+          today, s.ticker, s.name, s.adx, s.minus_di, s.plus_di, s.rsi, 
+          (s.b_band_pct !== undefined ? s.b_band_pct : '-'),
+          (s.macd !== undefined ? s.macd : '-'),
+          (s.macd_signal !== undefined ? s.macd_signal : '-'),
+          (s.macd_osc !== undefined ? s.macd_osc : '-'),
+          (s.stoch_k !== undefined ? s.stoch_k : '-'),
+          (s.stoch_d !== undefined ? s.stoch_d : '-'),
+          (s.disparity20 !== undefined ? s.disparity20 : '-'),
+          (s.volume_ratio !== undefined ? s.volume_ratio : '-'),
+          s.close, s.status
         ]);
-        allSheet.getRange(2, 1, rows.length, 13).setValues(rows);
+        
+        // Append new 200 rows
+        const startRow = Math.max(allSheet.getLastRow() + 1, 2);
+        allSheet.getRange(startRow, 1, rows.length, 17).setValues(rows);
+
+        // Trim excess rows beyond 60 trading days (60 * 200 = 12,000 data rows)
+        const MAX_DATA_ROWS = 12000;
+        const totalRows = allSheet.getLastRow();
+        if (totalRows > MAX_DATA_ROWS + 1) {
+          const deleteCount = totalRows - (MAX_DATA_ROWS + 1);
+          allSheet.deleteRows(2, deleteCount);
+        }
       }
 
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success", count: data.candidates ? data.candidates.length : 0 }))

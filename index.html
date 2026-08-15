@@ -497,13 +497,14 @@
             <tr>
               <th>종목</th>
               <th>ADX</th>
-              <th>전일ADX</th>
               <th>-DI</th>
-              <th>전일-DI</th>
               <th>+DI</th>
-              <th>전일+DI</th>
               <th>RSI</th>
               <th>볼린저%b</th>
+              <th>MACD(Osc)</th>
+              <th>Stoch(%K/%D)</th>
+              <th>이격도(20)</th>
+              <th>거래량비율</th>
               <th>현재가</th>
               <th>상태</th>
             </tr>
@@ -650,11 +651,21 @@
         holdingsData = data.userHoldings || [];
         const holdingsStatusData = data.holdingsStatus || [];
         executionLogsData = data.executionLogs || [];
-        allMetricsData = data.allMetrics || [];
-        const sellSignalsData = data.sellSignals || [];
+        // Extract latest date metrics for display in renderAllStocks (from 60-day rolling DB)
+        let latestMetricsData = allMetricsData;
+        if (allMetricsData.length > 200) {
+          const latestDate = allMetricsData[allMetricsData.length - 1].Date || allMetricsData[allMetricsData.length - 1].date;
+          if (latestDate) {
+            const latestYMD = extractYMD(latestDate);
+            latestMetricsData = allMetricsData.filter(item => extractYMD(item.Date || item.date) === latestYMD);
+          }
+          if (latestMetricsData.length === 0) {
+            latestMetricsData = allMetricsData.slice(-200);
+          }
+        }
 
-        // Dynamically add today's '관심종목' from allMetricsData without storing them in historical database
-        const todayWatchlist = allMetricsData
+        // Dynamically add today's '관심종목' from latestMetricsData without storing them in historical database
+        const todayWatchlist = latestMetricsData
           .filter(item => String(item.Status || item.status || '').includes('관심종목'))
           .map(item => ({
             date: item.Date || item.date || item.Timestamp || (executionLogsData.length > 0 ? executionLogsData[executionLogsData.length - 1].Timestamp : new Date().toISOString()),
@@ -672,10 +683,12 @@
 
         const combinedBuyList = [...buyCandidatesData, ...todayWatchlist];
 
+        window.latestMetricsCacheData = latestMetricsData;
+
         renderBuyCandidates(combinedBuyList, executionLogsData);
         renderHoldings(holdingsData, allMetricsData, holdingsStatusData);
         renderSellSignals(sellSignalsData);
-        renderAllStocks(allMetricsData);
+        renderAllStocks(latestMetricsData);
         
         document.getElementById('count-buy').textContent = buyCandidatesData.length;
         document.getElementById('count-sell').textContent = sellSignalsData.length;
@@ -902,11 +915,8 @@
         const name = (item.Name || item.name || '').replace(/'/g, "\\'");
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
         const currAdx = formatDec(item.ADX || item.adx);
-        const prevAdx = formatDec(item.Prev_ADX || item.prev_adx);
         const currMdi = formatDec(item.Minus_DI || item.minus_di);
-        const prevMdi = formatDec(item.Prev_Minus_DI || item.prev_minus_di);
         const currPdi = formatDec(item.Plus_DI || item.plus_di);
-        const prevPdi = formatDec(item.Prev_Plus_DI || item.prev_plus_di);
         const rsi = formatDec(item.RSI || item.rsi);
 
         const rawBB = (item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']));
@@ -918,19 +928,33 @@
           else if (bBandPctVal >= 1.0) bbColor = '#f87171';
         }
 
-        const reason = `ADX: ${currAdx} (전일: ${prevAdx}), -DI: ${currMdi} (전일: ${prevMdi}), +DI: ${currPdi} (전일: ${prevPdi}), RSI: ${rsi}, 볼린저%b: ${bBandPctStr}`;
+        const macdOsc = formatDec(item.MACD_Osc !== undefined ? item.MACD_Osc : item.macd_osc);
+        const stochK = formatDec(item.Stoch_K !== undefined ? item.Stoch_K : item.stoch_k);
+        const stochD = formatDec(item.Stoch_D !== undefined ? item.Stoch_D : item.stoch_d);
+        const disparity = formatDec(item.Disparity20 !== undefined ? item.Disparity20 : item.disparity20);
+        const vr = formatDec(item.VolumeRatio !== undefined ? item.VolumeRatio : item.volume_ratio, 0);
+
+        const macdOscNum = Number(macdOsc);
+        let macdColor = 'inherit';
+        if (!isNaN(macdOscNum)) {
+          if (macdOscNum > 0) macdColor = '#f87171';
+          else if (macdOscNum < 0) macdColor = 'var(--accent-cyan)';
+        }
+
+        const reason = `ADX: ${currAdx}, -DI: ${currMdi}, +DI: ${currPdi}, RSI: ${rsi}, 볼린저%b: ${bBandPctStr}, MACD Oscill: ${macdOsc}, Stoch K/D: ${stochK}/${stochD}, 20일 이격도: ${disparity}%, 5일평균 대비 거래량: ${vr}%`;
 
         return `
           <tr>
             <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
             <td><strong style="color: ${Number(item.ADX || item.adx) >= 25 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
-            <td style="color:var(--text-sub);">${prevAdx}</td>
             <td>${currMdi}</td>
-            <td style="color:var(--text-sub);">${prevMdi}</td>
             <td>${currPdi}</td>
-            <td style="color:var(--text-sub);">${prevPdi}</td>
             <td><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
             <td><span style="color: ${bbColor}">${bBandPctStr}</span></td>
+            <td><span style="color: ${macdColor}">${macdOsc}</span></td>
+            <td>${stochK} / ${stochD}</td>
+            <td><span style="color: ${Number(disparity) <= 95 ? 'var(--accent-green)' : (Number(disparity) >= 105 ? '#f87171' : 'inherit')}">${disparity}%</span></td>
+            <td><strong style="color: ${Number(vr) >= 150 ? 'var(--accent-warning)' : 'inherit'}">${vr}%</strong></td>
             <td>${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
             <td><span class="badge ${badgeClass}" onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 세부 지표 확인">${statusText}</span></td>
           </tr>
@@ -940,11 +964,12 @@
 
     function filterAllStocksTable() {
       const query = document.getElementById('all-stocks-search').value.toLowerCase().trim().replace(/\s+/g, '');
+      const sourceList = (window.latestMetricsCacheData && window.latestMetricsCacheData.length > 0) ? window.latestMetricsCacheData : allMetricsData;
       if (!query) {
-        renderAllStocks(allMetricsData);
+        renderAllStocks(sourceList);
         return;
       }
-      const filtered = allMetricsData.filter(item => {
+      const filtered = sourceList.filter(item => {
         const name = String(item.Name || item.name || '').toLowerCase().replace(/\s+/g, '');
         const rawTicker = String(item.Ticker || item.ticker || item.code || '').toLowerCase().replace(/\s+/g, '');
         const formattedTicker = formatTicker(item.Ticker || item.ticker || item.code).toLowerCase();
