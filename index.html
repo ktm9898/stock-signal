@@ -608,42 +608,29 @@
     let allMetricsData = [];
 
     async function verifyPin() {
-      const pinInput = document.getElementById('input-pin');
-      const pinVal = pinInput ? pinInput.value.trim() : '';
+      const pinVal = document.getElementById('input-pin').value.trim();
       const pinBtn = document.getElementById('btn-pin-submit');
       const errorEl = document.getElementById('pin-error');
-      
-      if (!pinVal) {
-        if (errorEl) {
-          errorEl.textContent = '비밀번호를 입력하세요.';
-          errorEl.style.display = 'block';
-        }
-        return;
-      }
+      if (!pinVal) return;
 
       if (pinBtn) {
         pinBtn.disabled = true;
         pinBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 6px;"></i> 확인 중...`;
       }
-      if (errorEl) errorEl.style.display = 'none';
+      errorEl.style.display = 'none';
 
       try {
         const res = await loadDataFromGAS(pinVal);
-        if (res && res.success) {
+        if (res.success) {
           userPin = pinVal;
-          const modal = document.getElementById('pin-modal');
-          if (modal) modal.style.display = 'none';
+          document.getElementById('pin-modal').style.display = 'none';
         } else {
-          if (errorEl) {
-            errorEl.textContent = (res && res.message) ? res.message : '비밀번호가 올바르지 않습니다.';
-            errorEl.style.display = 'block';
-          }
-        }
-      } catch (err) {
-        if (errorEl) {
-          errorEl.textContent = '확인 중 오류가 발생했습니다: ' + (err.message || '네트워크 오류');
+          errorEl.textContent = res.message || '비밀번호가 올바르지 않습니다.';
           errorEl.style.display = 'block';
         }
+      } catch (err) {
+        errorEl.textContent = '확인 중 오류가 발생했습니다: ' + err.message;
+        errorEl.style.display = 'block';
       } finally {
         if (pinBtn) {
           pinBtn.disabled = false;
@@ -1192,6 +1179,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           return (rawTicker && rawTicker !== '-' && sTicker === rawTicker) || (rawName && sName === rawName);
         });
 
+        // Prioritize allMetrics (metricsList) so that indicator values match 100% with All Stocks view
         const allMetricItem = metricsList.find(m => {
           const mTicker = formatTicker(m.Ticker || m.ticker || '');
           const mName = String(m.Name || m.name || '').trim();
@@ -1317,6 +1305,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           </tr>
         `;
       }).join('');
+    }
 
     function renderSellSignals(list) {
       const tbody = document.getElementById('sell-signals-body');
