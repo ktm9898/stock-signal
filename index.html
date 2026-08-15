@@ -678,21 +678,28 @@
         }
 
         // Dynamically add today's '관심종목' from latestMetricsData without storing them in historical database
-        const todayWatchlist = latestMetricsData
+        const todayWatchlistMap = new Map();
+        latestMetricsData
           .filter(item => String(item.Status || item.status || '').includes('관심종목'))
-          .map(item => ({
-            date: item.Date || item.date || item.Timestamp || (executionLogsData.length > 0 ? executionLogsData[executionLogsData.length - 1].Timestamp : new Date().toISOString()),
-            name: item.Name || item.name,
-            ticker: item.Ticker || item.ticker || item.code,
-            stage: '관심종목',
-            adx: item.ADX || item.adx,
-            minus_di: item.Minus_DI || item.minus_di,
-            plus_di: item.Plus_DI || item.plus_di,
-            rsi: item.RSI || item.rsi,
-            b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
-            price: item.ClosePrice || item.price || item.close,
-            reason: `ADX: ${item.ADX || item.adx}, -DI: ${item.Minus_DI || item.minus_di} (추세 강함 + -DI 상단 위치로 매수 신호 임박 대기)`
-          }));
+          .forEach(item => {
+            const tk = formatTicker(item.Ticker || item.ticker || item.code);
+            if (!todayWatchlistMap.has(tk)) {
+              todayWatchlistMap.set(tk, {
+                date: item.Date || item.date || item.Timestamp || (executionLogsData.length > 0 ? executionLogsData[executionLogsData.length - 1].Timestamp : new Date().toISOString()),
+                name: item.Name || item.name,
+                ticker: tk,
+                stage: '관심종목',
+                adx: item.ADX || item.adx,
+                minus_di: item.Minus_DI || item.minus_di,
+                plus_di: item.Plus_DI || item.plus_di,
+                rsi: item.RSI || item.rsi,
+                b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
+                price: item.ClosePrice || item.price || item.close,
+                reason: `ADX: ${item.ADX || item.adx}, -DI: ${item.Minus_DI || item.minus_di} (추세 강함 + -DI 상단 위치로 매수 신호 임박 대기)`
+              });
+            }
+          });
+        const todayWatchlist = Array.from(todayWatchlistMap.values());
 
         const combinedBuyList = [...buyCandidatesData, ...todayWatchlist];
 

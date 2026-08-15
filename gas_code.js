@@ -120,6 +120,19 @@ function doPost(e) {
       // Record All 200 Stocks Metrics (60-day Rolling Storage: Max ~12,000 rows)
       if (data.all_stocks && data.all_stocks.length > 0) {
         let allSheet = ss.getSheetByName("KOSPI200_All_Metrics");
+        const todayYMD = extractYMD(new Date());
+
+        // 1. Same-day re-run handling: Delete existing rows from the SAME DATE to prevent duplication
+        if (allSheet.getLastRow() > 1) {
+          const existingData = allSheet.getRange(2, 1, allSheet.getLastRow() - 1, 1).getValues();
+          for (let i = existingData.length - 1; i >= 0; i--) {
+            const rowYMD = extractYMD(existingData[i][0]);
+            if (rowYMD === todayYMD) {
+              allSheet.deleteRow(i + 2);
+            }
+          }
+        }
+
         const rows = data.all_stocks.map(s => [
           today, s.ticker, s.name, s.adx, s.minus_di, s.plus_di, s.rsi, 
           (s.b_band_pct !== undefined ? s.b_band_pct : '-'),
