@@ -1408,6 +1408,167 @@
       }).join('');
     }
 
+    function renderRealBenchmarkCurve(startDateStr, endDateStr, trades, totalNetReturnAmount, winRate, winTrades, lossTrades, profitFactor, avgTradeRet, totalTrades, avgHold) {
+      const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 10000000;
+      
+      let fineDates = [];
+      if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
+        const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        if (kRows.length > 0) fineDates = kRows.map(r => r.date);
+      }
+
+      const priceMap = {};
+      if (REAL_PRELOADED_DATA) {
+        Object.keys(REAL_PRELOADED_DATA).forEach(ticker => {
+          const dateMap = {};
+          REAL_PRELOADED_DATA[ticker].forEach(r => { dateMap[r.date] = r.close; });
+          priceMap[ticker] = dateMap;
+        });
+      }
+
+      let dailyEngagedCapitalSum = 0;
+      fineDates.forEach(dbDate => {
+        const activeCount = trades.filter(t => t.entryDate <= dbDate && t.exitDate >= dbDate).length;
+        dailyEngagedCapitalSum += Math.max(1, activeCount) * tradeAmount;
+      });
+      const averageCapitalBalance = fineDates.length > 0 ? (dailyEngagedCapitalSum / fineDates.length) : tradeAmount;
+
+      const capitalGainPct = averageCapitalBalance > 0 ? (totalNetReturnAmount / averageCapitalBalance) * 100 : 0;
+
+      const signNet = totalNetReturnAmount >= 0 ? '+' : '';
+      const signCap = capitalGainPct >= 0 ? '+' : '';
+
+      const kpiTotalRet = document.getElementById('kpi-total-return');
+      if (kpiTotalRet) {
+        kpiTotalRet.textContent = `${signNet}${totalNetReturnAmount.toLocaleString()}원`;
+        kpiTotalRet.style.color = totalNetReturnAmount >= 0 ? 'var(--accent-red)' : '#2563eb';
+      }
+
+      const kpiCapGain = document.getElementById('kpi-capital-gain');
+      if (kpiCapGain) {
+        kpiCapGain.textContent = `평잔 수익률: ${signCap}${capitalGainPct.toFixed(1)}%`;
+      }
+
+      const kpiAvgCap = document.getElementById('kpi-avg-capital');
+      if (kpiAvgCap) {
+        kpiAvgCap.textContent = `${Math.round(averageCapitalBalance).toLocaleString()}원`;
+      }
+
+      const kpiTradeAmtSub = document.getElementById('kpi-trade-amount-sub');
+      if (kpiTradeAmtSub) {
+        kpiTradeAmtSub.textContent = `1회 투자금: ${Math.round(tradeAmount / 10000).toLocaleString()}만 원`;
+      }
+
+      const kpiWinRate = document.getElementById('kpi-win-rate');
+      if (kpiWinRate) kpiWinRate.textContent = `${winRate.toFixed(1)}%`;
+
+      const kpiWinLoss = document.getElementById('kpi-win-loss');
+      if (kpiWinLoss) kpiWinLoss.textContent = `${winTrades}승 / ${lossTrades}패`;
+
+      const kpiPF = document.getElementById('kpi-profit-factor');
+      if (kpiPF) kpiPF.textContent = profitFactor.toFixed(2);
+
+      const strategyUnrealizedData = [];
+      let peakEquity = -99999999;
+      let maxDrawdownPct = 0;
+
+      fineDates.forEach(dbDate => {
+        const closed = trades.filter(t => t.exitDate <= dbDate);
+        const activeOpen = trades.filter(t => t.entryDate <= dbDate && t.exitDate > dbDate);
+        const closedNetGainSum = closed.reduce((sum, t) => sum + Math.round(tradeAmount * (t.returnPct / 100)), 0);
+
+        let openPaperGainSum = 0;
+        activeOpen.forEach(t => {
+          const stockPrices = priceMap[t.ticker] || {};
+          const closeP = stockPrices[dbDate] !== undefined ? stockPrices[dbDate] : t.entryPrice;
+          const paperPct = ((closeP - t.entryPrice) / t.entryPrice) * 100;
+          openPaperGainSum += Math.round(tradeAmount * (paperPct / 100));
+        });
+
+        const unrealizedPct = averageCapitalBalance > 0 ? ((closedNetGainSum + openPaperGainSum) / averageCapitalBalance) * 100 : 0;
+        strategyUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
+
+        const currentEquity = averageCapitalBalance + closedNetGainSum + openPaperGainSum;
+        if (currentEquity > peakEquity) peakEquity = currentEquity;
+        const ddPct = peakEquity > 0 ? ((peakEquity - currentEquity) / peakEquity) * 100 : 0;
+        if (ddPct > maxDrawdownPct) maxDrawdownPct = ddPct;
+      });
+
+      const kpiMdd = document.getElementById('kpi-mdd');
+      if (kpiMdd) kpiMdd.textContent = `-${maxDrawdownPct.toFixed(1)}%`;
+
+      const signAvg = avgTradeRet >= 0 ? '+' : '';
+      const kpiCagr = document.getElementById('kpi-cagr');
+      if (kpiCagr) kpiCagr.textContent = `${signAvg}${avgTradeRet.toFixed(2)}%`;
+
+      const kpiAvgHold = document.getElementById('kpi-avg-holding');
+      if (kpiAvgHold) kpiAvgHold.textContent = `평균 보유: ${avgHold}일 | 총 ${totalTrades}회`;
+
+      let kospiBenchmarkData = fineDates.map(() => 0);
+      if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
+        const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        if (kRows.length > 0) {
+          const baseClose = kRows[0].close;
+          kospiBenchmarkData = fineDates.map(dbDate => {
+            const rowAtDate = kRows.filter(r => r.date <= dbDate).pop() || kRows[0];
+            const pctChange = ((rowAtDate.close - baseClose) / baseClose) * 100;
+            return parseFloat(pctChange.toFixed(1));
+          });
+        }
+      }
+
+      const canvas = document.getElementById('equityChart');
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (equityChartInstance) equityChartInstance.destroy();
+
+        equityChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: fineDates,
+            datasets: [
+              {
+                label: '나의 퀀트 전략 (평잔수익률)',
+                data: strategyUnrealizedData,
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.05)',
+                borderWidth: 2,
+                fill: true,
+                pointRadius: 0,
+                pointHoverRadius: 5,
+                tension: 0.1
+              },
+              {
+                label: 'KOSPI 벤치마크 지수',
+                data: kospiBenchmarkData,
+                borderColor: '#dc2626',
+                borderDash: [4, 4],
+                borderWidth: 1.5,
+                fill: false,
+                pointRadius: 0,
+                tension: 0.1
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+              legend: { position: 'top', labels: { font: { weight: '600', size: 11 } } },
+              tooltip: {
+                callbacks: {
+                  title: (items) => items.length > 0 ? `날짜: ${items[0].label}` : '',
+                  label: (context) => ` ${context.dataset.label}: ${context.parsed.y >= 0 ? '+' : ''}${context.parsed.y.toFixed(1)}%`
+                }
+              }
+            }
+          }
+        }
+        );
+      }
+    }
+
     // ==========================================
     // Strategy Preset Storage & Multi-Strategy Comparison Engine
     // ==========================================
