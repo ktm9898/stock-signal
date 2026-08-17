@@ -607,7 +607,7 @@
 
       <!-- Execute Button -->
       <button class="btn-execute" id="btn-run-backtest" onclick="executeBacktest()">
-        <i class="fa-solid fa-play" style="margin-right:6px;"></i> 백테스트 시뮬레이션 실행
+        백테스트 시뮬레이션 실행
       </button>
 
       <!-- Results Section -->
@@ -1308,6 +1308,7 @@
       const btn = document.getElementById('btn-run-backtest');
       btn.disabled = true;
       btn.innerHTML = `<i class="fa-solid fa-rotate fa-spin" style="margin-right: 6px;"></i> 백테스트 시뮬레이션 계산 중...`;
+      await new Promise(resolve => setTimeout(resolve, 30));
 
       try {
         const targetMarketSelect = document.getElementById('opt-backtest-market');
@@ -1537,7 +1538,7 @@
         alert("백테스트 실행 중 오류가 발생했습니다: " + err.message);
       } finally {
         btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-play" style="margin-right: 6px;"></i> 백테스트 시뮬레이션 실행`;
+        btn.innerHTML = `백테스트 시뮬레이션 실행`;
       }
     }
 
