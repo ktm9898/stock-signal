@@ -1474,48 +1474,30 @@
         });
       }
 
-      // Compute High-Resolution Strategy Portfolio Value Index Curves (Unrealized Mark-to-Market & Realized)
+      // Compute High-Resolution Strategy Equity Curves (Unrealized Mark-to-Market & Realized)
       const strategyUnrealizedData = [];
       const strategyRealizedData = [];
 
-      let unrealizedMultiplier = 1.0;
-      let realizedMultiplier = 1.0;
+      fineDates.forEach(dbDate => {
+        const closed = trades.filter(t => t.exitDate <= dbDate);
+        const activeOpen = trades.filter(t => t.entryDate <= dbDate && t.exitDate > dbDate);
 
-      fineDates.forEach((dbDate, idx) => {
-        const prevDbDate = idx > 0 ? fineDates[idx - 1] : dbDate;
+        const closedSum = closed.reduce((sum, t) => sum + t.returnPct, 0);
 
-        // 3a. Unrealized Mark-to-Market Indexing (Daily ratio of active positions)
-        const activePositions = trades.filter(t => t.entryDate <= dbDate && t.exitDate >= dbDate);
-        if (activePositions.length > 0) {
-          let dailyRatioSum = 0;
-          activePositions.forEach(t => {
-            const stockPrices = priceMap[t.ticker] || {};
-            const todayPrice = stockPrices[dbDate] !== undefined ? stockPrices[dbDate] : t.entryPrice;
-            const prevPrice = (idx > 0 && stockPrices[prevDbDate] !== undefined) ? stockPrices[prevDbDate] : t.entryPrice;
-            const dailyRatio = prevPrice > 0 ? (todayPrice - prevPrice) / prevPrice : 0;
-            dailyRatioSum += dailyRatio;
-          });
-          const avgDailyRatio = dailyRatioSum / activePositions.length;
-          unrealizedMultiplier *= (1 + avgDailyRatio);
-        }
+        let openPaperSum = 0;
+        activeOpen.forEach(t => {
+          const stockPrices = priceMap[t.ticker] || {};
+          const closeP = stockPrices[dbDate] !== undefined ? stockPrices[dbDate] : t.entryPrice;
+          const paperPct = ((closeP - t.entryPrice) / t.entryPrice) * 100;
+          openPaperSum += paperPct;
+        });
 
-        // 3b. Realized Cumulative Indexing (Only updates on trade exit dates)
-        const exitedTradesOnDate = trades.filter(t => t.exitDate === dbDate);
-        if (exitedTradesOnDate.length > 0) {
-          const avgExitReturn = exitedTradesOnDate.reduce((sum, t) => sum + (t.returnPct / 100), 0) / exitedTradesOnDate.length;
-          realizedMultiplier *= (1 + avgExitReturn);
-        }
+        const denom = Math.max(1, closed.length + activeOpen.length);
+        const realizedPct = closed.length > 0 ? (closedSum / denom) : 0;
+        const unrealizedPct = (closedSum + openPaperSum) / denom;
 
-        const unrealizedPct = (unrealizedMultiplier - 1.0) * 100;
-        let realizedPct = (realizedMultiplier - 1.0) * 100;
-
-        // On the final backtest date, all open positions are force-closed (기간종료), so realized = unrealized 100%!
-        if (idx === fineDates.length - 1) {
-          realizedPct = unrealizedPct;
-        }
-
-        strategyUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
         strategyRealizedData.push(parseFloat(realizedPct.toFixed(1)));
+        strategyUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
       });
 
       // 4. Compute High-Resolution Benchmark Curves with accurate start-date base close
