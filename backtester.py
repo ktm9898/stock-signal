@@ -227,12 +227,13 @@ def run_backtest_simulation(history_df=None, strategy=None, start_date=None, end
             if not in_position:
                 # Check Buy Signal on Day i -> Buy on Day i+1 Open
                 if buy_mask.iloc[i]:
-                    in_position = True
-                    entry_idx = i + 1
                     raw_open = next_row['시가']
-                    entry_price = raw_open * (1.0 + total_cost_per_trade)
-                    entry_signal_date = curr_row['Date']
-                    entry_exec_date = next_row['Date']
+                    if raw_open > 0:
+                        in_position = True
+                        entry_idx = i + 1
+                        entry_price = raw_open * (1.0 + total_cost_per_trade)
+                        entry_signal_date = curr_row['Date']
+                        entry_exec_date = next_row['Date']
             else:
                 # We are in position. Check Exit conditions on Day i:
                 curr_close = curr_row['종가']

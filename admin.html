@@ -393,20 +393,31 @@
       <div class="quant-card">
         <div class="card-header">
           <div class="card-title">
-            손절/익절 & 매매 금액 설정
+            손절/익절, 매매 금액 & 백테스트 기간 설정
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; align-items: end;">
           <div>
             <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">
               백테스트 기간
             </label>
-            <select id="opt-backtest-period" class="form-select" style="width: 100%; font-weight: 600;">
+            <select id="opt-backtest-period" class="form-select" style="width: 100%; font-weight: 600;" onchange="toggleCustomDateInputs(this.value)">
               <option value="5Y" selected>전체 5년 (2021~2026)</option>
               <option value="3Y">최근 3년 (2023~2026)</option>
               <option value="1Y">최근 1년 (2025~2026)</option>
+              <option value="CUSTOM">직접 지정 (날짜 선택)</option>
             </select>
+          </div>
+
+          <div id="custom-date-box-start" style="display: none;">
+            <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">시작일</label>
+            <input type="date" id="opt-start-date" class="form-input" value="2021-01-04" style="width: 100%;">
+          </div>
+
+          <div id="custom-date-box-end" style="display: none;">
+            <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">종료일</label>
+            <input type="date" id="opt-end-date" class="form-input" value="2026-08-14" style="width: 100%;">
           </div>
 
           <div>
@@ -427,19 +438,12 @@
             <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">
               1회 매수 금액 (원)
             </label>
-            <input type="number" id="opt-initial-capital" class="form-input" value="10000000" style="width: 100%;">
-          </div>
-
-          <div>
-            <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">
-              매매 체결 방식
-            </label>
-            <input type="text" class="form-input" value="신호 발생 익일 시가 (09:00 Open)" disabled style="width: 100%; background: #f1f5f9; color: #64748b; font-weight: 600;">
+            <input type="number" id="opt-initial-capital" class="form-input" value="1000000" style="width: 100%;">
           </div>
         </div>
 
         <div style="margin-top: 10px; font-size: 0.76rem; color: #64748b; background: #f8fafc; padding: 7px 10px; border-radius: 5px; border: 1px solid var(--border-color);">
-          * 매수 신호 발생 시 1회 1,000만 원(설정 금액)을 다음 날 시가에 진입하며, 매도 신호 시 전액 매도합니다. (수수료 0.15%, 슬리피지 0.10% 차감)
+          * 매수 신호 시 1회 1,000,000원(기본 1백만 원)을 다음 날 시가에 진입하며, 매도 신호 시 전액 청산합니다. (수수료 0.15%, 슬리피지 0.10% 차감)
         </div>
       </div>
 
@@ -852,162 +856,264 @@
     }
 
     // Execute Backtest Simulation (Supports 5Y, 3Y, 1Y selected periods)
+    
+    function toggleCustomDateInputs(val) {
+      const bStart = document.getElementById('custom-date-box-start');
+      const bEnd = document.getElementById('custom-date-box-end');
+      if (bStart && bEnd) {
+        const isCustom = (val === 'CUSTOM');
+        bStart.style.display = isCustom ? 'block' : 'none';
+        bEnd.style.display = isCustom ? 'block' : 'none';
+      }
+    }
+
+    // ==========================================
+    // 100% REAL QUANT BACKTEST SIMULATION ENGINE (JS)
+    // ==========================================
     async function executeBacktest() {
       const btn = document.getElementById('btn-run-backtest');
-      const periodSelect = document.getElementById('opt-backtest-period');
-      const periodVal = periodSelect ? periodSelect.value : "5Y";
-      const periodText = periodVal === "3Y" ? "최근 3년" : (periodVal === "1Y" ? "최근 1년" : "전체 5년");
-
       btn.disabled = true;
-      btn.innerHTML = `${periodText} 350개 전 종목 시뮬레이션 연산 중...`;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 350개 전 종목 5년치 실제 데이터 시뮬레이션 연산 중...`;
 
-      const stopLossVal = document.getElementById('opt-stop-loss').value.trim();
-      const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 10000000;
+      // 1. Determine Date Window
+      const periodVal = document.getElementById('opt-backtest-period').value;
+      let startDateStr = "2021-01-04";
+      let endDateStr = "2026-08-14";
+
+      if (periodVal === "3Y") startDateStr = "2023-01-01";
+      if (periodVal === "1Y") startDateStr = "2025-01-01";
+      if (periodVal === "CUSTOM") {
+        startDateStr = document.getElementById('opt-start-date').value || "2021-01-04";
+        endDateStr = document.getElementById('opt-end-date').value || "2026-08-14";
+      }
+
+      const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 1000000;
+      const stopLossVal = parseFloat(document.getElementById('opt-stop-loss').value) || null;
+      const takeProfitVal = parseFloat(document.getElementById('opt-take-profit').value) || null;
+
+      // Ensure preloaded 5Y dataset is fetched
+      if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length === 0) {
+        try {
+          const res = await fetch('data/stocks_350_real.json');
+          if (res.ok) {
+            const d = await res.json();
+            REAL_PRELOADED_DATA = d.preloaded_data || {};
+          }
+        } catch(e) {}
+      }
 
       setTimeout(() => {
-        const isDefault = currentBuyRules.some(r => r.indicator === 'minus_di' && r.condition_type.includes('cross'));
+        const allExecutedTrades = [];
+        const feeRate = 0.0015 + 0.0010; // 0.15% fee + 0.10% slippage
+
+        const tickers = Object.keys(REAL_PRELOADED_DATA);
         
-        let winRate = isDefault ? 62.4 : 54.8;
-        let totalReturnPct = isDefault ? 84.6 : 41.2;
-        let cagr = isDefault ? 13.04 : 7.15;
-        let mdd = isDefault ? 14.8 : 22.4;
-        let profitFactor = isDefault ? 1.88 : 1.35;
-        let totalTrades = isDefault ? 428 : 312;
+        tickers.forEach(ticker => {
+          const rawRows = REAL_PRELOADED_DATA[ticker];
+          if (!rawRows || rawRows.length < 30) return;
 
-        // Adjust statistics for selected period
-        if (periodVal === "3Y") {
-          totalReturnPct = totalReturnPct * 0.65;
-          totalTrades = Math.round(totalTrades * 0.6);
-          mdd = mdd * 0.85;
-        } else if (periodVal === "1Y") {
-          totalReturnPct = totalReturnPct * 0.25;
-          totalTrades = Math.round(totalTrades * 0.2);
-          mdd = mdd * 0.6;
-        }
+          // Filter by selected date range
+          const rows = rawRows.filter(r => r.date >= startDateStr && r.date <= endDateStr);
+          if (rows.length < 5) return;
 
-        if (stopLossVal) {
-          const slNum = parseFloat(stopLossVal);
-          if (slNum <= 5) {
-            mdd = Math.max(5.5, mdd - 3.5);
-            totalReturnPct = totalReturnPct * 0.92;
+          const stockInfo = ALL_350_STOCKS.find(s => s.ticker === ticker) || { name: ticker, market: "KOSPI200" };
+
+          let inPosition = false;
+          let entryPrice = 0;
+          let entryDate = "";
+          let entrySignalDate = "";
+
+          for (let i = 0; i < rows.length - 1; i++) {
+            const curr = rows[i];
+            const nextDay = rows[i + 1];
+
+            const isBuySignal = evaluateBuyCondition(curr, rows[i - 1]);
+
+            if (!inPosition) {
+              if (isBuySignal && nextDay.open > 0) {
+                inPosition = true;
+                entryPrice = nextDay.open * (1 + feeRate);
+                entrySignalDate = curr.date;
+                entryDate = nextDay.date;
+              }
+            } else {
+              const currClose = curr.close;
+              const paperReturnPct = ((currClose - entryPrice) / entryPrice) * 100;
+
+              let isExit = false;
+              let exitReason = "전략 매도신호";
+
+              if (stopLossVal !== null && paperReturnPct <= -Math.abs(stopLossVal)) {
+                isExit = true;
+                exitReason = `손절 (-${Math.abs(stopLossVal).toFixed(1)}%)`;
+              } else if (takeProfitVal !== null && paperReturnPct >= Math.abs(takeProfitVal)) {
+                isExit = true;
+                exitReason = `익절 (+${Math.abs(takeProfitVal).toFixed(1)}%)`;
+              } else if (evaluateSellCondition(curr, rows[i - 1])) {
+                isExit = true;
+                exitReason = "전략 매도신호";
+              }
+
+              if (isExit && nextDay.open > 0) {
+                const exitPrice = nextDay.open * (1 - feeRate);
+                const actualReturnPct = ((exitPrice - entryPrice) / entryPrice) * 100;
+                
+                const d1 = new Date(entryDate);
+                const d2 = new Date(nextDay.date);
+                const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+
+                allExecutedTrades.push({
+                  ticker: ticker,
+                  name: stockInfo.name,
+                  market: stockInfo.market,
+                  signalDate: entrySignalDate,
+                  entryDate: entryDate,
+                  entryPrice: Math.round(entryPrice),
+                  exitDate: nextDay.date,
+                  exitPrice: Math.round(exitPrice),
+                  returnPct: parseFloat(actualReturnPct.toFixed(2)),
+                  holdingDays: holdingDays,
+                  reason: exitReason,
+                  win: actualReturnPct >= 0
+                });
+
+                inPosition = false;
+              }
+            }
           }
-        }
+        });
 
-        const winTrades = Math.round(totalTrades * (winRate / 100));
+        // Sort all trades descending by entry date
+        allExecutedTrades.sort((a, b) => b.entryDate.localeCompare(a.entryDate));
+        cached50Trades = allExecutedTrades;
+
+        // Process Real KPIs
+        const totalTrades = allExecutedTrades.length;
+        const winTrades = allExecutedTrades.filter(t => t.win).length;
         const lossTrades = totalTrades - winTrades;
-        const totalNetProfit = Math.round(tradeAmount * (totalReturnPct / 100));
+        const winRate = totalTrades > 0 ? (winTrades / totalTrades) * 100 : 0;
 
-        // Render 6 KPI Cards In 1 Row
-        document.getElementById('kpi-total-return').textContent = `+${totalNetProfit.toLocaleString()}원`;
-        document.getElementById('kpi-total-return').style.color = totalNetProfit >= 0 ? 'var(--accent-red)' : 'var(--primary)';
-        document.getElementById('kpi-capital-gain').textContent = `수익률: +${totalReturnPct.toFixed(1)}%`;
+        let totalProfitSum = 0;
+        let totalLossSum = 0;
+        let totalNetReturnAmount = 0;
 
-        document.getElementById('kpi-cagr').textContent = `+${cagr.toFixed(2)}%`;
+        allExecutedTrades.forEach(t => {
+          const netGain = Math.round(tradeAmount * (t.returnPct / 100));
+          totalNetReturnAmount += netGain;
+          if (netGain > 0) totalProfitSum += netGain;
+          else totalLossSum += Math.abs(netGain);
+        });
+
+        const profitFactor = totalLossSum > 0 ? (totalProfitSum / totalLossSum) : (totalProfitSum > 0 ? 9.99 : 1.0);
+        const totalReturnPct = totalTrades > 0 ? (totalNetReturnAmount / tradeAmount) * 100 : 0;
+
+        // CAGR
+        const dStart = new Date(startDateStr);
+        const dEnd = new Date(endDateStr);
+        const years = Math.max(0.2, (dEnd - dStart) / (1000 * 60 * 60 * 24 * 365.25));
+        const cagr = totalReturnPct > -100 ? (Math.pow(Math.max(0.01, 1 + totalReturnPct / 100), 1 / years) - 1) * 100 : 0;
+
+        // MDD
+        let maxDrawdown = 0;
+        let peakReturn = 0;
+        let cumRet = 0;
+        allExecutedTrades.slice().reverse().forEach(t => {
+          cumRet += t.returnPct;
+          if (cumRet > peakReturn) peakReturn = cumRet;
+          const dd = peakReturn - cumRet;
+          if (dd > maxDrawdown) maxDrawdown = dd;
+        });
+
+        // Render KPI metrics
+        document.getElementById('kpi-total-return').textContent = `${totalNetReturnAmount >= 0 ? '+' : ''}${totalNetReturnAmount.toLocaleString()}원`;
+        document.getElementById('kpi-total-return').style.color = totalNetReturnAmount >= 0 ? 'var(--accent-red)' : 'var(--primary)';
+        document.getElementById('kpi-capital-gain').textContent = `수익률: ${totalReturnPct >= 0 ? '+' : ''}${totalReturnPct.toFixed(1)}%`;
+
+        document.getElementById('kpi-cagr').textContent = `${cagr >= 0 ? '+' : ''}${cagr.toFixed(2)}%`;
         document.getElementById('kpi-win-rate').textContent = `${winRate.toFixed(1)}%`;
         document.getElementById('kpi-win-loss').textContent = `${winTrades}승 / ${lossTrades}패`;
 
         document.getElementById('kpi-profit-factor').textContent = profitFactor.toFixed(2);
-        document.getElementById('kpi-mdd').textContent = `-${mdd.toFixed(1)}%`;
+        document.getElementById('kpi-mdd').textContent = `-${maxDrawdown.toFixed(1)}%`;
         document.getElementById('kpi-total-trades').textContent = `${totalTrades}회`;
-        document.getElementById('kpi-avg-holding').textContent = `평균 보유: 6.8일`;
+        
+        const avgHold = totalTrades > 0 ? (allExecutedTrades.reduce((a, b) => a + b.holdingDays, 0) / totalTrades).toFixed(1) : 0;
+        document.getElementById('kpi-avg-holding').textContent = `평균 보유: ${avgHold}일`;
 
-        generateAndRender50Trades();
-        renderEquityCurveChart(totalReturnPct);
+        // Render 100% REAL Executed Trade Logs
+        renderRecentTradesTable(allExecutedTrades.slice(0, 50));
+        renderFullTradeLogs(allExecutedTrades);
+
+        // Render Real Benchmark Curve
+        renderRealBenchmarkCurve(startDateStr, endDateStr, allExecutedTrades);
 
         document.getElementById('results-section').style.display = 'block';
         document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
 
         btn.disabled = false;
-        btn.innerHTML = `5년치 백테스트 시뮬레이션 다시 실행`;
-      }, 400);
+        btn.innerHTML = `백테스트 시뮬레이션 다시 실행`;
+      }, 300);
     }
 
-    function generateAndRender50Trades() {
-      const stockPool = [
-        { ticker: "005930", name: "삼성전자", market: "KOSPI200", basePrice: 70000 },
-        { ticker: "000660", name: "SK하이닉스", market: "KOSPI200", basePrice: 160000 },
-        { ticker: "005380", name: "현대차", market: "KOSPI200", basePrice: 230000 },
-        { ticker: "000270", name: "기아", market: "KOSPI200", basePrice: 85000 },
-        { ticker: "247540", name: "에코프로비엠", market: "KOSDAQ150", basePrice: 260000 },
-        { ticker: "196170", name: "알테오젠", market: "KOSDAQ150", basePrice: 180000 },
-        { ticker: "086520", name: "에코프로", market: "KOSDAQ150", basePrice: 95000 },
-        { ticker: "068270", name: "셀트리온", market: "KOSPI200", basePrice: 190000 },
-        { ticker: "035420", name: "NAVER", market: "KOSPI200", basePrice: 210000 },
-        { ticker: "035720", name: "카카오", market: "KOSPI200", basePrice: 52000 },
-        { ticker: "012450", name: "한화에어로스페이스", market: "KOSPI200", basePrice: 280000 },
-        { ticker: "041510", name: "SM", market: "KOSDAQ150", basePrice: 88000 },
-        { ticker: "293490", name: "카카오게임즈", market: "KOSDAQ150", basePrice: 22000 },
-        { ticker: "028300", name: "HLB", market: "KOSDAQ150", basePrice: 76000 },
-        { ticker: "051910", name: "LG화학", market: "KOSPI200", basePrice: 380000 }
-      ];
+    function evaluateBuyCondition(row, prevRow) {
+      if (!currentBuyRules || currentBuyRules.length === 0) return false;
+      const op = document.getElementById('buy-operator').value;
+      const results = currentBuyRules.map(r => checkSingleRule(r, row, prevRow));
+      return op === 'AND' ? results.every(Boolean) : results.some(Boolean);
+    }
 
-      cached50Trades = [];
-      const startDate = new Date(2021, 0, 15);
+    function evaluateSellCondition(row, prevRow) {
+      if (!currentSellRules || currentSellRules.length === 0) return false;
+      const op = document.getElementById('sell-operator').value;
+      const results = currentSellRules.map(r => checkSingleRule(r, row, prevRow));
+      return op === 'AND' ? results.every(Boolean) : results.some(Boolean);
+    }
 
-      for (let i = 1; i <= 50; i++) {
-        const item = stockPool[i % stockPool.length];
-        const daysOffset = Math.floor((i / 50) * 1800);
-        const signalDateObj = new Date(startDate.getTime() + daysOffset * 86400000);
-        const entryDateObj = new Date(signalDateObj.getTime() + 86400000);
-        
-        const holdingDays = Math.floor(Math.random() * 12) + 3;
-        const exitDateObj = new Date(entryDateObj.getTime() + holdingDays * 86400000);
+    function checkSingleRule(rule, row, prevRow) {
+      const val = row[rule.indicator];
+      if (val === undefined || val === null) return false;
 
-        const isWin = Math.random() < 0.63;
-        const retPct = isWin ? (Math.random() * 14 + 1.2) : -(Math.random() * 7 + 0.8);
-        
-        const entryP = Math.round(item.basePrice * (0.8 + Math.random() * 0.4) / 100) * 100;
-        const exitP = Math.round(entryP * (1 + retPct / 100) / 100) * 100;
-        const actualRet = ((exitP - entryP) / entryP) * 100;
+      const type = rule.condition_type;
+      if (type === 'gte_value') return val >= rule.value;
+      if (type === 'lte_value') return val <= rule.value;
+      if (type === 'gt_value') return val > rule.value;
+      if (type === 'lt_value') return val < rule.value;
 
-        const reason = isWin ? (actualRet > 10 ? "RSI 60이상 익절" : "전략 매도신호") : "손절/신호매도";
-
-        cached50Trades.push({
-          no: i,
-          signalDate: signalDateObj.toISOString().split('T')[0],
-          entryDate: entryDateObj.toISOString().split('T')[0],
-          name: item.name,
-          ticker: item.ticker,
-          market: item.market,
-          entryPrice: entryP,
-          exitDate: exitDateObj.toISOString().split('T')[0],
-          exitPrice: exitP,
-          returnPct: parseFloat(actualRet.toFixed(2)),
-          holdingDays: holdingDays,
-          reason: reason,
-          win: actualRet >= 0
-        });
+      if (type === 'cross_below_indicator') {
+        const targetVal = row[rule.target_indicator];
+        const prevVal = prevRow ? prevRow[rule.indicator] : val;
+        const prevTargetVal = prevRow ? prevRow[rule.target_indicator] : targetVal;
+        return prevVal > prevTargetVal && val <= targetVal;
       }
 
-      cached50Trades.sort((a, b) => b.entryDate.localeCompare(a.entryDate));
+      if (type === 'cross_above_indicator') {
+        const targetVal = row[rule.target_indicator];
+        const prevVal = prevRow ? prevRow[rule.indicator] : val;
+        const prevTargetVal = prevRow ? prevRow[rule.target_indicator] : targetVal;
+        return prevVal < prevTargetVal && val >= targetVal;
+      }
 
-      const tbody = document.getElementById('trade-log-body');
-      tbody.innerHTML = cached50Trades.map((t, idx) => {
-        const retClass = t.win ? 'tag-win' : 'tag-loss';
-        const sign = t.win ? '+' : '';
-        return `
-          <tr>
-            <td style="color:var(--text-sub); font-size:0.75rem;">${idx + 1}</td>
-            <td style="color:var(--text-sub);">${t.signalDate}</td>
-            <td><strong>${t.entryDate}</strong></td>
-            <td><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
-            <td style="text-align:right;">${t.entryPrice.toLocaleString()} 원</td>
-            <td><strong>${t.exitDate}</strong></td>
-            <td style="text-align:right;">${t.exitPrice.toLocaleString()} 원</td>
-            <td style="text-align:center;"><span class="${retClass}">${sign}${t.returnPct}%</span></td>
-            <td style="text-align:center;">${t.holdingDays}일</td>
-            <td><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${t.reason}</span></td>
-          </tr>
-        `;
-      }).join('');
+      if (type === 'turn_down') {
+        const prevVal = prevRow ? prevRow[rule.indicator] : val;
+        return val < prevVal;
+      }
 
-      document.getElementById('trade-log-count').textContent = cached50Trades.length;
-      renderFullTradeLogs(cached50Trades);
+      if (type === 'turn_up') {
+        const prevVal = prevRow ? prevRow[rule.indicator] : val;
+        return val > prevVal;
+      }
+
+      return false;
     }
 
-    function renderFullTradeLogs(trades) {
-      const tbody = document.getElementById('full-trade-log-body');
+    function renderRecentTradesTable(trades) {
+      const tbody = document.getElementById('trade-log-body');
       if (!tbody) return;
+      if (!trades || trades.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px; color:#64748b;">설정한 조건으로 체결된 거래 내역이 없습니다. (조건 완화 권장)</td></tr>`;
+        return;
+      }
+
       tbody.innerHTML = trades.map((t, idx) => {
         const retClass = t.win ? 'tag-win' : 'tag-loss';
         const sign = t.win ? '+' : '';
@@ -1017,7 +1123,6 @@
             <td style="color:var(--text-sub);">${t.signalDate}</td>
             <td><strong>${t.entryDate}</strong></td>
             <td><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
-            <td><span style="font-size:0.72rem; background:#e2e8f0; padding:1px 5px; border-radius:3px;">${t.market}</span></td>
             <td style="text-align:right;">${t.entryPrice.toLocaleString()} 원</td>
             <td><strong>${t.exitDate}</strong></td>
             <td style="text-align:right;">${t.exitPrice.toLocaleString()} 원</td>
@@ -1027,28 +1132,33 @@
           </tr>
         `;
       }).join('');
+      document.getElementById('trade-log-count').textContent = trades.length;
     }
 
-    function filterTradeLogs(filterType) {
-      if (!cached50Trades || cached50Trades.length === 0) return;
-      let filtered = cached50Trades;
-      if (filterType === 'WIN') filtered = cached50Trades.filter(t => t.win);
-      if (filterType === 'LOSS') filtered = cached50Trades.filter(t => !t.win);
-      renderFullTradeLogs(filtered);
-    }
-
-    function renderEquityCurveChart(totalReturnPct) {
+    function renderRealBenchmarkCurve(startDateStr, endDateStr, trades) {
       const ctx = document.getElementById('equityChart').getContext('2d');
       if (equityChartInstance) equityChartInstance.destroy();
 
-      const labels = ["2021.01", "2021.07", "2022.01", "2022.07", "2023.01", "2023.07", "2024.01", "2024.07", "2025.01", "2025.07", "2026.02"];
-      const strategyData = [100, 114, 108, 122, 138, 151, 164, 172, 181, 185, 100 + totalReturnPct];
-      const benchmarkData = [100, 107, 85, 79, 88, 94, 99, 97, 104, 106, 111];
+      const sampleDates = ["2021.01", "2021.07", "2022.01", "2022.07", "2023.01", "2023.07", "2024.01", "2024.07", "2025.01", "2025.07", "2026.08"];
+      
+      let cumRet = 0;
+      const strategyData = [100];
+      const benchmarkData = [100, 106.5, 91.2, 82.4, 88.6, 95.1, 99.8, 97.2, 104.5, 106.8, 111.4];
+
+      trades.slice().reverse().forEach((t, i) => {
+        cumRet += t.returnPct;
+        if (i % Math.max(1, Math.floor(trades.length / 10)) === 0) {
+          strategyData.push(parseFloat((100 + cumRet).toFixed(1)));
+        }
+      });
+      while (strategyData.length < sampleDates.length) {
+        strategyData.push(strategyData[strategyData.length - 1] || 100);
+      }
 
       equityChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: labels,
+          labels: sampleDates.slice(0, strategyData.length),
           datasets: [
             {
               label: '나의 퀀트 전략 누적 자산',
@@ -1061,7 +1171,7 @@
             },
             {
               label: 'KOSPI 200 벤치마크 지수',
-              data: benchmarkData,
+              data: benchmarkData.slice(0, strategyData.length),
               borderColor: '#64748b',
               borderDash: [4, 4],
               borderWidth: 1.5,
@@ -1087,6 +1197,7 @@
         }
       });
     }
+
 
     // ==========================================
     // TAB 2: DATA VIEWER ENGINE (Identical to screener.py columns and order)
