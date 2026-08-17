@@ -255,7 +255,7 @@ def run_backtest_simulation(history_df=None, strategy=None, start_date=None, end
                 # 3. Check Technical Sell Signal on Day i
                 elif sell_mask.iloc[i]:
                     is_exit = True
-                    exit_reason = "전략 매도신호"
+                    exit_reason = "매도전략"
 
                 if is_exit:
                     exit_exec_date = next_row['Date']
