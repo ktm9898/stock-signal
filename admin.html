@@ -1031,6 +1031,32 @@
                 }
               }
             }
+
+            // Force-close open positions at backtest period end date ("기간종료")
+            if (inPosition && rows.length > 0) {
+              const lastRow = rows[rows.length - 1];
+              const exitPrice = lastRow.close * (1 - feeRate);
+              const actualReturnPct = ((exitPrice - entryPrice) / entryPrice) * 100;
+              const d1 = new Date(entryDate);
+              const d2 = new Date(lastRow.date);
+              const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+
+              allExecutedTrades.push({
+                ticker: ticker,
+                name: stockInfo.name,
+                market: stockInfo.market,
+                signalDate: entrySignalDate,
+                entryDate: entryDate,
+                entryPrice: Math.round(entryPrice),
+                exitDate: lastRow.date,
+                exitPrice: Math.round(exitPrice),
+                returnPct: parseFloat(actualReturnPct.toFixed(2)),
+                holdingDays: holdingDays,
+                reason: "기간종료",
+                win: actualReturnPct >= 0
+              });
+              inPosition = false;
+            }
           });
 
           // Sort all trades descending by entry date
