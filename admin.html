@@ -725,7 +725,7 @@
       { id: "minus_di", name: "-DI (하락 방향선)" },
       { id: "plus_di", name: "+DI (상승 방향선)" },
       { id: "rsi", name: "RSI (상대강도지수)" },
-      { id: "b_band_pct", name: "볼린저밴드 %b" },
+      { id: "bb_pct", name: "볼린저밴드 %b" },
       { id: "macd", name: "MACD" },
       { id: "macd_osc", name: "MACD 오실레이터" },
       { id: "stoch_k", name: "스토캐스틱 %K" },
@@ -1192,9 +1192,23 @@
       return op === 'AND' ? results.every(Boolean) : results.some(Boolean);
     }
 
+    function getRawIndicatorValue(ind, row, prevRow) {
+      if (!row) return 0;
+      if (ind === 'bb_pct' || ind === 'b_band_pct') {
+        return row.bb_pct !== undefined ? row.bb_pct : row.b_band_pct;
+      }
+      if (ind === 'macd_osc') {
+        return row.macd_osc !== undefined ? row.macd_osc : (prevRow ? (row.macd - prevRow.macd) : 0);
+      }
+      if (ind === 'stoch_d') {
+        return row.stoch_d !== undefined ? row.stoch_d : (prevRow ? (row.stoch_k * 0.6 + prevRow.stoch_k * 0.4) : row.stoch_k);
+      }
+      return row[ind];
+    }
+
     function checkSingleRule(rule, row, prevRow) {
-      const rawVal = row[rule.indicator];
-      if (rawVal === undefined || rawVal === null) return false;
+      const rawVal = getRawIndicatorValue(rule.indicator, row, prevRow);
+      if (rawVal === undefined || rawVal === null || isNaN(rawVal)) return false;
 
       const val = Number(rawVal);
       const ruleVal = Number(rule.value !== undefined ? rule.value : 0);
@@ -1206,28 +1220,28 @@
       if (type === 'lt_value') return val < ruleVal;
 
       if (type === 'cross_below_indicator') {
-        const targetVal = Number(row[rule.target_indicator]);
+        const targetVal = Number(getRawIndicatorValue(rule.target_indicator, row, prevRow));
         if (isNaN(targetVal)) return false;
-        const prevVal = prevRow ? Number(prevRow[rule.indicator]) : val;
-        const prevTargetVal = prevRow ? Number(prevRow[rule.target_indicator]) : targetVal;
+        const prevVal = prevRow ? Number(getRawIndicatorValue(rule.indicator, prevRow, null)) : val;
+        const prevTargetVal = prevRow ? Number(getRawIndicatorValue(rule.target_indicator, prevRow, null)) : targetVal;
         return prevVal > prevTargetVal && val <= targetVal;
       }
 
       if (type === 'cross_above_indicator') {
-        const targetVal = Number(row[rule.target_indicator]);
+        const targetVal = Number(getRawIndicatorValue(rule.target_indicator, row, prevRow));
         if (isNaN(targetVal)) return false;
-        const prevVal = prevRow ? Number(prevRow[rule.indicator]) : val;
-        const prevTargetVal = prevRow ? Number(prevRow[rule.target_indicator]) : targetVal;
+        const prevVal = prevRow ? Number(getRawIndicatorValue(rule.indicator, prevRow, null)) : val;
+        const prevTargetVal = prevRow ? Number(getRawIndicatorValue(rule.target_indicator, prevRow, null)) : targetVal;
         return prevVal < prevTargetVal && val >= targetVal;
       }
 
       if (type === 'turn_down') {
-        const prevVal = prevRow ? Number(prevRow[rule.indicator]) : val;
+        const prevVal = prevRow ? Number(getRawIndicatorValue(rule.indicator, prevRow, null)) : val;
         return val < prevVal;
       }
 
       if (type === 'turn_up') {
-        const prevVal = prevRow ? Number(prevRow[rule.indicator]) : val;
+        const prevVal = prevRow ? Number(getRawIndicatorValue(rule.indicator, prevRow, null)) : val;
         return val > prevVal;
       }
 
