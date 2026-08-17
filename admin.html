@@ -778,72 +778,76 @@
     function renderRules() {
       // Render Buy Rules (named 조건 1, 조건 2)
       const buyContainer = document.getElementById('buy-rules-container');
-      if (currentBuyRules.length === 0) {
-        buyContainer.innerHTML = `<div style="color:var(--text-sub); font-size:0.78rem; padding:8px; text-align:center; background:#f8fafc; border-radius:5px; margin-bottom:8px;">등록된 매수 조건이 없습니다.</div>`;
-      } else {
-        buyContainer.innerHTML = currentBuyRules.map((rule, idx) => {
-          const isCross = rule.condition_type.includes('indicator');
-          const isTurn = rule.condition_type.includes('turn');
+      if (buyContainer) {
+        if (currentBuyRules.length === 0) {
+          buyContainer.innerHTML = `<div style="color:var(--text-sub); font-size:0.78rem; padding:8px; text-align:center; background:#f8fafc; border-radius:5px; margin-bottom:8px;">등록된 매수 조건이 없습니다.</div>`;
+        } else {
+          buyContainer.innerHTML = currentBuyRules.map((rule, idx) => {
+            const isCross = rule.condition_type.includes('indicator');
+            const isTurn = rule.condition_type.includes('turn');
 
-          return `
-            <div class="rule-box">
-              <span class="rule-tag">조건 ${idx + 1}</span>
+            return `
+              <div class="rule-box">
+                <span class="rule-tag">조건 ${idx + 1}</span>
 
-              <select class="form-select" onchange="updateRule('buy', ${idx}, 'indicator', this.value)">
-                ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === rule.indicator ? 'selected' : ''}>${opt.name}</option>`).join('')}
-              </select>
-
-              <select class="form-select" onchange="updateRule('buy', ${idx}, 'condition_type', this.value)">
-                ${CONDITION_TYPES.map(cond => `<option value="${cond.id}" ${cond.id === rule.condition_type ? 'selected' : ''}>${cond.name}</option>`).join('')}
-              </select>
-
-              ${isCross ? `
-                <select class="form-select" onchange="updateRule('buy', ${idx}, 'target_indicator', this.value)">
-                  ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === (rule.target_indicator || 'adx') ? 'selected' : ''}>${opt.name}</option>`).join('')}
+                <select class="form-select" onchange="updateRule('buy', ${idx}, 'indicator', this.value)">
+                  ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === rule.indicator ? 'selected' : ''}>${opt.name}</option>`).join('')}
                 </select>
-              ` : (isTurn ? `` : `
-                <input type="number" step="0.1" class="form-input" style="width: 85px;" value="${rule.value !== undefined ? rule.value : 0}" oninput="updateRule('buy', ${idx}, 'value', this.value)">
-              `)}
 
-              <button class="btn-del-rule" onclick="deleteRule('buy', ${idx})" title="조건 삭제"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-          `;
-        }).join('');
+                <select class="form-select" onchange="updateRule('buy', ${idx}, 'condition_type', this.value)">
+                  ${CONDITION_TYPES.map(cond => `<option value="${cond.id}" ${cond.id === rule.condition_type ? 'selected' : ''}>${cond.name}</option>`).join('')}
+                </select>
+
+                ${isCross ? `
+                  <select class="form-select" onchange="updateRule('buy', ${idx}, 'target_indicator', this.value)">
+                    ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === (rule.target_indicator || 'adx') ? 'selected' : ''}>${opt.name}</option>`).join('')}
+                  </select>
+                ` : (isTurn ? `` : `
+                  <input type="number" step="0.1" class="form-input" style="width: 85px;" value="${rule.value !== undefined ? rule.value : 0}" oninput="updateRule('buy', ${idx}, 'value', this.value)">
+                `)}
+
+                <button class="btn-del-rule" onclick="deleteRule('buy', ${idx})" title="조건 삭제"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            `;
+          }).join('');
+        }
       }
 
       // Render Sell Rules (named 조건 1, 조건 2)
       const sellContainer = document.getElementById('sell-rules-container');
-      if (currentSellRules.length === 0) {
-        sellContainer.innerHTML = `<div style="color:var(--text-sub); font-size:0.78rem; padding:8px; text-align:center; background:#f8fafc; border-radius:5px; margin-bottom:8px;">등록된 매도 조건이 없습니다.</div>`;
-      } else {
-        sellContainer.innerHTML = currentSellRules.map((rule, idx) => {
-          const isCross = rule.condition_type.includes('indicator');
-          const isTurn = rule.condition_type.includes('turn');
+      if (sellContainer) {
+        if (currentSellRules.length === 0) {
+          sellContainer.innerHTML = `<div style="color:var(--text-sub); font-size:0.78rem; padding:8px; text-align:center; background:#f8fafc; border-radius:5px; margin-bottom:8px;">등록된 매도 조건이 없습니다.</div>`;
+        } else {
+          sellContainer.innerHTML = currentSellRules.map((rule, idx) => {
+            const isCross = rule.condition_type.includes('indicator');
+            const isTurn = rule.condition_type.includes('turn');
 
-          return `
-            <div class="rule-box">
-              <span class="rule-tag">조건 ${idx + 1}</span>
+            return `
+              <div class="rule-box">
+                <span class="rule-tag">조건 ${idx + 1}</span>
 
-              <select class="form-select" onchange="updateRule('sell', ${idx}, 'indicator', this.value)">
-                ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === rule.indicator ? 'selected' : ''}>${opt.name}</option>`).join('')}
-              </select>
-
-              <select class="form-select" onchange="updateRule('sell', ${idx}, 'condition_type', this.value)">
-                ${CONDITION_TYPES.map(cond => `<option value="${cond.id}" ${cond.id === rule.condition_type ? 'selected' : ''}>${cond.name}</option>`).join('')}
-              </select>
-
-              ${isCross ? `
-                <select class="form-select" onchange="updateRule('sell', ${idx}, 'target_indicator', this.value)">
-                  ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === (rule.target_indicator || 'plus_di') ? 'selected' : ''}>${opt.name}</option>`).join('')}
+                <select class="form-select" onchange="updateRule('sell', ${idx}, 'indicator', this.value)">
+                  ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === rule.indicator ? 'selected' : ''}>${opt.name}</option>`).join('')}
                 </select>
-              ` : (isTurn ? `` : `
-                <input type="number" step="0.1" class="form-input" style="width: 85px;" value="${rule.value !== undefined ? rule.value : 0}" oninput="updateRule('sell', ${idx}, 'value', this.value)">
-              `)}
 
-              <button class="btn-del-rule" onclick="deleteRule('sell', ${idx})" title="조건 삭제"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-          `;
-        }).join('');
+                <select class="form-select" onchange="updateRule('sell', ${idx}, 'condition_type', this.value)">
+                  ${CONDITION_TYPES.map(cond => `<option value="${cond.id}" ${cond.id === rule.condition_type ? 'selected' : ''}>${cond.name}</option>`).join('')}
+                </select>
+
+                ${isCross ? `
+                  <select class="form-select" onchange="updateRule('sell', ${idx}, 'target_indicator', this.value)">
+                    ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === (rule.target_indicator || 'plus_di') ? 'selected' : ''}>${opt.name}</option>`).join('')}
+                  </select>
+                ` : (isTurn ? `` : `
+                  <input type="number" step="0.1" class="form-input" style="width: 85px;" value="${rule.value !== undefined ? rule.value : 0}" oninput="updateRule('sell', ${idx}, 'value', this.value)">
+                `)}
+
+                <button class="btn-del-rule" onclick="deleteRule('sell', ${idx})" title="조건 삭제"><i class="fa-solid fa-xmark"></i></button>
+              </div>
+            `;
+          }).join('');
+        }
       }
     }
 
@@ -1376,10 +1380,21 @@
       document.body.removeChild(link);
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      loadDefaultBuyRules();
-      loadDefaultSellRules();
-    });
+    function initAppStrategyDefaults() {
+      try {
+        loadDefaultBuyRules();
+        loadDefaultSellRules();
+      } catch(e) {
+        console.error("Init defaults error:", e);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initAppStrategyDefaults);
+    } else {
+      initAppStrategyDefaults();
+    }
+    window.addEventListener('load', initAppStrategyDefaults);
   </script>
 </body>
 </html>
