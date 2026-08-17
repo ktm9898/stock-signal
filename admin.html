@@ -1049,11 +1049,42 @@
 
         document.getElementById('results-section').style.display = 'block';
         document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
-
+      } catch(err) {
+        console.error("Backtest execution error:", err);
+      } finally {
         btn.disabled = false;
         btn.innerHTML = `백테스트 시뮬레이션 다시 실행`;
-      }, 300);
+      }
+    }, 300);
+  }
+
+  function renderFullTradeLogs(trades) {
+    const tbody = document.getElementById('full-trade-log-body');
+    if (!tbody) return;
+    if (!trades || trades.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:20px; color:#64748b;">체결 내역이 없습니다.</td></tr>`;
+      return;
     }
+    tbody.innerHTML = trades.map((t, idx) => {
+      const retClass = t.win ? 'tag-win' : 'tag-loss';
+      const sign = t.win ? '+' : '';
+      return `
+        <tr>
+          <td style="color:var(--text-sub); font-size:0.75rem;">${idx + 1}</td>
+          <td style="color:var(--text-sub);">${t.signalDate}</td>
+          <td><strong>${t.entryDate}</strong></td>
+          <td><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
+          <td><span style="font-size:0.72rem; background:#e2e8f0; padding:1px 5px; border-radius:3px;">${t.market}</span></td>
+          <td style="text-align:right;">${t.entryPrice.toLocaleString()} 원</td>
+          <td><strong>${t.exitDate}</strong></td>
+          <td style="text-align:right;">${t.exitPrice.toLocaleString()} 원</td>
+          <td style="text-align:center;"><span class="${retClass}">${sign}${t.returnPct}%</span></td>
+          <td style="text-align:center;">${t.holdingDays}일</td>
+          <td><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${t.reason}</span></td>
+        </tr>
+      `;
+    }).join('');
+  }
 
     function evaluateBuyCondition(row, prevRow) {
       if (!currentBuyRules || currentBuyRules.length === 0) return false;
