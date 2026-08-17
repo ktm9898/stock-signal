@@ -397,7 +397,7 @@
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; align-items: end;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; align-items: end;">
           <div>
             <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">
               백테스트 대상 종목
@@ -414,21 +414,21 @@
               백테스트 기간
             </label>
             <select id="opt-backtest-period" class="form-select" style="width: 100%; font-weight: 600;" onchange="toggleCustomDateInputs(this.value)">
-              <option value="5Y" selected>전체 5년 (2021~2026)</option>
-              <option value="3Y">최근 3년 (2023~2026)</option>
-              <option value="1Y">최근 1년 (2025~2026)</option>
-              <option value="CUSTOM">직접 지정 (날짜 선택)</option>
+              <option value="5Y" selected>최근 5년</option>
+              <option value="3Y">최근 3년</option>
+              <option value="1Y">최근 1년</option>
+              <option value="CUSTOM">직접 지정</option>
             </select>
           </div>
 
-          <div id="custom-date-box-start" style="display: none;">
+          <div>
             <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">시작일</label>
-            <input type="date" id="opt-start-date" class="form-input" value="2021-01-04" style="width: 100%;">
+            <input type="date" id="opt-start-date" class="form-input" value="2021-01-04" disabled style="width: 100%; font-size: 0.78rem;">
           </div>
 
-          <div id="custom-date-box-end" style="display: none;">
+          <div>
             <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">종료일</label>
-            <input type="date" id="opt-end-date" class="form-input" value="2026-08-14" style="width: 100%;">
+            <input type="date" id="opt-end-date" class="form-input" value="2026-08-14" disabled style="width: 100%; font-size: 0.78rem;">
           </div>
 
           <div>
@@ -871,26 +871,28 @@
     }
 
     function toggleCustomDateInputs(val) {
-      const bStart = document.getElementById('custom-date-box-start');
-      const bEnd = document.getElementById('custom-date-box-end');
-      if (bStart && bEnd) {
-        const isCustom = (val === 'CUSTOM');
-        bStart.style.display = isCustom ? 'block' : 'none';
-        bEnd.style.display = isCustom ? 'block' : 'none';
-      }
-    }
+      const startInput = document.getElementById('opt-start-date');
+      const endInput = document.getElementById('opt-end-date');
+      if (!startInput || !endInput) return;
 
-    // ==========================================
-    // 100% REAL QUANT BACKTEST SIMULATION ENGINE (JS)
-    // ==========================================
-    
-    function toggleCustomDateInputs(val) {
-      const bStart = document.getElementById('custom-date-box-start');
-      const bEnd = document.getElementById('custom-date-box-end');
-      if (bStart && bEnd) {
-        const isCustom = (val === 'CUSTOM');
-        bStart.style.display = isCustom ? 'block' : 'none';
-        bEnd.style.display = isCustom ? 'block' : 'none';
+      const endStr = "2026-08-14";
+      endInput.value = endStr;
+
+      if (val === '5Y') {
+        startInput.value = "2021-01-04";
+        startInput.disabled = true;
+        endInput.disabled = true;
+      } else if (val === '3Y') {
+        startInput.value = "2023-08-14";
+        startInput.disabled = true;
+        endInput.disabled = true;
+      } else if (val === '1Y') {
+        startInput.value = "2025-08-14";
+        startInput.disabled = true;
+        endInput.disabled = true;
+      } else if (val === 'CUSTOM') {
+        startInput.disabled = false;
+        endInput.disabled = false;
       }
     }
 
@@ -900,21 +902,15 @@
     async function executeBacktest() {
       const btn = document.getElementById('btn-run-backtest');
       btn.disabled = true;
-      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 350개 전 종목 5년치 실제 데이터 시뮬레이션 연산 중...`;
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="margin-right: 6px;"></i> 백테스트 시뮬레이션 계산 중...`;
 
-      // Determine Date Window
-      const periodVal = document.getElementById('opt-backtest-period').value;
-      let startDateStr = "2021-01-04";
-      let endDateStr = "2026-08-14";
+      const targetMarketSelect = document.getElementById('opt-backtest-market');
+      const targetMarket = targetMarketSelect ? targetMarketSelect.value : 'ALL';
+      const periodType = document.getElementById('opt-backtest-period').value;
 
-      if (periodVal === "3Y") startDateStr = "2023-01-01";
-      if (periodVal === "1Y") startDateStr = "2025-01-01";
-      if (periodVal === "CUSTOM") {
-        startDateStr = document.getElementById('opt-start-date').value || "2021-01-04";
-        endDateStr = document.getElementById('opt-end-date').value || "2026-08-14";
-      }
+      let startDateStr = document.getElementById('opt-start-date').value;
+      let endDateStr = document.getElementById('opt-end-date').value;
 
-      const targetMarket = document.getElementById('opt-backtest-market').value;
       const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 10000000;
       const stopLossVal = parseFloat(document.getElementById('opt-stop-loss').value) || null;
       const takeProfitVal = parseFloat(document.getElementById('opt-take-profit').value) || null;
@@ -946,8 +942,8 @@
           const tickers = Object.keys(REAL_PRELOADED_DATA);
           
           tickers.forEach(ticker => {
-            // Exclude benchmark ETF from individual trading iteration
-            if (ticker === '069500') return;
+            // Exclude benchmark ETF/Index from individual trading iteration
+            if (ticker === '069500' || ticker === 'KOSPI' || ticker === 'KOSDAQ') return;
 
             const rawRows = REAL_PRELOADED_DATA[ticker];
             if (!rawRows || rawRows.length < 30) return;
@@ -1006,8 +1002,8 @@
                   const d2 = new Date(nextDay.date);
                   const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
 
-                  // Clean simple exit reasons
-                  let exitReason = "전략 매도신호";
+                  // Clean simple exit reasons ("매도전략", "손절신호", "익절신호")
+                  let exitReason = "매도전략";
                   if (triggerType === "STOP_LOSS") {
                     exitReason = "손절신호";
                   } else if (triggerType === "TAKE_PROFIT") {
