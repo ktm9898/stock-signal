@@ -519,7 +519,7 @@
           <div style="margin-top: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <h4 style="font-size: 0.88rem; font-weight: 700; color: #1e293b;">
-                누적 자산 성장 곡선 (vs KOSPI / KOSDAQ 실제 지수 벤치마크)
+                누적 자산 성장 곡선 (vs KOSPI / KOSDAQ 벤치마크)
               </h4>
             </div>
             <div style="height: 280px; width: 100%;">
@@ -1387,7 +1387,7 @@
         if (!kPointStr) kPointStr = ` (${kSign}${finalKospiPct.toFixed(1)}%)`;
 
         datasets.push({
-          label: `KOSPI 실제 지수${kPointStr}`,
+          label: `KOSPI${kPointStr}`,
           data: kospiBenchmarkData,
           borderColor: '#dc2626',
           borderDash: [4, 4],
@@ -1412,7 +1412,7 @@
         if (!kqPointStr) kqPointStr = ` (${kqSign}${finalKosdaqPct.toFixed(1)}%)`;
 
         datasets.push({
-          label: `KOSDAQ 실제 지수${kqPointStr}`,
+          label: `KOSDAQ${kqPointStr}`,
           data: kosdaqBenchmarkData,
           borderColor: '#059669',
           borderDash: [4, 4],
