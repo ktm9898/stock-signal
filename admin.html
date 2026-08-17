@@ -371,13 +371,13 @@
     <!-- Navigation Tabs -->
     <div class="nav-tabs">
       <button class="nav-tab-btn active" onclick="switchAdminTab('tab-strategy', this)">
-        전략 설정 & 백테스터
+        백테스트
       </button>
       <button class="nav-tab-btn" onclick="switchAdminTab('tab-dataviewer', this)">
-        5년 데이터 조회
+        데이터 조회
       </button>
       <button class="nav-tab-btn" onclick="switchAdminTab('tab-tradelog', this)">
-        매매 일지 상세
+        매매 일지
       </button>
     </div>
 
@@ -410,8 +410,8 @@
               <button class="btn-sm-action" onclick="resetBuyRules()">초기화</button>
             </div>
             <select id="buy-operator" class="form-select" style="font-weight: 600;">
-              <option value="AND" selected>AND (모두 충족)</option>
-              <option value="OR">OR (하나라도 충족)</option>
+              <option value="AND" selected>AND</option>
+              <option value="OR">OR</option>
             </select>
           </div>
         </div>
@@ -436,8 +436,8 @@
               <button class="btn-sm-action" onclick="resetSellRules()">초기화</button>
             </div>
             <select id="sell-operator" class="form-select" style="font-weight: 600;">
-              <option value="OR" selected>OR (하나라도 충족)</option>
-              <option value="AND">AND (모두 충족)</option>
+              <option value="OR" selected>OR</option>
+              <option value="AND">AND</option>
             </select>
           </div>
         </div>
@@ -598,7 +598,7 @@
         <div class="quant-card">
           <div class="card-header">
             <div class="card-title" id="recent-trades-title">
-              최근 매매 체결 일지 <span style="font-size:0.75rem; color:#64748b; font-weight:400; margin-left:6px;">(<i class="fa-solid fa-circle-info" style="margin-right:2px;"></i> 차트 날짜 지점을 클릭하면 해당 날짜까지의 최근 50개 내역이 표시됩니다)</span>
+              최근 매매 체결 일지 <span class="label-desktop" style="font-size:0.75rem; color:#64748b; font-weight:400; margin-left:6px;">(<i class="fa-solid fa-circle-info" style="margin-right:2px;"></i> 차트 날짜 지점을 클릭하면 해당 날짜까지의 최근 50개 내역이 표시됩니다)</span>
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
               <button class="btn-sm-action" onclick="resetRecentTradesTableFilter()" style="font-size:0.75rem; background:#f1f5f9; color:#334155; border:1px solid var(--border-subtle);">
@@ -778,17 +778,17 @@
     }
 
     const INDICATOR_OPTIONS = [
-      { id: "adx", name: "ADX (추세 강도)" },
-      { id: "minus_di", name: "-DI (하락 방향선)" },
-      { id: "plus_di", name: "+DI (상승 방향선)" },
-      { id: "rsi", name: "RSI (상대강도지수)" },
-      { id: "bb_pct", name: "볼린저밴드 %b" },
+      { id: "adx", name: "ADX" },
+      { id: "minus_di", name: "-DI" },
+      { id: "plus_di", name: "+DI" },
+      { id: "rsi", name: "RSI" },
+      { id: "bb_pct", name: "볼린저 %b" },
       { id: "macd", name: "MACD" },
       { id: "macd_osc", name: "MACD 오실레이터" },
       { id: "stoch_k", name: "스토캐스틱 %K" },
       { id: "stoch_d", name: "스토캐스틱 %D" },
-      { id: "disparity20", name: "20일 이격도 (%)" },
-      { id: "volume_ratio", name: "거래량 비율 (%)" }
+      { id: "disparity20", name: "이격도" },
+      { id: "volume_ratio", name: "거래량비율" }
     ];
 
     const CONDITION_TYPES = [
@@ -796,10 +796,10 @@
       { id: "lte_value", name: "이하 (<=)" },
       { id: "gt_value", name: "초과 (>)" },
       { id: "lt_value", name: "미만 (<)" },
-      { id: "cross_below_indicator", name: "타겟 지표 하향 돌파 (Cross Below)" },
-      { id: "cross_above_indicator", name: "타겟 지표 상향 돌파 (Cross Above)" },
-      { id: "turn_down", name: "전날 대비 꺾임 (Turn Down)" },
-      { id: "turn_up", name: "전날 대비 반등 (Turn Up)" }
+      { id: "cross_below_indicator", name: "하향돌파 (Cross Below)" },
+      { id: "cross_above_indicator", name: "상향돌파 (Cross Above)" },
+      { id: "turn_down", name: "꺾임 (Turn Down)" },
+      { id: "turn_up", name: "반등 (Turn Up)" }
     ];
 
     let ALL_350_STOCKS = [];
@@ -1385,7 +1385,7 @@
         renderRecentTradesTable(cachedExecutedTrades.slice(0, 50));
       }
       const titleEl = document.getElementById('recent-trades-title');
-      if (titleEl) titleEl.innerHTML = `최근 매매 체결 일지 <span style="font-size:0.75rem; color:#64748b; font-weight:400; margin-left:6px;">(<i class="fa-solid fa-circle-info" style="margin-right:2px;"></i> 차트 날짜 지점을 클릭하면 해당 날짜까지의 최근 50개 내역이 표시됩니다)</span>`;
+      if (titleEl) titleEl.innerHTML = `최근 매매 체결 일지 <span class="label-desktop" style="font-size:0.75rem; color:#64748b; font-weight:400; margin-left:6px;">(<i class="fa-solid fa-circle-info" style="margin-right:2px;"></i> 차트 날짜 지점을 클릭하면 해당 날짜까지의 최근 50개 내역이 표시됩니다)</span>`;
     }
 
     function renderRecentTradesTable(trades) {
@@ -1608,7 +1608,7 @@
 
       const datasets = [
         {
-          label: '나의 퀀트 전략 (평가손익)',
+          label: '평가손익',
           data: strategyUnrealizedData,
           borderColor: '#2563eb',
           backgroundColor: 'rgba(37, 99, 235, 0.05)',
@@ -1619,7 +1619,7 @@
           tension: 0.1
         },
         {
-          label: '나의 퀀트 전략 (실현손익)',
+          label: '실현손익',
           data: strategyRealizedData,
           borderColor: '#7c3aed',
           fill: false,
@@ -1676,7 +1676,16 @@
           maintainAspectRatio: false,
           interaction: { intersect: false, mode: 'index' },
           plugins: {
-            legend: { position: 'top', labels: { font: { weight: '600', size: 11 } } },
+            legend: { 
+              position: 'top', 
+              labels: { 
+                usePointStyle: true, 
+                pointStyle: 'circle',
+                boxWidth: 8,
+                padding: 10,
+                font: { weight: '600', size: 11 } 
+              } 
+            },
             tooltip: {
               callbacks: {
                 title: (items) => items.length > 0 ? `날짜: ${items[0].label}` : '',
@@ -1687,9 +1696,9 @@
                   const sign = val >= 0 ? '+' : '';
 
                   if (label.includes('평가손익')) {
-                    return ` 나의 퀀트 전략 (평가손익): ${sign}${val.toFixed(1)}%`;
+                    return ` 평가손익: ${sign}${val.toFixed(1)}%`;
                   } else if (label.includes('실현손익')) {
-                    return ` 나의 퀀트 전략 (실현손익): ${sign}${val.toFixed(1)}%`;
+                    return ` 실현손익: ${sign}${val.toFixed(1)}%`;
                   } else if (label === 'KOSPI') {
                     const pt = kospiCloseList[dataIdx];
                     const ptText = pt ? ` (${pt.toLocaleString()}pt)` : '';
