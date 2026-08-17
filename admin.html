@@ -924,7 +924,7 @@
       if (badge) {
         if (targetMarket === 'KOSPI200') badge.textContent = "코스피 200 검증 성과";
         else if (targetMarket === 'KOSDAQ150') badge.textContent = "코스닥 150 검증 성과";
-        else badge.textContent = "전체 (344종목) 검증 성과";
+        else badge.textContent = "전체 (350종목) 검증 성과";
       }
 
       // Ensure preloaded dataset is available
@@ -946,6 +946,9 @@
           const tickers = Object.keys(REAL_PRELOADED_DATA);
           
           tickers.forEach(ticker => {
+            // Exclude benchmark ETF from individual trading iteration
+            if (ticker === '069500') return;
+
             const rawRows = REAL_PRELOADED_DATA[ticker];
             if (!rawRows || rawRows.length < 30) return;
 
@@ -1253,15 +1256,26 @@
         }
       }
 
-      // Calculate Strategy Equity Curve
-      let cumRet = 0;
+      // Calculate Strategy Equity Curve matching Card 1 cumulative return %
+      const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 10000000;
+      let runningGainSum = 0;
       const strategyData = [100];
-      trades.slice().reverse().forEach((t, i) => {
-        cumRet += t.returnPct;
-        if (i % Math.max(1, Math.floor(trades.length / 10)) === 0) {
-          strategyData.push(parseFloat((100 + cumRet).toFixed(1)));
+      
+      const sortedChronological = trades.slice().reverse();
+      const stepSize = Math.max(1, Math.floor(sortedChronological.length / 10));
+
+      sortedChronological.forEach((t, i) => {
+        const netGain = Math.round(tradeAmount * (t.returnPct / 100));
+        runningGainSum += netGain;
+        if (i % stepSize === 0) {
+          const cumPct = tradeAmount > 0 ? (runningGainSum / tradeAmount) * 100 : 0;
+          strategyData.push(parseFloat((100 + cumPct).toFixed(1)));
         }
       });
+      if (sortedChronological.length > 0) {
+        const finalCumPct = tradeAmount > 0 ? (runningGainSum / tradeAmount) * 100 : 0;
+        strategyData.push(parseFloat((100 + finalCumPct).toFixed(1)));
+      }
       while (strategyData.length < sampleDates.length) {
         strategyData.push(strategyData[strategyData.length - 1] || 100);
       }
