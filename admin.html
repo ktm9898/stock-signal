@@ -758,9 +758,26 @@
         <!-- Raw OHLCV Table -->
         <div class="table-container" style="max-height: 550px; overflow-y: auto;">
           <table>
+            <colgroup>
+              <col style="width: 10.0%;">
+              <col style="width: 7.5%;">
+              <col style="width: 7.5%;">
+              <col style="width: 7.5%;">
+              <col style="width: 8.0%;">
+              <col style="width: 9.5%;">
+              <col style="width: 5.5%;">
+              <col style="width: 5.5%;">
+              <col style="width: 5.5%;">
+              <col style="width: 5.5%;">
+              <col style="width: 5.5%;">
+              <col style="width: 6.5%;">
+              <col style="width: 8.5%;">
+              <col style="width: 6.0%;">
+              <col style="width: 6.0%;">
+            </colgroup>
             <thead>
               <tr>
-                <th>일자</th>
+                <th style="text-align:center;">일자</th>
                 <th style="text-align:right;">시가</th>
                 <th style="text-align:right;">고가</th>
                 <th style="text-align:right;">저가</th>
@@ -1043,7 +1060,7 @@
 
         return `
           <tr>
-            <td><strong>${r.date}</strong></td>
+            <td style="text-align:center;"><strong>${r.date}</strong></td>
             <td style="text-align:right;">${r.open ? r.open.toLocaleString() : '-'}</td>
             <td style="text-align:right;">${r.high ? r.high.toLocaleString() : '-'}</td>
             <td style="text-align:right;">${r.low ? r.low.toLocaleString() : '-'}</td>
