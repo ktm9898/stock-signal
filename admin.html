@@ -931,6 +931,19 @@
         else badge.textContent = "전체 (350종목) 검증 성과";
       }
 
+      // Reset previous chart date filter UI
+      resetChartDateFilter();
+
+      // Ensure 350 stock list info (ALL_350_STOCKS) is loaded
+      if (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0) {
+        try {
+          const resStock = await fetch('data/stocks_350.json');
+          if (resStock.ok) {
+            ALL_350_STOCKS = await resStock.json();
+          }
+        } catch(e) {}
+      }
+
       // Ensure preloaded dataset is available
       if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length === 0) {
         try {
