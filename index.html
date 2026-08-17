@@ -369,7 +369,7 @@
           수동 실행
         </button>
         <a href="admin.html" class="btn-admin-nav" title="퀀트 전략 커스텀 & 5년 백테스터">
-          <i class="fa-solid fa-sliders"></i> <span class="label-desktop">퀀트 랩</span>
+          <i class="fa-solid fa-sliders"></i> 퀀트 랩
         </a>
       </div>
     </div>
@@ -1167,17 +1167,16 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
     function renderAllStocks(list) {
       const tbody = document.getElementById('all-stocks-body');
+      if (!tbody) return;
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-sub); padding:24px;">저장된 KOSPI 200 전체 종목 지표 데이터가 없습니다.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; color:var(--text-sub); padding:24px;">저장된 KOSPI 200 전체 종목 지표 데이터가 없습니다.</td></tr>`;
         return;
       }
       tbody.innerHTML = list.map(item => {
         const rawStatus = String(item.Status || item.status || '관망');
         let statusText = rawStatus;
         let badgeClass = 'badge-neutral';
-        if (rawStatus.includes('3단계') || rawStatus.includes('Tier 1')) { badgeClass = 'badge-t1'; statusText = '3단계'; }
-        else if (rawStatus.includes('2단계') || rawStatus.includes('Tier 2')) { badgeClass = 'badge-t2'; statusText = '2단계'; }
-        else if (rawStatus.includes('1단계') || rawStatus.includes('Tier 3')) { badgeClass = 'badge-t3'; statusText = '1단계'; }
+        if (rawStatus.includes('전략매수') || rawStatus.includes('매수') || rawStatus.includes('3단계') || rawStatus.includes('Tier 1')) { badgeClass = 'badge-t1'; statusText = '전략매수'; }
         else if (rawStatus.includes('관심종목') || rawStatus.includes('추세강함')) { badgeClass = 'badge-sell-warn'; statusText = '관심종목'; }
         else { statusText = '관망'; }
 
@@ -1215,10 +1214,10 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         return `
           <tr>
             <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
-            <td style="text-align:center;"><strong style="color: ${Number(item.ADX || item.adx) >= 25 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
+            <td style="text-align:center;"><strong style="color: ${Number(item.ADX || item.adx) >= 30 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
             <td style="text-align:center;">${currMdi}</td>
             <td style="text-align:center;">${currPdi}</td>
-            <td style="text-align:center;"><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
+            <td style="text-align:center;"><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : (Number(item.RSI || item.rsi) >= 65 ? '#f87171' : 'inherit')}">${rsi}</span></td>
             <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
             <td style="text-align:center;"><span style="color: ${macdColor}">${macdOsc}</span></td>
             <td style="text-align:center;">${stochK} / ${stochD}</td>
@@ -1251,16 +1250,14 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       const tbody = document.getElementById('kosdaq-stocks-body');
       if (!tbody) return;
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-sub); padding:24px;">저장된 KOSDAQ 150 전체 종목 지표 데이터가 없습니다.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; color:var(--text-sub); padding:24px;">저장된 KOSDAQ 150 전체 종목 지표 데이터가 없습니다.</td></tr>`;
         return;
       }
       tbody.innerHTML = list.map(item => {
         const rawStatus = String(item.Status || item.status || '관망');
         let statusText = rawStatus;
         let badgeClass = 'badge-neutral';
-        if (rawStatus.includes('3단계') || rawStatus.includes('Tier 1')) { badgeClass = 'badge-t1'; statusText = '3단계'; }
-        else if (rawStatus.includes('2단계') || rawStatus.includes('Tier 2')) { badgeClass = 'badge-t2'; statusText = '2단계'; }
-        else if (rawStatus.includes('1단계') || rawStatus.includes('Tier 3')) { badgeClass = 'badge-t3'; statusText = '1단계'; }
+        if (rawStatus.includes('전략매수') || rawStatus.includes('매수') || rawStatus.includes('3단계') || rawStatus.includes('Tier 1')) { badgeClass = 'badge-t1'; statusText = '전략매수'; }
         else if (rawStatus.includes('관심종목') || rawStatus.includes('추세강함')) { badgeClass = 'badge-sell-warn'; statusText = '관심종목'; }
         else { statusText = '관망'; }
 
@@ -1298,10 +1295,10 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         return `
           <tr>
             <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
-            <td style="text-align:center;"><strong style="color: ${Number(item.ADX || item.adx) >= 25 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
+            <td style="text-align:center;"><strong style="color: ${Number(item.ADX || item.adx) >= 30 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
             <td style="text-align:center;">${currMdi}</td>
             <td style="text-align:center;">${currPdi}</td>
-            <td style="text-align:center;"><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
+            <td style="text-align:center;"><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : (Number(item.RSI || item.rsi) >= 65 ? '#f87171' : 'inherit')}">${rsi}</span></td>
             <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
             <td style="text-align:center;"><span style="color: ${macdColor}">${macdOsc}</span></td>
             <td style="text-align:center;">${stochK} / ${stochD}</td>
