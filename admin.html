@@ -1087,6 +1087,116 @@
       }, 200);
     }
 
+    
+    function evaluateBuyCondition(row, prevRow) {
+      if (!currentBuyRules || currentBuyRules.length === 0) return false;
+      const op = document.getElementById('buy-operator').value;
+      const results = currentBuyRules.map(r => checkSingleRule(r, row, prevRow));
+      return op === 'AND' ? results.every(Boolean) : results.some(Boolean);
+    }
+
+    function evaluateSellCondition(row, prevRow) {
+      if (!currentSellRules || currentSellRules.length === 0) return false;
+      const op = document.getElementById('sell-operator').value;
+      const results = currentSellRules.map(r => checkSingleRule(r, row, prevRow));
+      return op === 'AND' ? results.every(Boolean) : results.some(Boolean);
+    }
+
+    function checkSingleRule(rule, row, prevRow) {
+      const val = row[rule.indicator];
+      if (val === undefined || val === null) return false;
+
+      const type = rule.condition_type;
+      if (type === 'gte_value') return val >= rule.value;
+      if (type === 'lte_value') return val <= rule.value;
+      if (type === 'gt_value') return val > rule.value;
+      if (type === 'lt_value') return val < rule.value;
+
+      if (type === 'cross_below_indicator') {
+        const targetVal = row[rule.target_indicator];
+        const prevVal = prevRow ? prevRow[rule.indicator] : val;
+        const prevTargetVal = prevRow ? prevRow[rule.target_indicator] : targetVal;
+        return prevVal > prevTargetVal && val <= targetVal;
+      }
+
+      if (type === 'cross_above_indicator') {
+        const targetVal = row[rule.target_indicator];
+        const prevVal = prevRow ? prevRow[rule.indicator] : val;
+        const prevTargetVal = prevRow ? prevRow[rule.target_indicator] : targetVal;
+        return prevVal < prevTargetVal && val >= targetVal;
+      }
+
+      if (type === 'turn_down') {
+        const prevVal = prevRow ? prevRow[rule.indicator] : val;
+        return val < prevVal;
+      }
+
+      if (type === 'turn_up') {
+        const prevVal = prevRow ? prevRow[rule.indicator] : val;
+        return val > prevVal;
+      }
+
+      return false;
+    }
+
+    function renderRecentTradesTable(trades) {
+      const tbody = document.getElementById('trade-log-body');
+      if (!tbody) return;
+      if (!trades || trades.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px; color:#64748b;">설정한 조건으로 체결된 거래 내역이 없습니다. (조건 완화 권장)</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = trades.map((t, idx) => {
+        const retClass = t.win ? 'tag-win' : 'tag-loss';
+        const sign = t.win ? '+' : '';
+        return `
+          <tr>
+            <td style="color:var(--text-sub); font-size:0.75rem;">${idx + 1}</td>
+            <td style="color:var(--text-sub);">${t.signalDate}</td>
+            <td><strong>${t.entryDate}</strong></td>
+            <td><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
+            <td style="text-align:right;">${t.entryPrice.toLocaleString()} 원</td>
+            <td><strong>${t.exitDate}</strong></td>
+            <td style="text-align:right;">${t.exitPrice.toLocaleString()} 원</td>
+            <td style="text-align:center;"><span class="${retClass}">${sign}${t.returnPct}%</span></td>
+            <td style="text-align:center;">${t.holdingDays}일</td>
+            <td><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${t.reason}</span></td>
+          </tr>
+        `;
+      }).join('');
+      document.getElementById('trade-log-count').textContent = trades.length;
+    }
+
+    function renderFullTradeLogs(trades) {
+      const tbody = document.getElementById('full-trade-log-body');
+      if (!tbody) return;
+      if (!trades || trades.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:20px; color:#64748b;">체결 내역이 없습니다.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = trades.map((t, idx) => {
+        const retClass = t.win ? 'tag-win' : 'tag-loss';
+        const sign = t.win ? '+' : '';
+        return `
+          <tr>
+            <td style="color:var(--text-sub); font-size:0.75rem;">${idx + 1}</td>
+            <td style="color:var(--text-sub);">${t.signalDate}</td>
+            <td><strong>${t.entryDate}</strong></td>
+            <td><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
+            <td><span style="font-size:0.72rem; background:#e2e8f0; padding:1px 5px; border-radius:3px;">${t.market}</span></td>
+            <td style="text-align:right;">${t.entryPrice.toLocaleString()} 원</td>
+            <td><strong>${t.exitDate}</strong></td>
+            <td style="text-align:right;">${t.exitPrice.toLocaleString()} 원</td>
+            <td style="text-align:center;"><span class="${retClass}">${sign}${t.returnPct}%</span></td>
+            <td style="text-align:center;">${t.holdingDays}일</td>
+            <td><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${t.reason}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+
     function renderRealBenchmarkCurve(startDateStr, endDateStr, trades) {
       const ctx = document.getElementById('equityChart').getContext('2d');
       if (equityChartInstance) equityChartInstance.destroy();
