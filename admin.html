@@ -376,6 +376,11 @@
       .filter-item-pair {
         width: 100% !important;
       }
+
+      .form-select, select.form-select, option {
+        font-size: 14px !important;
+        -webkit-text-size-adjust: 100%;
+      }
     }
 
     .filter-bar-responsive {
@@ -846,7 +851,7 @@
       populateViewerStockSelect();
     }
 
-    function populateViewerStockSelect() {
+    function populateViewerStockSelect(query = '') {
       const selectEl = document.getElementById('viewer-stock-select');
       const marketFilterEl = document.getElementById('viewer-market-filter');
       const marketFilter = marketFilterEl ? marketFilterEl.value : 'ALL';
@@ -867,40 +872,40 @@
         stockList = stockList.filter(s => s.market === marketFilter);
       }
 
-      const prevValue = selectEl.value;
-      selectEl.innerHTML = stockList.map(s => {
-        const formattedTicker = String(s.ticker).padStart(6, '0');
-        return `<option value="${s.ticker}">${s.name} (${formattedTicker}) [${s.market || 'KOSPI200'}]</option>`;
-      }).join('');
-
-      if (stockList.length > 0) {
-        const targetValue = (prevValue && stockList.some(s => s.ticker === prevValue)) ? prevValue : stockList[0].ticker;
-        selectEl.value = targetValue;
-        loadViewerStockData(targetValue);
-      }
-    }
-
-    function filterViewerStockList() {
-      populateViewerStockSelect();
-    }
-
-    function searchViewerStock(query) {
-      const selectEl = document.getElementById('viewer-stock-select');
-      if (!selectEl) return;
       const q = String(query || '').toLowerCase().trim().replace(/\s+/g, '');
-      if (!q) {
-        populateViewerStockSelect();
+      if (q) {
+        stockList = stockList.filter(s => {
+          const nameMatch = String(s.name || '').toLowerCase().replace(/\s+/g, '').includes(q);
+          const tickerMatch = String(s.ticker || '').padStart(6, '0').includes(q);
+          return nameMatch || tickerMatch;
+        });
+      }
+
+      const prevValue = selectEl.value;
+      if (stockList.length === 0) {
+        selectEl.innerHTML = `<option value="">검색 결과 없음</option>`;
+        const tbody = document.getElementById('viewer-data-body');
+        if (tbody) tbody.innerHTML = `<tr><td colspan="17" style="text-align:center; padding:20px; color:#64748b;">'${query}' 검색어와 일치하는 종목이 없습니다.</td></tr>`;
         return;
       }
 
-      for (let i = 0; i < selectEl.options.length; i++) {
-        const optText = selectEl.options[i].text.toLowerCase().replace(/\s+/g, '');
-        if (optText.includes(q)) {
-          selectEl.selectedIndex = i;
-          loadViewerStockData(selectEl.options[i].value);
-          break;
-        }
-      }
+      selectEl.innerHTML = stockList.map(s => {
+        const formattedTicker = String(s.ticker).padStart(6, '0');
+        return `<option value="${s.ticker}">${s.name} (${formattedTicker})</option>`;
+      }).join('');
+
+      const targetValue = (prevValue && stockList.some(s => s.ticker === prevValue)) ? prevValue : stockList[0].ticker;
+      selectEl.value = targetValue;
+      loadViewerStockData(targetValue);
+    }
+
+    function filterViewerStockList() {
+      const searchEl = document.getElementById('viewer-quick-search');
+      populateViewerStockSelect(searchEl ? searchEl.value : '');
+    }
+
+    function searchViewerStock(query) {
+      populateViewerStockSelect(query);
     }
 
     function normalizeRow(r) {
