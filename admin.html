@@ -1273,7 +1273,8 @@
       const ctx = document.getElementById('equityChart').getContext('2d');
       if (equityChartInstance) equityChartInstance.destroy();
 
-      const targetMarket = document.getElementById('opt-target-market').value;
+      const targetMarketSelect = document.getElementById('opt-backtest-market');
+      const targetMarket = targetMarketSelect ? targetMarketSelect.value : 'ALL';
       const { sampleDates, dateBoundaries } = generateDynamicTimeline(startDateStr, endDateStr);
       
       // Calculate REAL KOSPI Index Curve
