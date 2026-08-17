@@ -1231,12 +1231,12 @@
       }).join('');
     }
 
-
     function renderRealBenchmarkCurve(startDateStr, endDateStr, trades) {
       const ctx = document.getElementById('equityChart').getContext('2d');
       if (equityChartInstance) equityChartInstance.destroy();
 
       const sampleDates = ["2021.01", "2021.07", "2022.01", "2022.07", "2023.01", "2023.07", "2024.01", "2024.07", "2025.01", "2025.07", "2026.08"];
+      const dateBoundaries = ["2021-01-01", "2021-07-01", "2022-01-01", "2022-07-01", "2023-01-01", "2023-07-01", "2024-01-01", "2024-07-01", "2025-01-01", "2025-07-01", "2026-08-31"];
       
       // Calculate REAL KOSPI 200 Index Curve from KODEX 200 (069500) historical daily candles
       let realBenchmarkData = [100, 96.2, 92.1, 72.6, 80.4, 75.9, 92.1, 86.3, 87.3, 150.6, 287.2];
@@ -1245,45 +1245,45 @@
         const kospiRows = REAL_PRELOADED_DATA['069500'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
         if (kospiRows.length > 30) {
           const baseClose = kospiRows[0].close;
-          const step = Math.max(1, Math.floor(kospiRows.length / 10));
-          realBenchmarkData = [];
-          for (let i = 0; i < kospiRows.length; i += step) {
-            realBenchmarkData.push(parseFloat(((kospiRows[i].close / baseClose) * 100).toFixed(1)));
-          }
-          if (realBenchmarkData.length < sampleDates.length) {
-            realBenchmarkData.push(parseFloat(((kospiRows[kospiRows.length - 1].close / baseClose) * 100).toFixed(1)));
-          }
+          realBenchmarkData = dateBoundaries.map(dbDate => {
+            const rowAtDate = kospiRows.filter(r => r.date <= dbDate).pop() || kospiRows[0];
+            return parseFloat(((rowAtDate.close / baseClose) * 100).toFixed(1));
+          });
         }
       }
 
-      // Calculate Strategy Equity Curve matching Card 1 cumulative return %
+      // Calculate Strategy Equity Curve mapped EXACTLY to sampleDates timeline
       const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 10000000;
-      let runningGainSum = 0;
-      const strategyData = [100];
-      
-      const sortedChronological = trades.slice().reverse();
-      const stepSize = Math.max(1, Math.floor(sortedChronological.length / 10));
+      const sortedChronological = trades.slice().sort((a, b) => a.exitDate.localeCompare(b.exitDate));
 
-      sortedChronological.forEach((t, i) => {
-        const netGain = Math.round(tradeAmount * (t.returnPct / 100));
-        runningGainSum += netGain;
-        if (i % stepSize === 0) {
-          const cumPct = tradeAmount > 0 ? (runningGainSum / tradeAmount) * 100 : 0;
-          strategyData.push(parseFloat((100 + cumPct).toFixed(1)));
+      let runningGainSum = 0;
+      let tradeIdx = 0;
+
+      const strategyData = dateBoundaries.map(dbDate => {
+        while (tradeIdx < sortedChronological.length && sortedChronological[tradeIdx].exitDate <= dbDate) {
+          const netGain = Math.round(tradeAmount * (sortedChronological[tradeIdx].returnPct / 100));
+          runningGainSum += netGain;
+          tradeIdx++;
         }
+        const cumPct = tradeAmount > 0 ? (runningGainSum / tradeAmount) * 100 : 0;
+        return parseFloat((100 + cumPct).toFixed(1));
       });
-      if (sortedChronological.length > 0) {
-        const finalCumPct = tradeAmount > 0 ? (runningGainSum / tradeAmount) * 100 : 0;
-        strategyData.push(parseFloat((100 + finalCumPct).toFixed(1)));
+
+      // Include all remaining trades up to latest trade date
+      while (tradeIdx < sortedChronological.length) {
+        const netGain = Math.round(tradeAmount * (sortedChronological[tradeIdx].returnPct / 100));
+        runningGainSum += netGain;
+        tradeIdx++;
       }
-      while (strategyData.length < sampleDates.length) {
-        strategyData.push(strategyData[strategyData.length - 1] || 100);
+      if (strategyData.length > 0) {
+        const finalCumPct = tradeAmount > 0 ? (runningGainSum / tradeAmount) * 100 : 0;
+        strategyData[strategyData.length - 1] = parseFloat((100 + finalCumPct).toFixed(1));
       }
 
       equityChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: sampleDates.slice(0, Math.max(strategyData.length, realBenchmarkData.length)),
+          labels: sampleDates,
           datasets: [
             {
               label: '나의 퀀트 전략 누적 자산',
