@@ -400,6 +400,17 @@
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; align-items: end;">
           <div>
             <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">
+              백테스트 대상 종목
+            </label>
+            <select id="opt-backtest-market" class="form-select" style="width: 100%; font-weight: 600;">
+              <option value="ALL" selected>전체 (KOSPI 200 + KOSDAQ 150)</option>
+              <option value="KOSPI200">KOSPI 200만 (대형주)</option>
+              <option value="KOSDAQ150">KOSDAQ 150만 (중소형/성장주)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">
               백테스트 기간
             </label>
             <select id="opt-backtest-period" class="form-select" style="width: 100%; font-weight: 600;" onchange="toggleCustomDateInputs(this.value)">
@@ -901,9 +912,18 @@
         endDateStr = document.getElementById('opt-end-date').value || "2026-08-14";
       }
 
+      const targetMarket = document.getElementById('opt-backtest-market').value;
       const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 10000000;
       const stopLossVal = parseFloat(document.getElementById('opt-stop-loss').value) || null;
       const takeProfitVal = parseFloat(document.getElementById('opt-take-profit').value) || null;
+
+      // Update Report Title Badge
+      const badge = document.getElementById('report-strat-name');
+      if (badge) {
+        if (targetMarket === 'KOSPI200') badge.textContent = "KOSPI 200 검증 성과";
+        else if (targetMarket === 'KOSDAQ150') badge.textContent = "KOSDAQ 150 검증 성과";
+        else badge.textContent = "전체 350종목 (KOSPI+KOSDAQ) 검증 성과";
+      }
 
       // Ensure preloaded dataset is available
       if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length === 0) {
@@ -927,11 +947,14 @@
             const rawRows = REAL_PRELOADED_DATA[ticker];
             if (!rawRows || rawRows.length < 30) return;
 
+            const stockInfo = ALL_350_STOCKS.find(s => s.ticker === ticker) || { name: ticker, market: "KOSPI200" };
+
+            // Filter by target market universe
+            if (targetMarket !== 'ALL' && stockInfo.market !== targetMarket) return;
+
             // Filter by selected date range
             const rows = rawRows.filter(r => r.date >= startDateStr && r.date <= endDateStr);
             if (rows.length < 5) return;
-
-            const stockInfo = ALL_350_STOCKS.find(s => s.ticker === ticker) || { name: ticker, market: "KOSPI200" };
 
             let inPosition = false;
             let entryPrice = 0;
