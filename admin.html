@@ -944,8 +944,8 @@
         } catch(e) {}
       }
 
-      // Ensure preloaded dataset is available
-      if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length === 0) {
+      // Ensure preloaded dataset is available with full 350 stocks
+      if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length < 100) {
         try {
           const res = await fetch('data/stocks_350_real.json');
           if (res.ok) {
@@ -1593,10 +1593,10 @@
       })
       .catch(e => console.log('Stocks fetch error:', e));
 
-    fetch('data/preloaded_top_stocks.json')
+    fetch('data/stocks_350_real.json')
       .then(r => r.json())
       .then(data => {
-        REAL_PRELOADED_DATA = data;
+        REAL_PRELOADED_DATA = data.preloaded_data || data;
         const sel = document.getElementById('viewer-stock-select');
         if (sel && sel.value) loadViewerStockData(sel.value);
       })
