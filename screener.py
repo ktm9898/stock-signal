@@ -56,7 +56,7 @@ def get_kospi200_tickers():
         if tickers and len(tickers) > 0:
             for ticker in tickers:
                 name = stock.get_market_ticker_name(ticker)
-                items.append({"ticker": ticker, "name": name})
+                items.append({"ticker": ticker, "name": name, "market": "KOSPI200"})
             if len(items) >= 100:
                 return items
     except Exception as e:
@@ -78,13 +78,55 @@ def get_kospi200_tickers():
                     if a and 'code=' in a.get('href', ''):
                         match = re.search(r'code=(\d+)', a['href'])
                         if match:
-                            items.append({"ticker": match.group(1), "name": a.text.strip()})
+                            items.append({"ticker": match.group(1), "name": a.text.strip(), "market": "KOSPI200"})
             else:
                 matches = re.findall(r'href="/item/main\.naver\?code=(\d+)">(.*?)</a>', res.text)
                 for code, name in matches:
-                    items.append({"ticker": code, "name": name.strip()})
+                    items.append({"ticker": code, "name": name.strip(), "market": "KOSPI200"})
     except Exception as e:
         print(f"[ERROR] Naver Finance KOSPI 200 fallback failed: {e}")
+
+    return items
+
+def get_kosdaq150_tickers():
+    """Retrieve KOSDAQ 150 list of tickers and names (PyKRX with Naver Finance fallback)."""
+    items = []
+    
+    # 1. Try PyKRX (2203 is KOSDAQ 150 index code)
+    try:
+        tickers = stock.get_index_portfolio_deposit_file("2203")
+        if tickers and len(tickers) > 0:
+            for ticker in tickers:
+                name = stock.get_market_ticker_name(ticker)
+                items.append({"ticker": ticker, "name": name, "market": "KOSDAQ150"})
+            if len(items) >= 100:
+                return items
+    except Exception as e:
+        print(f"[WARN] PyKRX get_index_portfolio_deposit_file for KOSDAQ 150 failed: {e}")
+
+    # 2. Fallback: Naver Finance KOSDAQ 150 Scraping
+    print("[INFO] Using Naver Finance fallback to fetch KOSDAQ 150 list...")
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    try:
+        for page in range(1, 16):
+            url = f"https://finance.naver.com/sise/entryJongmok.naver?page={page}&idx_code=2203"
+            res = requests.get(url, headers=headers, timeout=5)
+            res.encoding = 'euc-kr'
+            if BeautifulSoup:
+                soup = BeautifulSoup(res.text, "html.parser")
+                tds = soup.find_all("td", class_="ctg")
+                for td in tds:
+                    a = td.find("a")
+                    if a and 'code=' in a.get('href', ''):
+                        match = re.search(r'code=(\d+)', a['href'])
+                        if match:
+                            items.append({"ticker": match.group(1), "name": a.text.strip(), "market": "KOSDAQ150"})
+            else:
+                matches = re.findall(r'href="/item/main\.naver\?code=(\d+)">(.*?)</a>', res.text)
+                for code, name in matches:
+                    items.append({"ticker": code, "name": name.strip(), "market": "KOSDAQ150"})
+    except Exception as e:
+        print(f"[ERROR] Naver Finance KOSDAQ 150 fallback failed: {e}")
 
     return items
 
@@ -389,23 +431,27 @@ def post_to_google_sheets(url, action, data):
         print(f"[ERROR] Failed to post to Google Sheets ({action}): {e}")
 
 if __name__ == "__main__":
-    print("[INFO] KOSPI 200 Stock Signal Screener Engine Starting...")
+    print("[INFO] KOSPI 200 & KOSDAQ 150 Stock Signal Screener Engine Starting...")
     
     gas_url = os.environ.get("GAS_WEBAPP_URL", "")
 
-    # 1. Fetch KOSPI 200 Tickers
-    print("[1/4] Fetching KOSPI 200 component tickers...")
-    items = get_kospi200_tickers()
-    print(f" -> Found {len(items)} tickers.")
+    # 1. Fetch KOSPI 200 & KOSDAQ 150 Tickers
+    print("[1/4] Fetching KOSPI 200 and KOSDAQ 150 component tickers...")
+    kospi_items = get_kospi200_tickers()
+    kosdaq_items = get_kosdaq150_tickers()
+    print(f" -> Found KOSPI 200: {len(kospi_items)} tickers | KOSDAQ 150: {len(kosdaq_items)} tickers.")
+
+    all_target_items = kospi_items + kosdaq_items
 
     buy_candidates = []
-    all_stocks = []
+    kospi_stocks = []
+    kosdaq_stocks = []
     end_date = datetime.datetime.now().strftime("%Y%m%d")
     start_date = (datetime.datetime.now() - datetime.timedelta(days=365)).strftime("%Y%m%d")
 
     stock_df_map = {}
 
-    # 2. Screen Buy Signals across all KOSPI 200 (Parallel ThreadPoolExecutor for 10x Speedup)
+    # 2. Screen Buy Signals across all KOSPI 200 & KOSDAQ 150 (Parallel Execution)
     print("[2/4] Calculating indicators and screening buy signals (Parallel Execution)...")
     
     from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -413,6 +459,7 @@ if __name__ == "__main__":
     def process_single_stock(item):
         ticker = item['ticker']
         name = item['name']
+        market = item.get('market', 'KOSPI200')
         try:
             df = get_ohlcv_data(ticker, start_date, end_date)
             df = check_and_trim_incomplete_candle(df)
@@ -444,6 +491,7 @@ if __name__ == "__main__":
             if buy_res:
                 buy_res['ticker'] = clean_ticker
                 buy_res['name'] = name
+                buy_res['market'] = market
                 buy_res['prev_adx'] = round(prev_adx, 2)
                 buy_res['prev_minus_di'] = round(prev_mdi, 2)
                 buy_item = buy_res
@@ -454,6 +502,7 @@ if __name__ == "__main__":
             stock_item = {
                 "ticker": clean_ticker,
                 "name": name,
+                "market": market,
                 "adx": round(curr_adx, 2),
                 "minus_di": round(curr_mdi, 2),
                 "plus_di": round(curr_pdi, 2),
@@ -469,39 +518,44 @@ if __name__ == "__main__":
                 "close": curr_close,
                 "status": status_text
             }
-            return (clean_ticker, name, df, buy_item, stock_item)
+            return (clean_ticker, name, market, df, buy_item, stock_item)
         except Exception as e:
             return None
 
-    with ThreadPoolExecutor(max_workers=8) as executor:
-        results = list(executor.map(process_single_stock, items))
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        results = list(executor.map(process_single_stock, all_target_items))
         for res in results:
             if res:
-                clean_ticker, name, df, buy_item, stock_item = res
+                clean_ticker, name, market, df, buy_item, stock_item = res
                 stock_df_map[clean_ticker] = (df, name)
                 stock_df_map[name.replace(' ', '')] = (df, name)
-                all_stocks.append(stock_item)
+                if market == "KOSDAQ150":
+                    kosdaq_stocks.append(stock_item)
+                else:
+                    kospi_stocks.append(stock_item)
                 if buy_item:
                     buy_candidates.append(buy_item)
-                    print(f"  🔥 [BUY SIGNAL] {buy_item['name']} ({buy_item['ticker']}) - {buy_item['priority']} | ADX: {buy_item['adx']} | RSI: {buy_item['rsi']}")
+                    print(f"  🔥 [BUY SIGNAL] [{market}] {buy_item['name']} ({buy_item['ticker']}) - {buy_item['priority']} | ADX: {buy_item['adx']} | RSI: {buy_item['rsi']}")
 
     # Sort buy candidates by priority score (3단계 -> 2단계 -> 1단계)
     buy_candidates.sort(key=lambda x: x['score'], reverse=True)
-    print(f" -> Found {len(buy_candidates)} buy candidate stocks.")
-    print(f" -> Calculated indicators for {len(all_stocks)} stocks.")
+    print(f" -> Found {len(buy_candidates)} buy candidate stocks across KOSPI 200 & KOSDAQ 150.")
+    print(f" -> Calculated indicators for KOSPI 200 ({len(kospi_stocks)}) and KOSDAQ 150 ({len(kosdaq_stocks)}).")
 
     # 3. Post to Google Sheets API
     if gas_url:
         print("[3/4] Posting screening results to Google Sheets...")
         log_payload = {
             "status": "SUCCESS",
-            "scanned": len(items),
+            "scanned": len(all_target_items),
             "count": len(buy_candidates),
-            "message": f"KOSPI 200 {len(items)}개 종목 검사 완료 (매수 신호: {len(buy_candidates)}개)"
+            "message": f"KOSPI 200 ({len(kospi_items)}개), KOSDAQ 150 ({len(kosdaq_items)}개) 종목 검사 완료 (매수 신호: {len(buy_candidates)}개)"
         }
         post_to_google_sheets(gas_url, "update_buy_candidates", {
             "candidates": buy_candidates,
-            "all_stocks": all_stocks,
+            "kospi_stocks": kospi_stocks,
+            "kosdaq_stocks": kosdaq_stocks,
+            "all_stocks": kospi_stocks,
             "log": log_payload
         })
 

@@ -333,7 +333,7 @@
         <div class="brand-icon"><i class="fa-solid fa-chart-line"></i></div>
         <div style="display: flex; flex-direction: column;">
           <span style="font-size: 1.1rem; font-weight: 700; color: #0f172a; line-height: 1.1;">StockSignal</span>
-          <span style="font-size: 0.7rem; color: #2563eb; font-weight: 600; margin-top: 1px;">KOSPI 200</span>
+          <span style="font-size: 0.7rem; color: #2563eb; font-weight: 600; margin-top: 1px;">KOSPI 200 & KOSDAQ 150</span>
         </div>
       </div>
       <div class="header-right-group">
@@ -384,7 +384,7 @@
       </div>
     </div>
 
-    <!-- Tab Navigation (4 Standalone Tabs: 매수 신호, 매도 신호, 보유 종목, 전체 종목) -->
+    <!-- Tab Navigation (5 Standalone Tabs: 매수 신호, 매도 신호, 보유 종목, 코스피200, 코스닥150) -->
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('buy-tab')">
         <i class="fa-solid fa-cart-shopping"></i>
@@ -400,7 +400,11 @@
       </button>
       <button class="tab-btn" onclick="switchTab('all-stocks-tab')">
         <i class="fa-solid fa-list-ul"></i>
-        <span>전체 종목</span>
+        <span>코스피200</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('kosdaq-stocks-tab')">
+        <i class="fa-solid fa-chart-simple"></i>
+        <span>코스닥150</span>
       </button>
     </div>
 
@@ -485,7 +489,7 @@
       </div>
     </div>
 
-    <!-- Tab 4: All 200 Stocks Metrics -->
+    <!-- Tab 4: KOSPI 200 Stocks Metrics -->
     <div id="all-stocks-tab" class="tab-content" style="display: none;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
         <h3 style="font-weight: 600; font-size: 1rem;">KOSPI 200 지표</h3>
@@ -518,8 +522,8 @@
               <th style="text-align:center;" onclick="showIndicatorHelp('MACD')" title="클릭 시 MACD 지표 설명 보기">MACD <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
               <th style="text-align:center;" onclick="showIndicatorHelp('STOCH')" title="클릭 시 STOCH 지표 설명 보기">STOCH <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
               <th style="text-align:center;" onclick="showIndicatorHelp('DISPARITY')" title="클릭 시 이격도 지표 설명 보기">이격도 <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('VR')" title="클릭 시 VR 지표 설명 보기">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;">현재가</th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('VOLUME')" title="클릭 시 거래량 비율 설명 보기">거래량 <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:right; padding-right: 28px;">현재가</th>
               <th style="text-align:center;">상태</th>
             </tr>
           </thead>
@@ -606,6 +610,7 @@
     let holdingsData = [];
     let executionLogsData = [];
     let allMetricsData = [];
+    let kosdaqMetricsData = [];
 
     async function verifyPin() {
       const pinVal = document.getElementById('input-pin').value.trim();
@@ -678,6 +683,7 @@
         const holdingsStatusData = data.holdingsStatus || [];
         executionLogsData = data.executionLogs || [];
         allMetricsData = data.allMetrics || [];
+        kosdaqMetricsData = data.kosdaqMetrics || [];
         const sellSignalsData = data.sellSignals || [];
 
         // Extract latest date metrics for display in renderAllStocks (from 60-day rolling DB)
@@ -693,9 +699,21 @@
           }
         }
 
-        // Dynamically add today's '관심종목' from latestMetricsData without storing them in historical database
+        let latestKosdaqMetricsData = kosdaqMetricsData;
+        if (kosdaqMetricsData.length > 150) {
+          const latestDate = kosdaqMetricsData[kosdaqMetricsData.length - 1].Date || kosdaqMetricsData[kosdaqMetricsData.length - 1].date;
+          if (latestDate) {
+            const latestYMD = parseYMD(latestDate);
+            latestKosdaqMetricsData = kosdaqMetricsData.filter(item => parseYMD(item.Date || item.date) === latestYMD);
+          }
+          if (latestKosdaqMetricsData.length === 0) {
+            latestKosdaqMetricsData = kosdaqMetricsData.slice(-150);
+          }
+        }
+
+        // Dynamically add today's '관심종목' from latestMetricsData & latestKosdaqMetricsData
         const todayWatchlistMap = new Map();
-        latestMetricsData
+        [...latestMetricsData, ...latestKosdaqMetricsData]
           .filter(item => String(item.Status || item.status || '').includes('관심종목'))
           .forEach(item => {
             const tk = formatTicker(item.Ticker || item.ticker || item.code);
@@ -720,19 +738,22 @@
         const combinedBuyList = [...buyCandidatesData, ...todayWatchlist];
 
         window.latestMetricsCacheData = latestMetricsData;
+        window.latestKosdaqMetricsCacheData = latestKosdaqMetricsData;
 
         renderBuyCandidates(combinedBuyList, executionLogsData);
-        renderHoldings(holdingsData, allMetricsData, holdingsStatusData);
+        renderHoldings(holdingsData, [...allMetricsData, ...kosdaqMetricsData], holdingsStatusData);
         renderSellSignals(sellSignalsData);
         renderAllStocks(latestMetricsData);
+        renderKosdaqStocks(latestKosdaqMetricsData);
         
         document.getElementById('count-buy').textContent = buyCandidatesData.length;
         document.getElementById('count-sell').textContent = sellSignalsData.length;
         document.getElementById('count-holdings').textContent = holdingsData.length;
 
-        // Calculate profit & loss counts from holdingsData & allMetricsData
+        // Calculate profit & loss counts from holdingsData & metricsData
         let profitCount = 0;
         let lossCount = 0;
+        const combinedAllMetrics = [...allMetricsData, ...kosdaqMetricsData];
         holdingsData.forEach(item => {
           const rawTicker = formatTicker(item.Ticker || item.ticker || item.code || '');
           const rawName = String(item.Name || item.name || '').trim();
@@ -742,7 +763,7 @@
             const sTicker = formatTicker(s.Ticker || s.ticker || '');
             const sName = String(s.Name || s.name || '').trim();
             return (rawTicker && rawTicker !== '-' && sTicker === rawTicker) || (rawName && sName === rawName);
-          }) || allMetricsData.find(m => {
+          }) || combinedAllMetrics.find(m => {
             const mTicker = formatTicker(m.Ticker || m.ticker || '');
             const mName = String(m.Name || m.name || '').trim();
             return (rawTicker && rawTicker !== '-' && mTicker === rawTicker) || (rawName && mName === rawName);
@@ -1163,6 +1184,91 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       renderAllStocks(filtered);
     }
 
+    function renderKosdaqStocks(list) {
+      const tbody = document.getElementById('kosdaq-stocks-body');
+      if (!tbody) return;
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-sub); padding:24px;">저장된 KOSDAQ 150 전체 종목 지표 데이터가 없습니다.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(item => {
+        const rawStatus = String(item.Status || item.status || '관망');
+        let statusText = rawStatus;
+        let badgeClass = 'badge-neutral';
+        if (rawStatus.includes('3단계') || rawStatus.includes('Tier 1')) { badgeClass = 'badge-t1'; statusText = '3단계'; }
+        else if (rawStatus.includes('2단계') || rawStatus.includes('Tier 2')) { badgeClass = 'badge-t2'; statusText = '2단계'; }
+        else if (rawStatus.includes('1단계') || rawStatus.includes('Tier 3')) { badgeClass = 'badge-t3'; statusText = '1단계'; }
+        else if (rawStatus.includes('관심종목') || rawStatus.includes('추세강함')) { badgeClass = 'badge-sell-warn'; statusText = '관심종목'; }
+        else { statusText = '관망'; }
+
+        const name = (item.Name || item.name || '').replace(/'/g, "\\'");
+        const ticker = formatTicker(item.Ticker || item.ticker || item.code);
+        const currAdx = formatDec(item.ADX || item.adx);
+        const currMdi = formatDec(item.Minus_DI || item.minus_di);
+        const currPdi = formatDec(item.Plus_DI || item.plus_di);
+        const rsi = formatDec(item.RSI || item.rsi);
+
+        const rawBB = (item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']));
+        const bBandPctVal = (rawBB !== undefined && rawBB !== null && rawBB !== '') ? Number(rawBB) : NaN;
+        const bBandPctStr = formatDec(rawBB);
+        let bbColor = 'inherit';
+        if (!isNaN(bBandPctVal)) {
+          if (bBandPctVal <= 0.0) bbColor = 'var(--accent-green)';
+          else if (bBandPctVal >= 1.0) bbColor = '#f87171';
+        }
+
+        const macdOsc = formatDec(item.MACD_Osc !== undefined ? item.MACD_Osc : item.macd_osc);
+        const stochK = formatDec(item.Stoch_K !== undefined ? item.Stoch_K : item.stoch_k);
+        const stochD = formatDec(item.Stoch_D !== undefined ? item.Stoch_D : item.stoch_d);
+        const disparity = formatDec(item.Disparity20 !== undefined ? item.Disparity20 : item.disparity20);
+        const vr = formatDec(item.VolumeRatio !== undefined ? item.VolumeRatio : item.volume_ratio, 0);
+
+        const macdOscNum = Number(macdOsc);
+        let macdColor = 'inherit';
+        if (!isNaN(macdOscNum)) {
+          if (macdOscNum > 0) macdColor = '#f87171';
+          else if (macdOscNum < 0) macdColor = 'var(--accent-cyan)';
+        }
+
+        const reason = `ADX: ${currAdx}, -DI: ${currMdi}, +DI: ${currPdi}, RSI: ${rsi}, 볼린저%b: ${bBandPctStr}, MACD Oscill: ${macdOsc}, Stoch K/D: ${stochK}/${stochD}, 20일 이격도: ${disparity}%, 5일평균 대비 거래량: ${vr}%`;
+
+        return `
+          <tr>
+            <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
+            <td style="text-align:center;"><strong style="color: ${Number(item.ADX || item.adx) >= 25 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
+            <td style="text-align:center;">${currMdi}</td>
+            <td style="text-align:center;">${currPdi}</td>
+            <td style="text-align:center;"><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
+            <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
+            <td style="text-align:center;"><span style="color: ${macdColor}">${macdOsc}</span></td>
+            <td style="text-align:center;">${stochK} / ${stochD}</td>
+            <td style="text-align:center;"><span style="color: ${Number(disparity) <= 95 ? 'var(--accent-green)' : (Number(disparity) >= 105 ? '#f87171' : 'inherit')}">${disparity}%</span></td>
+            <td style="text-align:center;"><strong style="color: ${Number(vr) >= 150 ? 'var(--accent-warning)' : 'inherit'}">${vr}%</strong></td>
+            <td style="text-align:right; padding-right: 28px;">${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
+            <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 세부 지표 확인">${statusText}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterKosdaqStocksTable() {
+      const inputEl = document.getElementById('kosdaq-stocks-search');
+      if (!inputEl) return;
+      const query = inputEl.value.toLowerCase().trim().replace(/\s+/g, '');
+      const sourceList = (window.latestKosdaqMetricsCacheData && window.latestKosdaqMetricsCacheData.length > 0) ? window.latestKosdaqMetricsCacheData : kosdaqMetricsData;
+      if (!query) {
+        renderKosdaqStocks(sourceList);
+        return;
+      }
+      const filtered = sourceList.filter(item => {
+        const name = String(item.Name || item.name || '').toLowerCase().replace(/\s+/g, '');
+        const rawTicker = String(item.Ticker || item.ticker || item.code || '').toLowerCase().replace(/\s+/g, '');
+        const formattedTicker = formatTicker(item.Ticker || item.ticker || item.code).toLowerCase();
+        return name.includes(query) || rawTicker.includes(query) || formattedTicker.includes(query);
+      });
+      renderKosdaqStocks(filtered);
+    }
+
     function renderHoldings(list, metricsList = [], statusList = []) {
       const tbody = document.getElementById('holdings-body');
       if (!list || list.length === 0) {
@@ -1293,49 +1399,6 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           <tr>
             <td><span style="color:var(--text-sub); font-size:0.85rem;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
             <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
-            <td style="text-align:right; padding-right: 28px;">${Number(item.BuyPrice || item.buyPrice || 0).toLocaleString()} 원</td>
-            <td style="text-align:right; padding-right: 28px;">${Number(item.CurrPrice || item.currPrice || 0).toLocaleString()} 원</td>
-            <td style="text-align:center;"><strong style="color:${rateColor}">${rateSign}${rate.toFixed(2)}%</strong></td>
-            <td style="text-align:center;"><strong style="color:var(--accent-cyan);">${adx}</strong></td>
-            <td style="text-align:center;">${mdi}</td>
-            <td style="text-align:center;">${pdi}</td>
-            <td style="text-align:center;"><span style="color: ${Number(rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
-            <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
-            <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${item.Name || item.name}', '${level}', '${escapedDetails}', '${badgeClass}')" title="클릭 시 감시 사유 확인">${level}</span></td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function renderSellSignals(list) {
-      const tbody = document.getElementById('sell-signals-body');
-      if (!tbody) return;
-      if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--text-sub); padding:24px;">
-          감지된 매도 경고 또는 매도 신호 이력이 없습니다.
-        </td></tr>`;
-        return;
-      }
-      const reversedList = [...list].reverse();
-      tbody.innerHTML = reversedList.map(item => {
-        const rate = Number(item.ReturnRate || item.returnRate || 0);
-        const rateColor = rate > 0 ? 'var(--accent-red)' : rate < 0 ? 'var(--accent-blue)' : 'inherit';
-        const rateSign = rate > 0 ? '+' : '';
-        
-        let level = String(item.Status || item.signalLevel || '관망').trim();
-        if (!level || !isNaN(Number(level)) || level === 'undefined') {
-          level = '1단계: 매도 추천';
-        }
-
-        let badgeClass = 'badge-neutral';
-        if (level.includes('3단계') || level.includes('강력 매도') || level.includes('하락 재발동')) badgeClass = 'badge-sell-danger';
-        else if (level.includes('2단계') || level.includes('적극 매도') || level.includes('상승 둔화')) badgeClass = 'badge-sell-warn';
-        else if (level.includes('1단계') || level.includes('매도 추천') || level.includes('익절')) badgeClass = 'badge-t2';
-
-        const ticker = formatTicker(item.Ticker || item.ticker || item.code);
-        const adx = formatDec(item.ADX || item.adx);
-        const pdi = formatDec(item.Plus_DI || item.plus_di || item.plusDi);
-        const mdi = formatDec(item.Minus_DI || item.minus_di || item.minusDi);
         const rsi = formatDec(item.RSI || item.rsi);
 
         const rawBB = (item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']));
