@@ -1772,13 +1772,13 @@
       const targetMarket = targetMarketSelect ? targetMarketSelect.value : 'ALL';
       const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 1000000;
 
-      // 1. Sort trades chronologically by exitDate
       const sortedChronological = trades.slice().sort((a, b) => a.exitDate.localeCompare(b.exitDate));
 
-      // 2. Build Continuous Daily Timeline (Every single trading day for smooth continuous tracking)
+      // 1. Continuous Daily Timeline from normalized KOSPI daily candles
       let fineDates = [];
       if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
-        const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        const rawK = (REAL_PRELOADED_DATA['KOSPI'] || []).map(normalizeRow);
+        const kRows = rawK.filter(r => r.date >= startDateStr && r.date <= endDateStr);
         if (kRows.length > 0) {
           fineDates = kRows.map(r => r.date);
         }
@@ -1792,17 +1792,17 @@
         fineDates = Array.from(fineDatesSet).sort();
       }
 
-      // 3. Fast Price Map for Mark-to-Market Portfolio Equity Curves
+      // 2. Normalized Price Map for Mark-to-Market Portfolio Equity Curves
       const priceMap = {};
       if (REAL_PRELOADED_DATA) {
         Object.keys(REAL_PRELOADED_DATA).forEach(ticker => {
           const dateMap = {};
-          REAL_PRELOADED_DATA[ticker].forEach(r => { dateMap[r.date] = r.close; });
+          (REAL_PRELOADED_DATA[ticker] || []).map(normalizeRow).forEach(r => { dateMap[r.date] = r.close; });
           priceMap[ticker] = dateMap;
         });
       }
 
-      // Compute Daily Average Engaged Capital Balance across fineDates (투자금 평잔)
+      // Compute Daily Average Engaged Capital Balance across fineDates
       let dailyEngagedCapitalSum = 0;
       fineDates.forEach(dbDate => {
         const activeCount = trades.filter(t => t.entryDate <= dbDate && t.exitDate >= dbDate).length;
@@ -1811,7 +1811,7 @@
       });
       const averageCapitalBalance = fineDates.length > 0 ? (dailyEngagedCapitalSum / fineDates.length) : tradeAmount;
 
-      // Compute High-Resolution Strategy Equity Curves (Unrealized Mark-to-Market & Realized)
+      // Compute Strategy Equity Curves (Unrealized Mark-to-Market & Realized)
       const strategyUnrealizedData = [];
       const strategyRealizedData = [];
 
@@ -1819,10 +1819,8 @@
         const closed = trades.filter(t => t.exitDate <= dbDate);
         const activeOpen = trades.filter(t => t.entryDate <= dbDate && t.exitDate > dbDate);
 
-        // Accumulated realized KRW net profit from trades exited on or before dbDate
         const closedNetGainSum = closed.reduce((sum, t) => sum + Math.round(tradeAmount * (t.returnPct / 100)), 0);
 
-        // Live paper KRW net profit from trades open on dbDate
         let openPaperGainSum = 0;
         activeOpen.forEach(t => {
           const stockPrices = priceMap[t.ticker] || {};
@@ -1838,7 +1836,7 @@
         strategyUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
       });
 
-      // Calculate Portfolio Peak-to-Trough MDD from strategyUnrealizedData
+      // Calculate Portfolio Peak-to-Trough MDD
       let peakVal = -999999;
       let maxDrawdownVal = 0;
       strategyUnrealizedData.forEach(val => {
@@ -1851,7 +1849,7 @@
       // Calculate Return on Average Capital Balance
       const returnOnAvgCapital = averageCapitalBalance > 0 ? ((totalNetReturnAmount / averageCapitalBalance) * 100) : 0;
 
-      // Update 6 KPI Card Metrics in UI
+      // Update 6 KPI Cards in UI
       const kpiTotalEl = document.getElementById('kpi-total-return');
       if (kpiTotalEl) {
         kpiTotalEl.textContent = `${totalNetReturnAmount >= 0 ? '+' : ''}${totalNetReturnAmount.toLocaleString()}원`;
@@ -1892,17 +1890,17 @@
       const kpiAvgHoldingEl = document.getElementById('kpi-avg-holding');
       if (kpiAvgHoldingEl) kpiAvgHoldingEl.textContent = `평균 보유: ${avgHold}일 | 총 ${totalTrades}회`;
 
-      // 4. Compute High-Resolution Benchmark Curves with accurate start-date base close
+      // 3. Compute High-Resolution Benchmark Curves with normalized KOSPI / KOSDAQ rows
       const kospiCloseList = [];
       let kospiBenchmarkData = fineDates.map(() => 0);
       if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
-        const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        const kRows = (REAL_PRELOADED_DATA['KOSPI'] || []).map(normalizeRow).filter(r => r.date >= startDateStr && r.date <= endDateStr);
         if (kRows.length > 0) {
           const baseClose = kRows[0].close;
           kospiBenchmarkData = fineDates.map(dbDate => {
             const rowAtDate = kRows.filter(r => r.date <= dbDate).pop() || kRows[0];
             kospiCloseList.push(rowAtDate.close);
-            const pctChange = ((rowAtDate.close - baseClose) / baseClose) * 100;
+            const pctChange = baseClose > 0 ? (((rowAtDate.close - baseClose) / baseClose) * 100) : 0;
             return parseFloat(pctChange.toFixed(1));
           });
         }
@@ -1911,13 +1909,13 @@
       const kosdaqCloseList = [];
       let kosdaqBenchmarkData = fineDates.map(() => 0);
       if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSDAQ']) {
-        const kqRows = REAL_PRELOADED_DATA['KOSDAQ'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        const kqRows = (REAL_PRELOADED_DATA['KOSDAQ'] || []).map(normalizeRow).filter(r => r.date >= startDateStr && r.date <= endDateStr);
         if (kqRows.length > 0) {
           const baseClose = kqRows[0].close;
           kosdaqBenchmarkData = fineDates.map(dbDate => {
             const rowAtDate = kqRows.filter(r => r.date <= dbDate).pop() || kqRows[0];
             kosdaqCloseList.push(rowAtDate.close);
-            const pctChange = ((rowAtDate.close - baseClose) / baseClose) * 100;
+            const pctChange = baseClose > 0 ? (((rowAtDate.close - baseClose) / baseClose) * 100) : 0;
             return parseFloat(pctChange.toFixed(1));
           });
         }
@@ -1925,7 +1923,7 @@
 
       const datasets = [
         {
-          label: '전략 수익률 (%)',
+          label: '나의 퀀트 전략 (평가손익)',
           data: strategyUnrealizedData,
           borderColor: '#2563eb',
           backgroundColor: 'rgba(37, 99, 235, 0.05)',
@@ -1936,7 +1934,7 @@
           tension: 0.1
         },
         {
-          label: '체결 실현 수익률 (%)',
+          label: '나의 퀀트 전략 (실현손익)',
           data: strategyRealizedData,
           borderColor: '#7c3aed',
           fill: false,
