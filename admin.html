@@ -1354,9 +1354,14 @@
       // Format X-axis Labels cleanly (YYYY.MM format for clean autoSkip ticks)
       const fineLabels = fineDates.map(d => d.slice(0, 7).replace('-', '.'));
 
+      // Calculate final values for legend labels
+      const finalStratPct = strategyData.length > 0 ? strategyData[strategyData.length - 1] : 0;
+      const stratSign = finalStratPct >= 0 ? '+' : '';
+      const stratLabel = `나의 퀀트 전략 (${stratSign}${finalStratPct.toFixed(1)}%)`;
+
       const datasets = [
         {
-          label: '나의 퀀트 전략 누적 자산',
+          label: stratLabel,
           data: strategyData,
           borderColor: '#2563eb',
           backgroundColor: 'rgba(37, 99, 235, 0.05)',
@@ -1369,8 +1374,20 @@
       ];
 
       if (targetMarket === 'KOSPI200' || targetMarket === 'ALL') {
+        const finalKospiPct = kospiBenchmarkData.length > 0 ? kospiBenchmarkData[kospiBenchmarkData.length - 1] : 0;
+        const kSign = finalKospiPct >= 0 ? '+' : '';
+        let kPointStr = "";
+        if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI'] && REAL_PRELOADED_DATA['KOSPI'].length > 0) {
+          const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+          if (kRows.length > 0) {
+            const lastVal = kRows[kRows.length - 1].close;
+            kPointStr = ` (${lastVal.toLocaleString()}pt, ${kSign}${finalKospiPct.toFixed(1)}%)`;
+          }
+        }
+        if (!kPointStr) kPointStr = ` (${kSign}${finalKospiPct.toFixed(1)}%)`;
+
         datasets.push({
-          label: 'KOSPI 실제 지수',
+          label: `KOSPI 실제 지수${kPointStr}`,
           data: kospiBenchmarkData,
           borderColor: '#dc2626',
           borderDash: [4, 4],
@@ -1382,8 +1399,20 @@
       }
 
       if (targetMarket === 'KOSDAQ150' || targetMarket === 'ALL') {
+        const finalKosdaqPct = kosdaqBenchmarkData.length > 0 ? kosdaqBenchmarkData[kosdaqBenchmarkData.length - 1] : 0;
+        const kqSign = finalKosdaqPct >= 0 ? '+' : '';
+        let kqPointStr = "";
+        if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSDAQ'] && REAL_PRELOADED_DATA['KOSDAQ'].length > 0) {
+          const kqRows = REAL_PRELOADED_DATA['KOSDAQ'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+          if (kqRows.length > 0) {
+            const lastVal = kqRows[kqRows.length - 1].close;
+            kqPointStr = ` (${lastVal.toLocaleString()}pt, ${kqSign}${finalKosdaqPct.toFixed(1)}%)`;
+          }
+        }
+        if (!kqPointStr) kqPointStr = ` (${kqSign}${finalKosdaqPct.toFixed(1)}%)`;
+
         datasets.push({
-          label: 'KOSDAQ 실제 지수',
+          label: `KOSDAQ 실제 지수${kqPointStr}`,
           data: kosdaqBenchmarkData,
           borderColor: '#059669',
           borderDash: [4, 4],
