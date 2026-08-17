@@ -678,33 +678,30 @@
         </div>
 
         <!-- Stock Selector & Search Filter -->
-        <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 4px;">
+        <div style="display: flex; gap: 6px; margin-bottom: 10px; align-items: center; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 3px;">
             <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-sub); white-space: nowrap;">시장:</span>
-            <select id="viewer-market-filter" class="form-select" style="padding: 4px 6px; font-size: 0.78rem;" onchange="filterViewerStockList()">
+            <select id="viewer-market-filter" class="form-select" style="padding: 4px 5px; font-size: 0.78rem; width: auto;" onchange="filterViewerStockList()">
               <option value="ALL">전체</option>
-              <option value="KOSPI200">코스피200</option>
-              <option value="KOSDAQ150">코스닥150</option>
+              <option value="KOSPI200">코스피</option>
+              <option value="KOSDAQ150">코스닥</option>
             </select>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 140px;">
+          <div style="display: flex; align-items: center; gap: 3px; flex: 1; min-width: 90px;">
             <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-sub); white-space: nowrap;">종목:</span>
-            <select id="viewer-stock-select" class="form-select" style="flex: 1; padding: 4px 6px; font-size: 0.78rem;" onchange="loadViewerStockData(this.value)">
+            <select id="viewer-stock-select" class="form-select" style="flex: 1; min-width: 80px; padding: 4px 5px; font-size: 0.78rem;" onchange="loadViewerStockData(this.value)">
             </select>
           </div>
 
-          <input type="text" id="viewer-quick-search" placeholder="종목/코드 검색..." class="form-input" style="width: 120px; font-size: 0.78rem; padding: 4px 6px;" oninput="searchViewerStock(this.value)">
+          <input type="text" id="viewer-quick-search" placeholder="검색..." class="form-input" style="width: 85px; min-width: 75px; font-size: 0.78rem; padding: 4px 5px;" oninput="searchViewerStock(this.value)">
         </div>
 
         <!-- Data Info Summary -->
-        <div id="viewer-stock-summary" style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 12px; font-size: 0.8rem;">
+        <div id="viewer-stock-summary" style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 10px; font-size: 0.8rem;">
           <div>
-            <strong id="viewer-target-name" style="font-size: 0.9rem; color: #0f172a;">삼성전자 (005930)</strong>
+            <strong id="viewer-target-name" style="font-size: 0.88rem; color: #0f172a;">삼성전자 (005930)</strong>
             <span id="viewer-target-market" style="background:#e2e8f0; padding:1px 5px; border-radius:4px; font-size:0.72rem; margin-left:6px;">KOSPI200</span>
-          </div>
-          <div class="label-desktop" style="color: var(--text-sub);">
-            데이터 기간: <strong>2021.01.04 ~ 2026.08.14 (최종 개장일)</strong> (총 <span id="viewer-total-candles" style="font-weight:700; color:#2563eb;">1,250</span>개 일봉)
           </div>
         </div>
 
@@ -748,28 +745,26 @@
         </div>
 
         <!-- Search & Filter Controls -->
-        <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 4px;">
+        <div style="display: flex; gap: 6px; margin-bottom: 10px; align-items: center; width: 100%;">
+          <div style="display: flex; align-items: center; gap: 3px;">
             <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-sub); white-space: nowrap;">시장:</span>
-            <select id="log-filter-market" class="form-select" style="padding: 4px 6px; font-size: 0.78rem;" onchange="filterTradeLogs()">
+            <select id="log-filter-market" class="form-select" style="padding: 4px 5px; font-size: 0.78rem; width: auto;" onchange="filterTradeLogs()">
               <option value="ALL">전체</option>
-              <option value="KOSPI200">코스피200</option>
-              <option value="KOSDAQ150">코스닥150</option>
+              <option value="KOSPI200">코스피</option>
+              <option value="KOSDAQ150">코스닥</option>
             </select>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 4px;">
+          <div style="display: flex; align-items: center; gap: 3px;">
             <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-sub); white-space: nowrap;">체결:</span>
-            <select id="log-filter-result" class="form-select" style="padding: 4px 6px; font-size: 0.78rem;" onchange="filterTradeLogs()">
+            <select id="log-filter-result" class="form-select" style="padding: 4px 5px; font-size: 0.78rem; width: auto;" onchange="filterTradeLogs()">
               <option value="ALL">전체</option>
-              <option value="WIN">승 (익절)</option>
-              <option value="LOSS">패 (손절)</option>
+              <option value="WIN">승</option>
+              <option value="LOSS">패</option>
             </select>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 120px;">
-            <input type="text" id="log-filter-search" placeholder="종목/코드 검색..." class="form-input" style="width: 100%; font-size: 0.78rem; padding: 4px 6px;" oninput="filterTradeLogs()">
-          </div>
+          <input type="text" id="log-filter-search" placeholder="검색..." class="form-input" style="flex: 1; min-width: 75px; font-size: 0.78rem; padding: 4px 5px;" oninput="filterTradeLogs()">
         </div>
 
         <div class="table-container" style="max-height: 600px; overflow-y: auto;">
