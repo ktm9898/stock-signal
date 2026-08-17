@@ -470,13 +470,13 @@
             <div class="kpi-card">
               <div class="kpi-title">총 순수익 금액</div>
               <div class="kpi-value" id="kpi-total-return" style="color: var(--accent-red);">+0원</div>
-              <div class="kpi-sub" id="kpi-capital-gain">수익률: 0.0%</div>
+              <div class="kpi-sub" id="kpi-capital-gain">누적 수익률: +0.0%</div>
             </div>
 
             <div class="kpi-card">
-              <div class="kpi-title">연평균 수익률 (CAGR)</div>
+              <div class="kpi-title">건당 평균 수익률</div>
               <div class="kpi-value" id="kpi-cagr" style="color: var(--accent-purple);">0.0%</div>
-              <div class="kpi-sub">연환산 수익률</div>
+              <div class="kpi-sub">회당 평균 기대 수익률</div>
             </div>
 
             <div class="kpi-card">
@@ -1053,12 +1053,14 @@
             if (dd > maxDrawdown) maxDrawdown = dd;
           });
 
+          const cumReturnPct = tradeAmount > 0 ? (totalNetReturnAmount / tradeAmount) * 100 : 0;
+
           // Render KPI metrics
           document.getElementById('kpi-total-return').textContent = `${totalNetReturnAmount >= 0 ? '+' : ''}${totalNetReturnAmount.toLocaleString()}원`;
           document.getElementById('kpi-total-return').style.color = totalNetReturnAmount >= 0 ? 'var(--accent-red)' : 'var(--primary)';
-          document.getElementById('kpi-capital-gain').textContent = `평균 수익률: ${avgTradeRet >= 0 ? '+' : ''}${avgTradeRet.toFixed(2)}%`;
+          document.getElementById('kpi-capital-gain').textContent = `누적 수익률: ${cumReturnPct >= 0 ? '+' : ''}${cumReturnPct.toFixed(1)}%`;
 
-          document.getElementById('kpi-cagr').textContent = `${cagr >= 0 ? '+' : ''}${cagr.toFixed(2)}%`;
+          document.getElementById('kpi-cagr').textContent = `${avgTradeRet >= 0 ? '+' : ''}${avgTradeRet.toFixed(2)}%`;
           document.getElementById('kpi-win-rate').textContent = `${winRate.toFixed(1)}%`;
           document.getElementById('kpi-win-loss').textContent = `${winTrades}승 / ${lossTrades}패`;
 
