@@ -1099,9 +1099,15 @@
             }
           });
 
-          // Assign original index _origIdx before sorting
+          // Sort chronologically by entryDate (DESC) and signalDate (DESC)
+          allExecutedTrades.sort((a, b) => b.entryDate.localeCompare(a.entryDate) || b.signalDate.localeCompare(a.signalDate));
+
+          // Assign original index _origIdx after chronological sorting (No. 1 = Most Recent Trade)
           allExecutedTrades.forEach((t, idx) => t._origIdx = idx + 1);
           cachedExecutedTrades = allExecutedTrades;
+
+          currentSortField = 'entryDate';
+          currentSortOrder = 'DESC';
 
           // Render tables with sortable header system
           sortTradeLogTable('entryDate');
@@ -1262,9 +1268,11 @@
 
         if (typeof valA === 'string') {
           const cmp = valA.localeCompare(valB);
-          return currentSortOrder === 'ASC' ? cmp : -cmp;
+          if (cmp !== 0) return currentSortOrder === 'ASC' ? cmp : -cmp;
+          return b.entryDate.localeCompare(a.entryDate) || b.signalDate.localeCompare(a.signalDate);
         } else {
-          return currentSortOrder === 'ASC' ? valA - valB : valB - valA;
+          if (valA !== valB) return currentSortOrder === 'ASC' ? valA - valB : valB - valA;
+          return b.entryDate.localeCompare(a.entryDate) || b.signalDate.localeCompare(a.signalDate);
         }
       });
 
