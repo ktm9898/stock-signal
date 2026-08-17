@@ -903,8 +903,34 @@
       }
     }
 
-    function ensureIndicators(rows) {
-      if (!rows || rows.length === 0) return rows;
+    function normalizeRow(r) {
+      if (!r) return null;
+      if (Array.isArray(r)) {
+        return {
+          date: r[0],
+          open: r[1],
+          high: r[2],
+          low: r[3],
+          close: r[4],
+          volume: r[5],
+          adx: r[6],
+          plus_di: r[7],
+          minus_di: r[8],
+          rsi: r[9],
+          bb_pct: r[10],
+          b_band_pct: r[10],
+          macd: r[11],
+          stoch_k: r[12],
+          disparity20: r[13],
+          volume_ratio: r[14]
+        };
+      }
+      return r;
+    }
+
+    function ensureIndicators(rawRows) {
+      if (!rawRows || rawRows.length === 0) return [];
+      const rows = rawRows.map(normalizeRow);
       let macdSignal = null;
       const kMacd = 2 / (9 + 1);
       for (let i = 0; i < rows.length; i++) {
@@ -1295,7 +1321,8 @@
 
           if (targetMarket !== 'ALL' && stockInfo.market !== targetMarket) return;
 
-          const rows = rawRows.filter(r => r.date >= startDateStr && r.date <= endDateStr);
+          const allRows = ensureIndicators(rawRows);
+          const rows = allRows.filter(r => r.date >= startDateStr && r.date <= endDateStr);
           if (rows.length < 5) return;
 
           let inPosition = false;
