@@ -367,6 +367,34 @@
       .modal-content { width: 94vw !important; max-width: 94vw !important; padding: 14px !important; }
       
       #equityChart { height: 260px !important; }
+
+      .filter-bar-responsive {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+      }
+      .filter-item-pair {
+        width: 100% !important;
+      }
+    }
+
+    .filter-bar-responsive {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .filter-item-market {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .filter-item-pair {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
     }
     .operator-select-sm {
       background: #eff6ff;
@@ -678,19 +706,17 @@
         </div>
 
         <!-- Stock Selector & Search Filter -->
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
-          <!-- Line 1: 시장 -->
-          <div style="display: flex; align-items: center; gap: 6px;">
+        <div class="filter-bar-responsive">
+          <div class="filter-item-market">
             <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-sub); white-space: nowrap;">시장:</span>
-            <select id="viewer-market-filter" class="form-select" style="padding: 5px 10px; font-size: 0.8rem; max-width: 220px;" onchange="filterViewerStockList()">
+            <select id="viewer-market-filter" class="form-select" style="padding: 5px 10px; font-size: 0.8rem;" onchange="filterViewerStockList()">
               <option value="ALL">전체 (KOSPI200 + KOSDAQ150)</option>
               <option value="KOSPI200">KOSPI 200</option>
               <option value="KOSDAQ150">KOSDAQ 150</option>
             </select>
           </div>
 
-          <!-- Line 2: 종목 + 검색 -->
-          <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
+          <div class="filter-item-pair">
             <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-sub); white-space: nowrap;">종목:</span>
             <select id="viewer-stock-select" class="form-select" style="flex: 1; min-width: 100px; padding: 5px 8px; font-size: 0.8rem;" onchange="loadViewerStockData(this.value)">
             </select>
@@ -746,19 +772,17 @@
         </div>
 
         <!-- Search & Filter Controls -->
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
-          <!-- Line 1: 시장 -->
-          <div style="display: flex; align-items: center; gap: 6px;">
+        <div class="filter-bar-responsive">
+          <div class="filter-item-market">
             <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-sub); white-space: nowrap;">시장:</span>
-            <select id="log-filter-market" class="form-select" style="padding: 5px 10px; font-size: 0.8rem; max-width: 220px;" onchange="filterTradeLogs()">
+            <select id="log-filter-market" class="form-select" style="padding: 5px 10px; font-size: 0.8rem;" onchange="filterTradeLogs()">
               <option value="ALL">전체 (KOSPI200 + KOSDAQ150)</option>
               <option value="KOSPI200">KOSPI 200</option>
               <option value="KOSDAQ150">KOSDAQ 150</option>
             </select>
           </div>
 
-          <!-- Line 2: 체결 + 검색 -->
-          <div style="display: flex; align-items: center; gap: 6px; width: 100%;">
+          <div class="filter-item-pair">
             <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-sub); white-space: nowrap;">체결:</span>
             <select id="log-filter-result" class="form-select" style="padding: 5px 8px; font-size: 0.8rem; min-width: 80px;" onchange="filterTradeLogs()">
               <option value="ALL">전체</option>
