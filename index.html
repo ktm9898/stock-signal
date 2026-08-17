@@ -1013,10 +1013,25 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
 [실전 활용 팁]
 주가가 반전할 때 거래량 비율이 120%~200% 이상 터져줘야 신호의 신뢰도가 크게 상승합니다.`
+        },
+        'VOLUME': {
+          title: '거래량 비율 (Volume Ratio, VR5)',
+          badge: '수급 폭발 지표',
+          badgeClass: 'badge-t1',
+          content: `[개념]
+최근 5일간의 평균 거래량 대비 당일 거래량이 얼마나 터졌는지를 백분율(%)로 나타냅니다.
+
+[수치별 의미]
+• 100% : 최근 5일 평균과 동일한 거래량
+• 120% 이상 : 거래량 급증 (본 시스템 2단계 적극매수 조건)
+• 200% 이상 : 수급 대폭발 (세력/기관 강한 매수 유입)
+
+[실전 활용 팁]
+주가가 반전할 때 거래량 비율이 120%~200% 이상 터져줘야 신호의 신뢰도가 크게 상승합니다.`
         }
       };
 
-      const item = helpData[type];
+      const item = helpData[type] || helpData['VR'] || helpData['VOLUME'];
       if (!item) return;
 
       document.getElementById('info-modal-title').textContent = item.title;
