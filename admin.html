@@ -519,7 +519,7 @@
           <div style="margin-top: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <h4 style="font-size: 0.88rem; font-weight: 700; color: #1e293b;">
-                누적 자산 성장 곡선 (vs KOSPI 200 벤치마크)
+                누적 자산 성장 곡선 (vs KOSPI / KOSDAQ 실제 지수 벤치마크)
               </h4>
             </div>
             <div style="height: 280px; width: 100%;">
@@ -1273,17 +1273,30 @@
       const ctx = document.getElementById('equityChart').getContext('2d');
       if (equityChartInstance) equityChartInstance.destroy();
 
+      const targetMarket = document.getElementById('opt-target-market').value;
       const { sampleDates, dateBoundaries } = generateDynamicTimeline(startDateStr, endDateStr);
       
-      // Calculate REAL KOSPI 200 Index Curve from KODEX 200 (069500) historical daily candles
-      let realBenchmarkData = dateBoundaries.map(() => 100);
-      
-      if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['069500']) {
-        const kospiRows = REAL_PRELOADED_DATA['069500'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
-        if (kospiRows.length > 5) {
-          const baseClose = kospiRows[0].close;
-          realBenchmarkData = dateBoundaries.map(dbDate => {
-            const rowAtDate = kospiRows.filter(r => r.date <= dbDate).pop() || kospiRows[0];
+      // Calculate REAL KOSPI Index Curve
+      let kospiBenchmarkData = dateBoundaries.map(() => 100);
+      if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
+        const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        if (kRows.length > 5) {
+          const baseClose = kRows[0].close;
+          kospiBenchmarkData = dateBoundaries.map(dbDate => {
+            const rowAtDate = kRows.filter(r => r.date <= dbDate).pop() || kRows[0];
+            return parseFloat(((rowAtDate.close / baseClose) * 100).toFixed(1));
+          });
+        }
+      }
+
+      // Calculate REAL KOSDAQ Index Curve
+      let kosdaqBenchmarkData = dateBoundaries.map(() => 100);
+      if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSDAQ']) {
+        const kqRows = REAL_PRELOADED_DATA['KOSDAQ'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        if (kqRows.length > 5) {
+          const baseClose = kqRows[0].close;
+          kosdaqBenchmarkData = dateBoundaries.map(dbDate => {
+            const rowAtDate = kqRows.filter(r => r.date <= dbDate).pop() || kqRows[0];
             return parseFloat(((rowAtDate.close / baseClose) * 100).toFixed(1));
           });
         }
@@ -1317,30 +1330,47 @@
         strategyData[strategyData.length - 1] = parseFloat((100 + finalCumPct).toFixed(1));
       }
 
+      const datasets = [
+        {
+          label: '나의 퀀트 전략 누적 자산',
+          data: strategyData,
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37, 99, 235, 0.05)',
+          fill: true,
+          borderWidth: 2,
+          tension: 0.2
+        }
+      ];
+
+      if (targetMarket === 'KOSPI200' || targetMarket === 'ALL') {
+        datasets.push({
+          label: 'KOSPI 실제 지수',
+          data: kospiBenchmarkData,
+          borderColor: '#dc2626',
+          borderDash: [4, 4],
+          borderWidth: 1.5,
+          fill: false,
+          tension: 0.2
+        });
+      }
+
+      if (targetMarket === 'KOSDAQ150' || targetMarket === 'ALL') {
+        datasets.push({
+          label: 'KOSDAQ 실제 지수',
+          data: kosdaqBenchmarkData,
+          borderColor: '#059669',
+          borderDash: [4, 4],
+          borderWidth: 1.5,
+          fill: false,
+          tension: 0.2
+        });
+      }
+
       equityChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
           labels: sampleDates,
-          datasets: [
-            {
-              label: '나의 퀀트 전략 누적 자산',
-              data: strategyData,
-              borderColor: '#2563eb',
-              backgroundColor: 'rgba(37, 99, 235, 0.05)',
-              fill: true,
-              borderWidth: 2,
-              tension: 0.2
-            },
-            {
-              label: 'KOSPI 200 실제 지수 (KODEX 200 기준)',
-              data: realBenchmarkData,
-              borderColor: '#64748b',
-              borderDash: [4, 4],
-              borderWidth: 1.5,
-              fill: false,
-              tension: 0.2
-            }
-          ]
+          datasets: datasets
         },
         options: {
           responsive: true,
