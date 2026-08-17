@@ -195,11 +195,6 @@
     "market": "KOSPI200"
   },
   {
-    "ticker": "138040",
-    "name": "메리츠금융지주",
-    "market": "KOSPI200"
-  },
-  {
     "ticker": "018260",
     "name": "삼성에스디에스",
     "market": "KOSPI200"
@@ -735,11 +730,6 @@
     "market": "KOSPI200"
   },
   {
-    "ticker": "426030",
-    "name": "TIME 미국나스닥100액티브",
-    "market": "KOSPI200"
-  },
-  {
     "ticker": "383220",
     "name": "F&F",
     "market": "KOSPI200"
@@ -772,11 +762,6 @@
   {
     "ticker": "181710",
     "name": "NHN",
-    "market": "KOSPI200"
-  },
-  {
-    "ticker": "161510",
-    "name": "PLUS 고배당주",
     "market": "KOSPI200"
   },
   {
@@ -817,11 +802,6 @@
   {
     "ticker": "081660",
     "name": "미스토홀딩스",
-    "market": "KOSPI200"
-  },
-  {
-    "ticker": "456600",
-    "name": "TIME 글로벌AI인공지능액티브",
     "market": "KOSPI200"
   },
   {
@@ -880,11 +860,6 @@
     "market": "KOSPI200"
   },
   {
-    "ticker": "294400",
-    "name": "KIWOOM 200TR",
-    "market": "KOSPI200"
-  },
-  {
     "ticker": "462870",
     "name": "시프트업",
     "market": "KOSPI200"
@@ -900,18 +875,8 @@
     "market": "KOSPI200"
   },
   {
-    "ticker": "442580",
-    "name": "PLUS 글로벌HBM반도체",
-    "market": "KOSPI200"
-  },
-  {
     "ticker": "008770",
     "name": "호텔신라",
-    "market": "KOSPI200"
-  },
-  {
-    "ticker": "395400",
-    "name": "SK리츠",
     "market": "KOSPI200"
   },
   {
@@ -947,11 +912,6 @@
   {
     "ticker": "001800",
     "name": "오리온홀딩스",
-    "market": "KOSPI200"
-  },
-  {
-    "ticker": "152100",
-    "name": "PLUS 200",
     "market": "KOSPI200"
   },
   {
@@ -1748,5 +1708,45 @@
     "ticker": "037460",
     "name": "삼지전자",
     "market": "KOSDAQ150"
+  },
+  {
+    "ticker": "007310",
+    "name": "오뚜기",
+    "market": "KOSPI200"
+  },
+  {
+    "ticker": "001680",
+    "name": "대상",
+    "market": "KOSPI200"
+  },
+  {
+    "ticker": "005300",
+    "name": "롯데칠성",
+    "market": "KOSPI200"
+  },
+  {
+    "ticker": "005610",
+    "name": "빙그레",
+    "market": "KOSPI200"
+  },
+  {
+    "ticker": "016380",
+    "name": "KG스틸",
+    "market": "KOSPI200"
+  },
+  {
+    "ticker": "004000",
+    "name": "롯데정밀화학",
+    "market": "KOSPI200"
+  },
+  {
+    "ticker": "344820",
+    "name": "KCC글라스",
+    "market": "KOSPI200"
+  },
+  {
+    "ticker": "000080",
+    "name": "하이트진로",
+    "market": "KOSPI200"
   }
 ]
