@@ -342,27 +342,15 @@
     <!-- TAB 1: Strategy Builder & Backtest -->
     <div id="tab-strategy" class="tab-view active">
 
-      <!-- Strategy Management Toolbar & Actions -->
+      <!-- Strategy Settings Header & Actions -->
       <div class="quant-card" style="padding: 12px 18px; margin-bottom: 16px; background: #ffffff; border: 1px solid #cbd5e1;">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <i class="fa-solid fa-folder-tree" style="color: #2563eb; font-size: 1.05rem;"></i>
-            <span style="font-size: 0.9rem; font-weight: 700; color: #1e293b;">퀀트 전략 프리셋 보관함</span>
-            <span id="cloud-sync-badge" style="font-size:0.7rem; background:#dcfce7; color:#15803d; border:1px solid #86efac; padding:2px 8px; border-radius:12px; font-weight:600;">
-              <i class="fa-solid fa-cloud-check"></i> 클라우드 동기화 완료
-            </span>
-          </div>
+          <span style="font-size: 0.95rem; font-weight: 700; color: #1e293b;">전략 설정</span>
 
           <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <button class="btn-sm-action" style="background:#2563eb; color:#fff; font-weight:600; padding:6px 14px; font-size:0.8rem;" onclick="openStrategyModal()">
-              <i class="fa-solid fa-box-archive" style="margin-right:4px;"></i> 전략 보관함 (10개 슬롯)
-            </button>
-            <button class="btn-sm-action" style="background:#059669; color:#fff; font-weight:600; padding:6px 14px; font-size:0.8rem;" onclick="openCompareModal()">
-              <i class="fa-solid fa-chart-line" style="margin-right:4px;"></i> 다중 전략 성과 비교
-            </button>
-            <button class="btn-sm-action" style="background:#f1f5f9; color:#334155; font-size:0.75rem;" onclick="fetchGoogleSheetSlots()">
-              <i class="fa-solid fa-arrows-rotate"></i> 동기화
-            </button>
+            <button class="btn-sm-action" style="background:#2563eb; color:#fff; font-weight:600; padding:6px 14px; font-size:0.8rem;" onclick="openSaveModal()">저장</button>
+            <button class="btn-sm-action" style="background:#059669; color:#fff; font-weight:600; padding:6px 14px; font-size:0.8rem;" onclick="openLoadModal()">불러오기</button>
+            <button class="btn-sm-action" style="background:#475569; color:#fff; font-weight:600; padding:6px 14px; font-size:0.8rem;" onclick="openCompareModal()">전략비교</button>
           </div>
         </div>
       </div>
@@ -375,9 +363,7 @@
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <div class="header-btn-group">
-              <button class="btn-sm-action" style="background:#2563eb; color:#fff; font-weight:600;" onclick="openStrategyModal()">
-                <i class="fa-solid fa-folder-open" style="margin-right:3px;"></i> 전략 불러오기
-              </button>
+              <button class="btn-sm-action" onclick="openLoadModal()">불러오기</button>
               <button class="btn-sm-action" onclick="loadDefaultBuyRules()">기본값</button>
               <button class="btn-sm-action" onclick="resetBuyRules()">초기화</button>
             </div>
@@ -403,9 +389,7 @@
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <div class="header-btn-group">
-              <button class="btn-sm-action" style="background:#2563eb; color:#fff; font-weight:600;" onclick="openStrategyModal()">
-                <i class="fa-solid fa-folder-open" style="margin-right:3px;"></i> 전략 불러오기
-              </button>
+              <button class="btn-sm-action" onclick="openLoadModal()">불러오기</button>
               <button class="btn-sm-action" onclick="loadDefaultSellRules()">기본값</button>
               <button class="btn-sm-action" onclick="resetSellRules()">초기화</button>
             </div>
@@ -1440,134 +1424,53 @@
     }
 
     async function fetchGoogleSheetSlots() {
-      const badge = document.getElementById('cloud-sync-badge');
-      const badgeModal = document.getElementById('cloud-sync-badge-modal');
-
-      const setBadge = (htmlStr, bg, color) => {
-        if (badge) { badge.innerHTML = htmlStr; badge.style.background = bg; badge.style.color = color; }
-        if (badgeModal) { badgeModal.innerHTML = htmlStr; badgeModal.style.background = bg; badgeModal.style.color = color; }
-      };
-
-      setBadge(`<i class="fa-solid fa-circle-notch fa-spin"></i> 동기화 중...`, '#fef3c7', '#d97706');
-
       try {
         const resp = await fetch(GAS_WEBAPP_URL_ADMIN + "?action=get_strategy_slots");
         const data = await resp.json();
         if (data && data.success && Array.isArray(data.slots) && data.slots.length === 10) {
           strategySlots = data.slots;
           localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
-          renderStrategySlotsTableModal();
-          setBadge(`<i class="fa-solid fa-cloud-check"></i> 동기화 완료`, '#dcfce7', '#15803d');
           return;
         }
       } catch (err) {
         console.warn("Google Sheets Sync Fallback to localStorage:", err);
       }
-
-      renderStrategySlotsTableModal();
-      setBadge(`<i class="fa-solid fa-hard-drive"></i> 로컬 보존 중`, '#e2e8f0', '#475569');
     }
 
-    function openStrategyModal() {
-      renderStrategySlotsTableModal();
-      document.getElementById('strategy-modal').style.display = 'flex';
+    function openSaveModal() {
+      const select = document.getElementById('save-slot-select');
+      if (select) {
+        select.innerHTML = strategySlots.map((s, idx) => `
+          <option value="${idx}">슬롯 #${idx + 1}: ${s.isEmpty ? '(비어있음)' : s.name}</option>
+        `).join('');
+        onSaveSlotSelectChange(select.value);
+      }
+      document.getElementById('save-modal').style.display = 'flex';
     }
 
-    function closeStrategyModal() {
-      document.getElementById('strategy-modal').style.display = 'none';
+    function onSaveSlotSelectChange(idxStr) {
+      const idx = parseInt(idxStr);
+      const slot = strategySlots[idx];
+      const nameInput = document.getElementById('save-slot-name');
+      const memoInput = document.getElementById('save-slot-memo');
+
+      if (slot && !slot.isEmpty) {
+        nameInput.value = slot.name || '';
+        memoInput.value = slot.memo || '';
+      } else {
+        nameInput.value = `전략 ${idx + 1}: ${new Date().toLocaleDateString('ko-KR')}`;
+        memoInput.value = '';
+      }
     }
 
-    function openCompareModal() {
-      renderCompareSlotsListModal();
-      document.getElementById('compare-modal').style.display = 'flex';
+    function closeSaveModal() {
+      document.getElementById('save-modal').style.display = 'none';
     }
 
-    function closeCompareModal() {
-      document.getElementById('compare-modal').style.display = 'none';
-    }
-
-    function renderStrategySlotsTableModal() {
-      const tbody = document.getElementById('strategy-slots-tbody-modal');
-      if (!tbody) return;
-
-      tbody.innerHTML = strategySlots.map((slot, idx) => {
-        const isSlotEmpty = slot.isEmpty || !slot.buyRules;
-        const slotName = slot.name || `전략 ${idx + 1}`;
-        const slotMemo = slot.memo || `-`;
-        const updated = slot.updatedAt || `-`;
-        const colorPalette = ['#2563eb', '#7c3aed', '#059669', '#ea580c', '#db2777', '#0284c7', '#ca8a04', '#78716c', '#4f46e5', '#0d9488'];
-        const badgeColor = colorPalette[idx % colorPalette.length];
-
-        return `
-          <tr style="border-bottom:1px solid #f1f5f9; ${isSlotEmpty ? 'opacity:0.75;' : ''}">
-            <td style="text-align:center; font-weight:700; color:${badgeColor}; padding:8px;">
-              #${idx + 1}
-            </td>
-            <td style="padding:8px; font-weight:600; color:#1e293b;">
-              ${slotName}
-            </td>
-            <td style="padding:8px; color:#64748b; font-size:0.78rem;">
-              ${slotMemo}
-            </td>
-            <td style="text-align:center; padding:8px; font-size:0.75rem; color:#94a3b8;">
-              ${updated}
-            </td>
-            <td style="text-align:center; padding:8px;">
-              <div style="display:flex; gap:4px; justify-content:center; flex-wrap:wrap;">
-                <button class="btn-sm-action" style="background:#2563eb; color:#fff; padding:3px 8px; font-size:0.72rem;" onclick="saveCurrentToSlot(${idx})">
-                  <i class="fa-solid fa-floppy-disk" style="margin-right:2px;"></i> 저장
-                </button>
-                <button class="btn-sm-action" style="background:#059669; color:#fff; padding:3px 8px; font-size:0.72rem;" ${isSlotEmpty ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="loadSlotToCurrent(${idx})">
-                  <i class="fa-solid fa-folder-open" style="margin-right:2px;"></i> 불러오기
-                </button>
-                <button class="btn-sm-action" style="background:#f1f5f9; color:#334155; padding:3px 8px; font-size:0.72rem;" onclick="editSlotInfo(${idx})">
-                  <i class="fa-solid fa-pen" style="margin-right:2px;"></i> 메모
-                </button>
-                <button class="btn-sm-action" style="background:#fee2e2; color:#dc2626; padding:3px 8px; font-size:0.72rem;" ${isSlotEmpty ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="clearSlot(${idx})">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function renderCompareSlotsListModal() {
-      const container = document.getElementById('compare-slots-list-modal');
-      if (!container) return;
-
-      const colorPalette = ['#2563eb', '#7c3aed', '#059669', '#ea580c', '#db2777', '#0284c7', '#ca8a04', '#78716c', '#4f46e5', '#0d9488'];
-
-      container.innerHTML = strategySlots.map((slot, idx) => {
-        const isSlotEmpty = slot.isEmpty || !slot.buyRules;
-        const color = colorPalette[idx % colorPalette.length];
-
-        return `
-          <label style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; background:${isSlotEmpty ? '#f8fafc' : '#ffffff'}; cursor:${isSlotEmpty ? 'not-allowed' : 'pointer'}; opacity:${isSlotEmpty ? '0.6' : '1'};">
-            <div style="display:flex; align-items:center; gap:10px;">
-              <input type="checkbox" class="slot-compare-check-modal" value="${idx}" ${isSlotEmpty ? 'disabled' : ''} style="width:17px; height:17px; cursor:pointer;">
-              <div>
-                <span style="font-weight:700; color:${color}; font-size:0.85rem; margin-right:6px;">슬롯 #${idx + 1}</span>
-                <span style="font-weight:600; color:#1e293b; font-size:0.88rem;">${slot.name}</span>
-                <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">${slot.memo || '설명 없음'}</div>
-              </div>
-            </div>
-            <div style="font-size:0.72rem; color:#94a3b8; text-align:right;">
-              ${slot.updatedAt || '-'}
-            </div>
-          </label>
-        `;
-      }).join('');
-    }
-
-    function saveCurrentToSlot(idx) {
-      const defaultName = strategySlots[idx].name && !strategySlots[idx].isEmpty ? strategySlots[idx].name : `전략 ${idx + 1}: ${new Date().toLocaleDateString('ko-KR')}`;
-      const name = prompt(`전략 ${idx + 1}의 이름을 입력하세요:`, defaultName);
-      if (name === null) return;
-
-      const memo = prompt(`전략 ${idx + 1}에 대한 메모/설명을 입력하세요:`, strategySlots[idx].memo || "");
-      if (memo === null) return;
+    function executeSaveSlotFromModal() {
+      const idx = parseInt(document.getElementById('save-slot-select').value);
+      const name = document.getElementById('save-slot-name').value.trim() || `전략 ${idx + 1}`;
+      const memo = document.getElementById('save-slot-memo').value.trim() || "설명 없음";
 
       const stopLossVal = document.getElementById('opt-stop-loss').value ? parseFloat(document.getElementById('opt-stop-loss').value) : null;
       const takeProfitVal = document.getElementById('opt-take-profit').value ? parseFloat(document.getElementById('opt-take-profit').value) : null;
@@ -1578,8 +1481,8 @@
 
       strategySlots[idx] = {
         id: idx + 1,
-        name: name.trim() || `전략 ${idx + 1}`,
-        memo: memo ? memo.trim() : "설명 없음",
+        name: name,
+        memo: memo,
         isEmpty: false,
         market: document.getElementById('opt-backtest-market').value,
         period: document.getElementById('opt-backtest-period').value,
@@ -1596,9 +1499,53 @@
       };
 
       localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
-      renderStrategySlotsTableModal();
       saveSlotsToGoogleSheetAsync();
-      alert(`전략 ${idx + 1}에 현재 설정이 성공적으로 저장되었습니다!`);
+      closeSaveModal();
+      alert(`[슬롯 #${idx + 1}: ${name}]에 전체 전략 설정이 성공적으로 저장되었습니다!`);
+    }
+
+    function openLoadModal() {
+      renderLoadSlotsTable();
+      document.getElementById('load-modal').style.display = 'flex';
+    }
+
+    function closeLoadModal() {
+      document.getElementById('load-modal').style.display = 'none';
+    }
+
+    function renderLoadSlotsTable() {
+      const tbody = document.getElementById('load-slots-tbody');
+      if (!tbody) return;
+
+      tbody.innerHTML = strategySlots.map((slot, idx) => {
+        const isSlotEmpty = slot.isEmpty || !slot.buyRules;
+        const slotName = slot.name || `전략 ${idx + 1}`;
+        const slotMemo = slot.memo || `-`;
+        const updated = slot.updatedAt || `-`;
+
+        return `
+          <tr style="border-bottom:1px solid #f1f5f9; ${isSlotEmpty ? 'opacity:0.65;' : ''}">
+            <td style="text-align:center; font-weight:700; color:#2563eb; padding:8px;">
+              #${idx + 1}
+            </td>
+            <td style="padding:8px; font-weight:600; color:#1e293b;">
+              ${slotName}
+            </td>
+            <td style="padding:8px; color:#64748b; font-size:0.78rem;">
+              ${slotMemo}
+            </td>
+            <td style="text-align:center; padding:8px; font-size:0.75rem; color:#94a3b8;">
+              ${updated}
+            </td>
+            <td style="text-align:center; padding:8px;">
+              <div style="display:flex; gap:4px; justify-content:center;">
+                <button class="btn-sm-action" style="background:#059669; color:#fff; padding:3px 8px; font-size:0.72rem;" ${isSlotEmpty ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="loadSlotToCurrent(${idx})">불러오기</button>
+                <button class="btn-sm-action" style="background:#fee2e2; color:#dc2626; padding:3px 8px; font-size:0.72rem;" ${isSlotEmpty ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="clearSlot(${idx})">삭제</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function loadSlotToCurrent(idx) {
@@ -1625,27 +1572,12 @@
       if (slot.takeProfit !== undefined) document.getElementById('opt-take-profit').value = slot.takeProfit !== null ? slot.takeProfit : "";
       if (slot.tradeAmount) document.getElementById('opt-initial-capital').value = slot.tradeAmount;
 
-      closeStrategyModal();
-      alert(`[전략 ${idx + 1}: ${slot.name}] 설정을 불러왔습니다!`);
-    }
-
-    function editSlotInfo(idx) {
-      const slot = strategySlots[idx];
-      const name = prompt(`전략 ${idx + 1} 이름 수정:`, slot.name || `전략 ${idx + 1}`);
-      if (name === null) return;
-      const memo = prompt(`전략 ${idx + 1} 메모/설명 수정:`, slot.memo || "");
-      if (memo === null) return;
-
-      strategySlots[idx].name = name.trim() || `전략 ${idx + 1}`;
-      strategySlots[idx].memo = memo ? memo.trim() : "설명 없음";
-
-      localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
-      renderStrategySlotsTableModal();
-      saveSlotsToGoogleSheetAsync();
+      closeLoadModal();
+      alert(`[슬롯 #${idx + 1}: ${slot.name}] 설정을 불러왔습니다!`);
     }
 
     function clearSlot(idx) {
-      if (!confirm(`전략 ${idx + 1}을(를) 정말 삭제하시겠습니까?`)) return;
+      if (!confirm(`슬롯 #${idx + 1}을(를) 정말 삭제하시겠습니까?`)) return;
       strategySlots[idx] = {
         id: idx + 1,
         name: `전략 ${idx + 1} (비어있음)`,
@@ -1654,8 +1586,42 @@
         updatedAt: "-"
       };
       localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
-      renderStrategySlotsTableModal();
+      renderLoadSlotsTable();
       saveSlotsToGoogleSheetAsync();
+    }
+
+    function openCompareModal() {
+      renderCompareSlotsList();
+      document.getElementById('compare-modal').style.display = 'flex';
+    }
+
+    function closeCompareModal() {
+      document.getElementById('compare-modal').style.display = 'none';
+    }
+
+    function renderCompareSlotsList() {
+      const container = document.getElementById('compare-slots-list');
+      if (!container) return;
+
+      container.innerHTML = strategySlots.map((slot, idx) => {
+        const isSlotEmpty = slot.isEmpty || !slot.buyRules;
+
+        return `
+          <label style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; border:1px solid #e2e8f0; border-radius:8px; background:${isSlotEmpty ? '#f8fafc' : '#ffffff'}; cursor:${isSlotEmpty ? 'not-allowed' : 'pointer'}; opacity:${isSlotEmpty ? '0.6' : '1'};">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <input type="checkbox" class="slot-compare-check" value="${idx}" ${isSlotEmpty ? 'disabled' : ''} style="width:17px; height:17px; cursor:pointer;">
+              <div>
+                <span style="font-weight:700; color:#2563eb; font-size:0.85rem; margin-right:6px;">슬롯 #${idx + 1}</span>
+                <span style="font-weight:600; color:#1e293b; font-size:0.88rem;">${slot.name}</span>
+                <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">${slot.memo || '설명 없음'}</div>
+              </div>
+            </div>
+            <div style="font-size:0.72rem; color:#94a3b8; text-align:right;">
+              ${slot.updatedAt || '-'}
+            </div>
+          </label>
+        `;
+      }).join('');
     }
 
     async function saveSlotsToGoogleSheetAsync() {
@@ -1788,7 +1754,7 @@
     }
 
     function runMultiStrategyComparisonFromModal() {
-      const checks = document.querySelectorAll('.slot-compare-check-modal:checked');
+      const checks = document.querySelectorAll('.slot-compare-check:checked');
       if (checks.length === 0) {
         alert("비교할 전략 슬롯을 1개 이상 체크해 주세요!");
         return;
@@ -1925,73 +1891,92 @@
     });
   </script>
 
-  <!-- Modal 1: Strategy Preset Storage Modal -->
-  <div id="strategy-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); z-index:9999; justify-content:center; align-items:center;">
-    <div style="background:#fff; border-radius:12px; width:92%; max-width:850px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); overflow:hidden;">
-      <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <i class="fa-solid fa-box-archive" style="color:#2563eb; font-size:1.1rem;"></i>
-          <span style="font-weight:700; font-size:1rem; color:#1e293b;">구글 시트 퀀트 전략 보관함 (10개 슬롯)</span>
-          <span id="cloud-sync-badge-modal" style="font-size:0.7rem; background:#dcfce7; color:#15803d; border:1px solid #86efac; padding:2px 8px; border-radius:12px; font-weight:600;">
-            <i class="fa-solid fa-cloud-check"></i> 동기화 완료
-          </span>
+  <!-- Modal 1: Save Strategy Modal -->
+  <div id="save-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:#fff; border-radius:10px; width:90%; max-width:480px; display:flex; flex-direction:column; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); overflow:hidden;">
+      <div style="padding:14px 18px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
+        <span style="font-weight:700; font-size:0.95rem; color:#1e293b;">전략 저장</span>
+        <button onclick="closeSaveModal()" style="background:none; border:none; font-size:1.1rem; color:#64748b; cursor:pointer;">✕</button>
+      </div>
+
+      <div style="padding:16px 18px; display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <label style="display:block; font-size:0.78rem; font-weight:600; color:#475569; margin-bottom:4px;">저장할 슬롯 (1~10번)</label>
+          <select id="save-slot-select" class="form-select" style="width:100%; font-weight:600;" onchange="onSaveSlotSelectChange(this.value)">
+          </select>
         </div>
-        <button onclick="closeStrategyModal()" style="background:none; border:none; font-size:1.2rem; color:#64748b; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+
+        <div>
+          <label style="display:block; font-size:0.78rem; font-weight:600; color:#475569; margin-bottom:4px;">전략 명칭</label>
+          <input type="text" id="save-slot-name" class="form-input" placeholder="예: 전략 1 (추세 돌파)">
+        </div>
+
+        <div>
+          <label style="display:block; font-size:0.78rem; font-weight:600; color:#475569; margin-bottom:4px;">전략 메모 & 설명</label>
+          <input type="text" id="save-slot-memo" class="form-input" placeholder="전략 설명이나 아이디어 메모">
+        </div>
+      </div>
+
+      <div style="padding:12px 18px; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:8px; background:#f8fafc;">
+        <button class="btn-sm-action" style="background:#f1f5f9; color:#334155; padding:6px 14px;" onclick="closeSaveModal()">취소</button>
+        <button class="btn-sm-action" style="background:#2563eb; color:#fff; font-weight:600; padding:6px 18px;" onclick="executeSaveSlotFromModal()">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Load Strategy Modal -->
+  <div id="load-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:#fff; border-radius:10px; width:92%; max-width:780px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); overflow:hidden;">
+      <div style="padding:14px 18px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
+        <span style="font-weight:700; font-size:0.95rem; color:#1e293b;">전략 불러오기</span>
+        <button onclick="closeLoadModal()" style="background:none; border:none; font-size:1.1rem; color:#64748b; cursor:pointer;">✕</button>
       </div>
 
       <div style="padding:16px; overflow-y:auto; flex:1;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-          <span style="font-size:0.8rem; color:#64748b;">원하는 슬롯의 [불러오기] 버튼을 누르면 현재 세팅으로 즉시 적용됩니다.</span>
-          <button class="btn-sm-action" style="background:#f1f5f9; color:#334155; font-size:0.78rem;" onclick="fetchGoogleSheetSlots()"><i class="fa-solid fa-arrows-rotate" style="margin-right:4px;"></i> 구글 시트 동기화</button>
-        </div>
-
         <div style="overflow-x:auto;">
           <table style="width:100%; border-collapse:collapse; font-size:0.8rem;">
             <thead>
               <tr style="background:#f1f5f9; color:#475569; text-align:left;">
                 <th style="padding:8px 10px; width:55px; text-align:center;">슬롯</th>
-                <th style="padding:8px 10px; width:180px;">전략 명칭</th>
+                <th style="padding:8px 10px; width:170px;">전략 명칭</th>
                 <th style="padding:8px 10px;">전략 메모 & 설명</th>
                 <th style="padding:8px 10px; width:110px; text-align:center;">저장 일시</th>
-                <th style="padding:8px 10px; width:220px; text-align:center;">관리 기능</th>
+                <th style="padding:8px 10px; width:160px; text-align:center;">관리</th>
               </tr>
             </thead>
-            <tbody id="strategy-slots-tbody-modal">
+            <tbody id="load-slots-tbody">
             </tbody>
           </table>
         </div>
       </div>
 
-      <div style="padding:12px 20px; border-top:1px solid #e2e8f0; text-align:right; background:#f8fafc;">
-        <button class="btn-sm-action" style="background:#64748b; color:#fff; padding:6px 16px;" onclick="closeStrategyModal()">닫기</button>
+      <div style="padding:12px 18px; border-top:1px solid #e2e8f0; text-align:right; background:#f8fafc;">
+        <button class="btn-sm-action" style="background:#64748b; color:#fff; padding:6px 16px;" onclick="closeLoadModal()">닫기</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal 2: Multi-Strategy Comparison Modal -->
+  <!-- Modal 3: Compare Strategy Modal -->
   <div id="compare-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); z-index:9999; justify-content:center; align-items:center;">
-    <div style="background:#fff; border-radius:12px; width:92%; max-width:650px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); overflow:hidden;">
-      <div style="padding:16px 20px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <i class="fa-solid fa-chart-line" style="color:#059669; font-size:1.1rem;"></i>
-          <span style="font-weight:700; font-size:1rem; color:#1e293b;">다중 전략 성과 비교</span>
-        </div>
-        <button onclick="closeCompareModal()" style="background:none; border:none; font-size:1.2rem; color:#64748b; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+    <div style="background:#fff; border-radius:10px; width:92%; max-width:580px; max-height:85vh; display:flex; flex-direction:column; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); overflow:hidden;">
+      <div style="padding:14px 18px; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
+        <span style="font-weight:700; font-size:0.95rem; color:#1e293b;">전략 비교</span>
+        <button onclick="closeCompareModal()" style="background:none; border:none; font-size:1.1rem; color:#64748b; cursor:pointer;">✕</button>
       </div>
 
       <div style="padding:16px; overflow-y:auto; flex:1;">
-        <div style="font-size:0.8rem; color:#64748b; margin-bottom:12px;">
-          한 차트 위에서 1:1로 비교하고 싶은 전략들을 체크박스로 다중 선택해 주세요.
+        <div style="font-size:0.78rem; color:#64748b; margin-bottom:12px;">
+          한 차트에서 비교할 전략들을 체크박스로 선택해 주세요.
         </div>
 
-        <div id="compare-slots-list-modal" style="display:flex; flex-direction:column; gap:8px;">
+        <div id="compare-slots-list" style="display:flex; flex-direction:column; gap:8px;">
         </div>
       </div>
 
-      <div style="padding:12px 20px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
-        <button class="btn-sm-action" style="background:#64748b; color:#fff; padding:6px 14px;" onclick="closeCompareModal()">취소</button>
-        <button class="btn-sm-action" style="background:#059669; color:#fff; font-weight:600; padding:6px 18px; font-size:0.85rem;" onclick="runMultiStrategyComparisonFromModal()">
-          <i class="fa-solid fa-play" style="margin-right:4px;"></i> 선택한 전략 비교 시뮬레이션 실행
+      <div style="padding:12px 18px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
+        <button class="btn-sm-action" style="background:#f1f5f9; color:#334155; padding:6px 14px;" onclick="closeCompareModal()">취소</button>
+        <button class="btn-sm-action" style="background:#2563eb; color:#fff; font-weight:600; padding:6px 18px; font-size:0.82rem;" onclick="runMultiStrategyComparisonFromModal()">
+          전략비교
         </button>
       </div>
     </div>
