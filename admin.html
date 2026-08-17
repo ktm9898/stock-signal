@@ -1277,33 +1277,35 @@
       const targetMarket = targetMarketSelect ? targetMarketSelect.value : 'ALL';
       const { sampleDates, dateBoundaries } = generateDynamicTimeline(startDateStr, endDateStr);
       
-      // Calculate REAL KOSPI Index Curve
-      let kospiBenchmarkData = dateBoundaries.map(() => 100);
+      // Calculate REAL KOSPI Index Curve (0% baseline)
+      let kospiBenchmarkData = dateBoundaries.map(() => 0);
       if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
         const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
         if (kRows.length > 5) {
           const baseClose = kRows[0].close;
           kospiBenchmarkData = dateBoundaries.map(dbDate => {
             const rowAtDate = kRows.filter(r => r.date <= dbDate).pop() || kRows[0];
-            return parseFloat(((rowAtDate.close / baseClose) * 100).toFixed(1));
+            const pctChange = ((rowAtDate.close - baseClose) / baseClose) * 100;
+            return parseFloat(pctChange.toFixed(1));
           });
         }
       }
 
-      // Calculate REAL KOSDAQ Index Curve
-      let kosdaqBenchmarkData = dateBoundaries.map(() => 100);
+      // Calculate REAL KOSDAQ Index Curve (0% baseline)
+      let kosdaqBenchmarkData = dateBoundaries.map(() => 0);
       if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSDAQ']) {
         const kqRows = REAL_PRELOADED_DATA['KOSDAQ'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
         if (kqRows.length > 5) {
           const baseClose = kqRows[0].close;
           kosdaqBenchmarkData = dateBoundaries.map(dbDate => {
             const rowAtDate = kqRows.filter(r => r.date <= dbDate).pop() || kqRows[0];
-            return parseFloat(((rowAtDate.close / baseClose) * 100).toFixed(1));
+            const pctChange = ((rowAtDate.close - baseClose) / baseClose) * 100;
+            return parseFloat(pctChange.toFixed(1));
           });
         }
       }
 
-      // Calculate Strategy Equity Curve mapped EXACTLY to sampleDates timeline
+      // Calculate Strategy Equity Curve mapped EXACTLY to sampleDates timeline (0% baseline)
       const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 10000000;
       const sortedChronological = trades.slice().sort((a, b) => a.exitDate.localeCompare(b.exitDate));
 
@@ -1317,7 +1319,7 @@
           tradeIdx++;
         }
         const cumPct = tradeAmount > 0 ? (runningGainSum / tradeAmount) * 100 : 0;
-        return parseFloat((100 + cumPct).toFixed(1));
+        return parseFloat(cumPct.toFixed(1));
       });
 
       // Include all remaining trades up to latest trade date
@@ -1328,7 +1330,7 @@
       }
       if (strategyData.length > 0) {
         const finalCumPct = tradeAmount > 0 ? (runningGainSum / tradeAmount) * 100 : 0;
-        strategyData[strategyData.length - 1] = parseFloat((100 + finalCumPct).toFixed(1));
+        strategyData[strategyData.length - 1] = parseFloat(finalCumPct.toFixed(1));
       }
 
       const datasets = [
@@ -1383,7 +1385,7 @@
           scales: {
             y: {
               grid: { color: '#f1f5f9' },
-              ticks: { callback: (val) => `${val}%` }
+              ticks: { callback: (val) => `${val > 0 ? '+' : ''}${val}%` }
             },
             x: { grid: { display: false } }
           }
