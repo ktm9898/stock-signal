@@ -1464,18 +1464,50 @@
         fineDates = Array.from(fineDatesSet).sort();
       }
 
-      // 3. Compute High-Resolution Strategy Equity Curve (0% baseline)
+      // 3. Fast Price Map for Mark-to-Market Unrealized Valuation
+      const priceMap = {};
+      if (REAL_PRELOADED_DATA) {
+        Object.keys(REAL_PRELOADED_DATA).forEach(ticker => {
+          const dateMap = {};
+          REAL_PRELOADED_DATA[ticker].forEach(r => { dateMap[r.date] = r.close; });
+          priceMap[ticker] = dateMap;
+        });
+      }
+
+      // Compute High-Resolution Strategy Equity Curves (Unrealized Mark-to-Market & Realized)
+      const strategyUnrealizedData = [];
+      const strategyRealizedData = [];
+
       let runningGainSum = 0;
       let tradeIdx = 0;
 
-      const strategyData = fineDates.map(dbDate => {
+      fineDates.forEach(dbDate => {
+        // Accumulate realized profit/loss from trades that exited on or before dbDate
         while (tradeIdx < sortedChronological.length && sortedChronological[tradeIdx].exitDate <= dbDate) {
           const netGain = Math.round(tradeAmount * (sortedChronological[tradeIdx].returnPct / 100));
           runningGainSum += netGain;
           tradeIdx++;
         }
-        const cumPct = tradeAmount > 0 ? (runningGainSum / tradeAmount) * 100 : 0;
-        return parseFloat(cumPct.toFixed(1));
+
+        // Calculate unrealized Mark-to-Market gain from open positions on dbDate
+        let openUnrealizedGainSum = 0;
+        trades.forEach(t => {
+          if (t.entryDate <= dbDate && t.exitDate > dbDate) {
+            const stockPrices = priceMap[t.ticker];
+            let closePrice = t.entryPrice;
+            if (stockPrices && stockPrices[dbDate] !== undefined) {
+              closePrice = stockPrices[dbDate];
+            }
+            const paperReturnPct = ((closePrice - t.entryPrice) / t.entryPrice) * 100;
+            openUnrealizedGainSum += Math.round(tradeAmount * (paperReturnPct / 100));
+          }
+        });
+
+        const unrealizedPct = tradeAmount > 0 ? ((runningGainSum + openUnrealizedGainSum) / tradeAmount) * 100 : 0;
+        const realizedPct = tradeAmount > 0 ? (runningGainSum / tradeAmount) * 100 : 0;
+
+        strategyUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
+        strategyRealizedData.push(parseFloat(realizedPct.toFixed(1)));
       });
 
       // 4. Compute High-Resolution Benchmark Curves with accurate start-date base close
@@ -1511,14 +1543,25 @@
 
       const datasets = [
         {
-          label: '나의 퀀트 전략',
-          data: strategyData,
+          label: '나의 퀀트 전략 (평가손익)',
+          data: strategyUnrealizedData,
           borderColor: '#2563eb',
           backgroundColor: 'rgba(37, 99, 235, 0.05)',
           fill: true,
           borderWidth: 2,
           pointRadius: 0,
           pointHoverRadius: 5,
+          tension: 0.1
+        },
+        {
+          label: '나의 퀀트 전략 (실현손익)',
+          data: strategyRealizedData,
+          borderColor: '#7c3aed',
+          borderDash: [5, 5],
+          fill: false,
+          borderWidth: 1.5,
+          pointRadius: 0,
+          pointHoverRadius: 4,
           tension: 0.1
         }
       ];
@@ -1579,8 +1622,10 @@
                   const val = context.parsed.y;
                   const sign = val >= 0 ? '+' : '';
 
-                  if (label === '나의 퀀트 전략') {
-                    return ` 나의 퀀트 전략: ${sign}${val.toFixed(1)}%`;
+                  if (label.includes('평가손익')) {
+                    return ` 나의 퀀트 전략 (평가손익): ${sign}${val.toFixed(1)}%`;
+                  } else if (label.includes('실현손익')) {
+                    return ` 나의 퀀트 전략 (실현손익): ${sign}${val.toFixed(1)}%`;
                   } else if (label === 'KOSPI') {
                     const pt = kospiCloseList[dataIdx];
                     const ptText = pt ? ` (${pt.toLocaleString()}pt)` : '';
