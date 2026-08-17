@@ -1231,19 +1231,56 @@
       }).join('');
     }
 
+    function generateDynamicTimeline(startDateStr, endDateStr) {
+      const dStart = new Date(startDateStr);
+      const dEnd = new Date(endDateStr);
+      const totalMonths = (dEnd.getFullYear() - dStart.getFullYear()) * 12 + (dEnd.getMonth() - dStart.getMonth());
+
+      const sampleDates = [];
+      const dateBoundaries = [];
+
+      let stepMonths = 6;
+      if (totalMonths <= 14) stepMonths = 1;
+      else if (totalMonths <= 38) stepMonths = 3;
+      else stepMonths = 6;
+
+      let curr = new Date(dStart.getFullYear(), dStart.getMonth(), 1);
+      while (curr <= dEnd) {
+        const y = curr.getFullYear();
+        const m = String(curr.getMonth() + 1).padStart(2, '0');
+        
+        sampleDates.push(`${y}.${m}`);
+        dateBoundaries.push(`${y}-${m}-01`);
+
+        curr.setMonth(curr.getMonth() + stepMonths);
+      }
+
+      const endY = dEnd.getFullYear();
+      const endM = String(dEnd.getMonth() + 1).padStart(2, '0');
+      const finalLabel = `${endY}.${endM}`;
+
+      if (sampleDates.length === 0 || sampleDates[sampleDates.length - 1] !== finalLabel) {
+        sampleDates.push(finalLabel);
+        dateBoundaries.push(endDateStr);
+      } else {
+        dateBoundaries[dateBoundaries.length - 1] = endDateStr;
+      }
+
+      return { sampleDates, dateBoundaries };
+    }
+
     function renderRealBenchmarkCurve(startDateStr, endDateStr, trades) {
       const ctx = document.getElementById('equityChart').getContext('2d');
       if (equityChartInstance) equityChartInstance.destroy();
 
-      const sampleDates = ["2021.01", "2021.07", "2022.01", "2022.07", "2023.01", "2023.07", "2024.01", "2024.07", "2025.01", "2025.07", "2026.08"];
-      const dateBoundaries = ["2021-01-01", "2021-07-01", "2022-01-01", "2022-07-01", "2023-01-01", "2023-07-01", "2024-01-01", "2024-07-01", "2025-01-01", "2025-07-01", "2026-08-31"];
+      const { sampleDates, dateBoundaries } = generateDynamicTimeline(startDateStr, endDateStr);
       
       // Calculate REAL KOSPI 200 Index Curve from KODEX 200 (069500) historical daily candles
-      let realBenchmarkData = [100, 96.2, 92.1, 72.6, 80.4, 75.9, 92.1, 86.3, 87.3, 150.6, 287.2];
+      let realBenchmarkData = dateBoundaries.map(() => 100);
       
       if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['069500']) {
         const kospiRows = REAL_PRELOADED_DATA['069500'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
-        if (kospiRows.length > 30) {
+        if (kospiRows.length > 5) {
           const baseClose = kospiRows[0].close;
           realBenchmarkData = dateBoundaries.map(dbDate => {
             const rowAtDate = kospiRows.filter(r => r.date <= dbDate).pop() || kospiRows[0];
