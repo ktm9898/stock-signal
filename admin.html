@@ -1365,8 +1365,7 @@
       const targetName = document.getElementById('viewer-target-name').textContent;
       
       let csvContent = "data:text/csv;charset=utf-8,﻿";
-      csvContent += "Date,Open,High,Low,Close,Volume,ADX,Minus_DI,Plus_DI,RSI,BB_Pct,MACD,MACD_Osc,Stoch_K,Stoch_D,Disparity20,Volume_Ratio
-";
+      csvContent += "Date,Open,High,Low,Close,Volume,ADX,Minus_DI,Plus_DI,RSI,BB_Pct,MACD,MACD_Osc,Stoch_K,Stoch_D,Disparity20,Volume_Ratio\n";
 
       currentLoadedViewerData.forEach(r => {
         csvContent += `${r.date},${r.open},${r.high},${r.low},${r.close},${r.volume},${r.adx},${r.minus_di},${r.plus_di},${r.rsi},${r.bb_pct},${r.macd},${r.macd_osc||0},${r.stoch_k},${r.stoch_d||r.stoch_k},${r.disparity20||100},${r.volume_ratio||100}
