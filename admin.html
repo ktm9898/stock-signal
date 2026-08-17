@@ -342,6 +342,51 @@
     <!-- TAB 1: Strategy Builder & Backtest -->
     <div id="tab-strategy" class="tab-view active">
 
+      <!-- ☁️ Google Sheets Cloud Sync 10-Slot Strategy Storage & Multi-Strategy Comparison Card -->
+      <div class="quant-card" style="border: 1px solid #cbd5e1; background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);">
+        <div class="card-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; flex-wrap: wrap;">
+          <div>
+            <div class="card-title" style="display:flex; align-items:center; gap:8px; flex-wrap: wrap;">
+              <span>☁️ 구글 시트 클라우드 10개 전략 보관함 & 성과 비교</span>
+              <span id="cloud-sync-badge" style="font-size:0.7rem; background:#dcfce7; color:#15803d; border:1px solid #86efac; padding:2px 8px; border-radius:12px; font-weight:600;">
+                🟢 클라우드 동기화 완료
+              </span>
+            </div>
+            <div style="font-size: 0.74rem; color: #64748b; margin-top: 2px;">
+              어떤 PC/기기에서 접속하든 구글 시트와 실시간 동기화됩니다. 전략 체크 후 다중 성과 비교를 실행해 보세요.
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <button class="btn-sm-action" style="background:#2563eb; color:#fff; font-weight:600; padding:6px 14px; font-size:0.8rem;" onclick="runMultiStrategyComparison()">
+              📊 선택 전략 다중 비교 실행
+            </button>
+            <button class="btn-sm-action" style="background:#f1f5f9; color:#334155; font-size:0.75rem;" onclick="fetchGoogleSheetSlots()">
+              🔄 구글 시트 동기화
+            </button>
+          </div>
+        </div>
+
+        <!-- 10 Strategy Slots Table -->
+        <div style="overflow-x: auto; margin-top: 10px;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.78rem;">
+            <thead>
+              <tr style="background: #f1f5f9; color: #475569; text-align: left;">
+                <th style="padding: 6px 10px; width: 45px; text-align: center;">비교</th>
+                <th style="padding: 6px 10px; width: 55px; text-align: center;">슬롯</th>
+                <th style="padding: 6px 10px; width: 180px;">전략 명칭</th>
+                <th style="padding: 6px 10px;">전략 메모 & 설명</th>
+                <th style="padding: 6px 10px; width: 110px; text-align: center;">저장 일시</th>
+                <th style="padding: 6px 10px; width: 230px; text-align: center;">관리 기능</th>
+              </tr>
+            </thead>
+            <tbody id="strategy-slots-tbody">
+              <!-- 10 Strategy Slots rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Buy Rules -->
       <div class="quant-card">
         <div class="card-header">
@@ -1866,10 +1911,471 @@
       document.body.removeChild(link);
     }
 
+    // ==========================================
+    // ☁️ 10-Slot Strategy Storage & Multi-Strategy Comparison Engine
+    // ==========================================
+    const GAS_WEBAPP_URL_ADMIN = "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
+    const LOCAL_SLOTS_KEY = "quant_strategy_slots_v1";
+
+    let strategySlots = Array.from({ length: 10 }, (_, i) => ({
+      id: i + 1,
+      name: `전략 ${i + 1} (비어있음)`,
+      memo: `전략 ${i + 1}에 대한 설명이나 아이디어를 남겨보세요.`,
+      isEmpty: true,
+      updatedAt: "-"
+    }));
+
+    function initStrategySlots() {
+      // 1. Load from localStorage fallback
+      try {
+        const local = localStorage.getItem(LOCAL_SLOTS_KEY);
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length === 10) {
+            strategySlots = parsed;
+          }
+        }
+      } catch(e) {}
+
+      renderStrategySlotsTable();
+
+      // 2. Fetch from Google Sheets Cloud Async
+      fetchGoogleSheetSlots();
+    }
+
+    async function fetchGoogleSheetSlots() {
+      const badge = document.getElementById('cloud-sync-badge');
+      if (badge) {
+        badge.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> 동기화 중...`;
+        badge.style.background = '#fef3c7';
+        badge.style.color = '#d97706';
+      }
+
+      try {
+        const resp = await fetch(GAS_WEBAPP_URL_ADMIN + "?action=get_strategy_slots");
+        const data = await resp.json();
+        if (data && data.success && Array.isArray(data.slots) && data.slots.length === 10) {
+          strategySlots = data.slots;
+          localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
+          renderStrategySlotsTable();
+          if (badge) {
+            badge.innerHTML = `🟢 클라우드 동기화 완료`;
+            badge.style.background = '#dcfce7';
+            badge.style.color = '#15803d';
+          }
+          return;
+        }
+      } catch (err) {
+        console.warn("Google Sheets Sync Fallback to localStorage:", err);
+      }
+
+      if (badge) {
+        badge.innerHTML = `💾 로컬스토리지 보존 중`;
+        badge.style.background = '#e2e8f0';
+        badge.style.color = '#475569';
+      }
+    }
+
+    function renderStrategySlotsTable() {
+      const tbody = document.getElementById('strategy-slots-tbody');
+      if (!tbody) return;
+
+      tbody.innerHTML = strategySlots.map((slot, idx) => {
+        const isSlotEmpty = slot.isEmpty || !slot.buyRules;
+        const slotName = slot.name || `전략 ${idx + 1}`;
+        const slotMemo = slot.memo || `-`;
+        const updated = slot.updatedAt || `-`;
+        const colorPalette = ['#2563eb', '#7c3aed', '#059669', '#ea580c', '#db2777', '#0284c7', '#ca8a04', '#78716c', '#4f46e5', '#0d9488'];
+        const badgeColor = colorPalette[idx % colorPalette.length];
+
+        return `
+          <tr style="border-bottom:1px solid #f1f5f9; ${isSlotEmpty ? 'opacity:0.75;' : ''}">
+            <td style="text-align:center; padding:6px;">
+              <input type="checkbox" class="slot-compare-check" value="${idx}" ${isSlotEmpty ? 'disabled' : ''} style="cursor:pointer; width:16px; height:16px;">
+            </td>
+            <td style="text-align:center; font-weight:700; color:${badgeColor}; padding:6px;">
+              #${idx + 1}
+            </td>
+            <td style="padding:6px; font-weight:600; color:#1e293b;">
+              ${slotName}
+            </td>
+            <td style="padding:6px; color:#64748b; font-size:0.75rem;">
+              ${slotMemo}
+            </td>
+            <td style="text-align:center; padding:6px; font-size:0.72rem; color:#94a3b8;">
+              ${updated}
+            </td>
+            <td style="text-align:center; padding:6px;">
+              <div style="display:flex; gap:4px; justify-content:center; flex-wrap:wrap;">
+                <button class="btn-sm-action" style="background:#2563eb; color:#fff; padding:3px 8px; font-size:0.72rem;" onclick="saveCurrentToSlot(${idx})">💾 저장</button>
+                <button class="btn-sm-action" style="background:#059669; color:#fff; padding:3px 8px; font-size:0.72rem;" ${isSlotEmpty ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="loadSlotToCurrent(${idx})">📂 불러오기</button>
+                <button class="btn-sm-action" style="background:#f1f5f9; color:#334155; padding:3px 8px; font-size:0.72rem;" onclick="editSlotInfo(${idx})">✏️ 메모</button>
+                <button class="btn-sm-action" style="background:#fee2e2; color:#dc2626; padding:3px 8px; font-size:0.72rem;" ${isSlotEmpty ? 'disabled style="opacity:0.5; cursor:not-allowed;"' : ''} onclick="clearSlot(${idx})">🗑️</button>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function saveCurrentToSlot(idx) {
+      const defaultName = strategySlots[idx].name && !strategySlots[idx].isEmpty ? strategySlots[idx].name : `전략 ${idx + 1}: ${new Date().toLocaleDateString('ko-KR')}`;
+      const name = prompt(`전략 ${idx + 1}의 이름을 입력하세요:`, defaultName);
+      if (name === null) return;
+
+      const memo = prompt(`전략 ${idx + 1}에 대한 메모/설명을 입력하세요:`, strategySlots[idx].memo || "");
+      if (memo === null) return;
+
+      const stopLossVal = document.getElementById('opt-stop-loss').value ? parseFloat(document.getElementById('opt-stop-loss').value) : null;
+      const takeProfitVal = document.getElementById('opt-take-profit').value ? parseFloat(document.getElementById('opt-take-profit').value) : null;
+      const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 10000000;
+
+      const now = new Date();
+      const timeStr = `${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+      strategySlots[idx] = {
+        id: idx + 1,
+        name: name.trim() || `전략 ${idx + 1}`,
+        memo: memo ? memo.trim() : "설명 없음",
+        isEmpty: false,
+        market: document.getElementById('opt-backtest-market').value,
+        period: document.getElementById('opt-backtest-period').value,
+        startDate: document.getElementById('opt-start-date').value,
+        endDate: document.getElementById('opt-end-date').value,
+        stopLoss: stopLossVal,
+        takeProfit: takeProfitVal,
+        tradeAmount: tradeAmount,
+        buyRules: JSON.parse(JSON.stringify(currentBuyRules)),
+        sellRules: JSON.parse(JSON.stringify(currentSellRules)),
+        buyOperator: document.getElementById('buy-operator').value,
+        sellOperator: document.getElementById('sell-operator').value,
+        updatedAt: timeStr
+      };
+
+      localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
+      renderStrategySlotsTable();
+      saveSlotsToGoogleSheetAsync();
+      alert(`전략 ${idx + 1}에 현재 설정이 성공적으로 저장되었습니다!`);
+    }
+
+    function loadSlotToCurrent(idx) {
+      const slot = strategySlots[idx];
+      if (!slot || slot.isEmpty || !slot.buyRules) {
+        alert("해당 슬롯은 비어있습니다.");
+        return;
+      }
+
+      currentBuyRules = JSON.parse(JSON.stringify(slot.buyRules));
+      currentSellRules = JSON.parse(JSON.stringify(slot.sellRules));
+      renderRules();
+
+      if (slot.buyOperator) document.getElementById('buy-operator').value = slot.buyOperator;
+      if (slot.sellOperator) document.getElementById('sell-operator').value = slot.sellOperator;
+      if (slot.market) document.getElementById('opt-backtest-market').value = slot.market;
+      if (slot.period) {
+        document.getElementById('opt-backtest-period').value = slot.period;
+        toggleCustomDateInputs(slot.period);
+      }
+      if (slot.startDate) document.getElementById('opt-start-date').value = slot.startDate;
+      if (slot.endDate) document.getElementById('opt-end-date').value = slot.endDate;
+      if (slot.stopLoss !== undefined) document.getElementById('opt-stop-loss').value = slot.stopLoss !== null ? slot.stopLoss : "";
+      if (slot.takeProfit !== undefined) document.getElementById('opt-take-profit').value = slot.takeProfit !== null ? slot.takeProfit : "";
+      if (slot.tradeAmount) document.getElementById('opt-initial-capital').value = slot.tradeAmount;
+
+      alert(`📂 [전략 ${idx + 1}: ${slot.name}] 설정을 불러왔습니다!`);
+    }
+
+    function editSlotInfo(idx) {
+      const slot = strategySlots[idx];
+      const name = prompt(`전략 ${idx + 1} 이름 수정:`, slot.name || `전략 ${idx + 1}`);
+      if (name === null) return;
+      const memo = prompt(`전략 ${idx + 1} 메모/설명 수정:`, slot.memo || "");
+      if (memo === null) return;
+
+      strategySlots[idx].name = name.trim() || `전략 ${idx + 1}`;
+      strategySlots[idx].memo = memo ? memo.trim() : "설명 없음";
+
+      localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
+      renderStrategySlotsTable();
+      saveSlotsToGoogleSheetAsync();
+    }
+
+    function clearSlot(idx) {
+      if (!confirm(`전략 ${idx + 1}을(를) 정말 삭제하시겠습니까?`)) return;
+      strategySlots[idx] = {
+        id: idx + 1,
+        name: `전략 ${idx + 1} (비어있음)`,
+        memo: `전략 ${idx + 1}에 대한 설명이나 아이디어를 남겨보세요.`,
+        isEmpty: true,
+        updatedAt: "-"
+      };
+      localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
+      renderStrategySlotsTable();
+      saveSlotsToGoogleSheetAsync();
+    }
+
+    async function saveSlotsToGoogleSheetAsync() {
+      try {
+        await fetch(GAS_WEBAPP_URL_ADMIN, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'save_strategy_slots',
+            slots: strategySlots
+          })
+        });
+      } catch(e) {}
+    }
+
+    function simulateTradesForRules(buyRules, sellRules, buyOp, sellOp, stopLoss, takeProfit, market, startDateStr, endDateStr, tradeAmount) {
+      if (!REAL_PRELOADED_DATA) return [];
+      const allExecutedTrades = [];
+      const feeRate = 0.0015 + 0.0010;
+      const tickers = Object.keys(REAL_PRELOADED_DATA);
+
+      tickers.forEach(ticker => {
+        if (ticker === '069500' || ticker === 'KOSPI' || ticker === 'KOSDAQ') return;
+        const rawRows = REAL_PRELOADED_DATA[ticker];
+        if (!rawRows || rawRows.length < 30) return;
+        const stockInfo = ALL_350_STOCKS.find(s => s.ticker === ticker) || { name: ticker, market: "KOSPI200" };
+        if (market !== 'ALL' && stockInfo.market !== market) return;
+
+        const rows = rawRows.filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        if (rows.length < 5) return;
+
+        let inPosition = false;
+        let entryPrice = 0;
+        let entryDate = "";
+        let entrySignalDate = "";
+
+        for (let i = 0; i < rows.length - 1; i++) {
+          const curr = rows[i];
+          const nextDay = rows[i + 1];
+
+          const buyResults = buyRules.map(r => checkSingleRule(r, curr, rows[i - 1]));
+          const isBuySignal = buyRules.length > 0 ? (buyOp === 'AND' ? buyResults.every(Boolean) : buyResults.some(Boolean)) : false;
+
+          if (!inPosition) {
+            if (isBuySignal && nextDay.open > 0) {
+              inPosition = true;
+              entryPrice = nextDay.open * (1 + feeRate);
+              entrySignalDate = curr.date;
+              entryDate = nextDay.date;
+            }
+          } else {
+            const currClose = curr.close;
+            const paperReturnPct = ((currClose - entryPrice) / entryPrice) * 100;
+            let isExit = false;
+            let triggerType = "SIGNAL";
+
+            const sellResults = sellRules.map(r => checkSingleRule(r, curr, rows[i - 1]));
+            const isSellSignal = sellRules.length > 0 ? (sellOp === 'AND' ? sellResults.every(Boolean) : sellResults.some(Boolean)) : false;
+
+            if (stopLoss !== null && paperReturnPct <= -Math.abs(stopLoss)) {
+              isExit = true;
+              triggerType = "STOP_LOSS";
+            } else if (takeProfit !== null && paperReturnPct >= Math.abs(takeProfit)) {
+              isExit = true;
+              triggerType = "TAKE_PROFIT";
+            } else if (isSellSignal) {
+              isExit = true;
+              triggerType = "SIGNAL";
+            }
+
+            if (isExit && nextDay.open > 0) {
+              const exitPrice = nextDay.open * (1 - feeRate);
+              const actualReturnPct = ((exitPrice - entryPrice) / entryPrice) * 100;
+              const d1 = new Date(entryDate);
+              const d2 = new Date(nextDay.date);
+              const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+
+              let exitReason = "매도전략";
+              if (triggerType === "STOP_LOSS") exitReason = "손절신호";
+              else if (triggerType === "TAKE_PROFIT") exitReason = "익절신호";
+
+              allExecutedTrades.push({
+                ticker: ticker,
+                name: stockInfo.name,
+                market: stockInfo.market,
+                signalDate: entrySignalDate,
+                entryDate: entryDate,
+                entryPrice: Math.round(entryPrice),
+                exitDate: nextDay.date,
+                exitPrice: Math.round(exitPrice),
+                returnPct: parseFloat(actualReturnPct.toFixed(2)),
+                holdingDays: holdingDays,
+                reason: exitReason,
+                win: actualReturnPct >= 0
+              });
+              inPosition = false;
+            }
+          }
+        }
+
+        if (inPosition && rows.length > 0) {
+          const lastRow = rows[rows.length - 1];
+          const exitPrice = lastRow.close * (1 - feeRate);
+          const actualReturnPct = ((exitPrice - entryPrice) / entryPrice) * 100;
+          const d1 = new Date(entryDate);
+          const d2 = new Date(lastRow.date);
+          const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+
+          allExecutedTrades.push({
+            ticker: ticker,
+            name: stockInfo.name,
+            market: stockInfo.market,
+            signalDate: entrySignalDate,
+            entryDate: entryDate,
+            entryPrice: Math.round(entryPrice),
+            exitDate: lastRow.date,
+            exitPrice: Math.round(exitPrice),
+            returnPct: parseFloat(actualReturnPct.toFixed(2)),
+            holdingDays: holdingDays,
+            reason: "기간종료",
+            win: actualReturnPct >= 0
+          });
+          inPosition = false;
+        }
+      });
+
+      allExecutedTrades.sort((a, b) => b.entryDate.localeCompare(a.entryDate) || b.signalDate.localeCompare(a.signalDate));
+      return allExecutedTrades;
+    }
+
+    function runMultiStrategyComparison() {
+      const checks = document.querySelectorAll('.slot-compare-check:checked');
+      if (checks.length === 0) {
+        alert("비교할 전략 슬롯을 1개 이상 체크해 주세요!");
+        return;
+      }
+
+      const selectedSlots = Array.from(checks).map(c => parseInt(c.value)).map(idx => strategySlots[idx]).filter(s => s && !s.isEmpty && s.buyRules);
+      if (selectedSlots.length === 0) {
+        alert("선택된 슬롯 중 저장된 유효한 전략이 없습니다.");
+        return;
+      }
+
+      const startDateStr = document.getElementById('opt-start-date').value;
+      const endDateStr = document.getElementById('opt-end-date').value;
+      const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 10000000;
+
+      const colorPalette = ['#2563eb', '#7c3aed', '#059669', '#ea580c', '#db2777', '#0284c7', '#ca8a04', '#78716c', '#4f46e5', '#0d9488'];
+
+      const multiDatasets = [];
+      let fineDates = [];
+
+      if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
+        const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        if (kRows.length > 0) fineDates = kRows.map(r => r.date);
+      }
+
+      const priceMap = {};
+      if (REAL_PRELOADED_DATA) {
+        Object.keys(REAL_PRELOADED_DATA).forEach(ticker => {
+          const dateMap = {};
+          REAL_PRELOADED_DATA[ticker].forEach(r => { dateMap[r.date] = r.close; });
+          priceMap[ticker] = dateMap;
+        });
+      }
+
+      selectedSlots.forEach((slot, slotIdx) => {
+        const trades = simulateTradesForRules(slot.buyRules, slot.sellRules, slot.buyOperator, slot.sellOperator, slot.stopLoss, slot.takeProfit, slot.market, startDateStr, endDateStr, tradeAmount);
+
+        let dailyEngagedCapitalSum = 0;
+        fineDates.forEach(dbDate => {
+          const activeCount = trades.filter(t => t.entryDate <= dbDate && t.exitDate >= dbDate).length;
+          dailyEngagedCapitalSum += Math.max(1, activeCount) * tradeAmount;
+        });
+        const averageCapitalBalance = fineDates.length > 0 ? (dailyEngagedCapitalSum / fineDates.length) : tradeAmount;
+
+        const strategyUnrealizedData = [];
+        fineDates.forEach(dbDate => {
+          const closed = trades.filter(t => t.exitDate <= dbDate);
+          const activeOpen = trades.filter(t => t.entryDate <= dbDate && t.exitDate > dbDate);
+          const closedNetGainSum = closed.reduce((sum, t) => sum + Math.round(tradeAmount * (t.returnPct / 100)), 0);
+
+          let openPaperGainSum = 0;
+          activeOpen.forEach(t => {
+            const stockPrices = priceMap[t.ticker] || {};
+            const closeP = stockPrices[dbDate] !== undefined ? stockPrices[dbDate] : t.entryPrice;
+            const paperPct = ((closeP - t.entryPrice) / t.entryPrice) * 100;
+            openPaperGainSum += Math.round(tradeAmount * (paperPct / 100));
+          });
+
+          const unrealizedPct = averageCapitalBalance > 0 ? ((closedNetGainSum + openPaperGainSum) / averageCapitalBalance) * 100 : 0;
+          strategyUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
+        });
+
+        const color = colorPalette[slotIdx % colorPalette.length];
+        multiDatasets.push({
+          label: `${slot.name} (평잔수익률)`,
+          data: strategyUnrealizedData,
+          borderColor: color,
+          borderWidth: 2,
+          fill: false,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          tension: 0.1
+        });
+      });
+
+      // Add KOSPI Benchmark
+      let kospiBenchmarkData = fineDates.map(() => 0);
+      if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
+        const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        if (kRows.length > 0) {
+          const baseClose = kRows[0].close;
+          kospiBenchmarkData = fineDates.map(dbDate => {
+            const rowAtDate = kRows.filter(r => r.date <= dbDate).pop() || kRows[0];
+            const pctChange = ((rowAtDate.close - baseClose) / baseClose) * 100;
+            return parseFloat(pctChange.toFixed(1));
+          });
+        }
+      }
+      multiDatasets.push({
+        label: 'KOSPI',
+        data: kospiBenchmarkData,
+        borderColor: '#dc2626',
+        borderDash: [4, 4],
+        borderWidth: 1.5,
+        fill: false,
+        pointRadius: 0,
+        tension: 0.1
+      });
+
+      // Render Multi-Strategy Chart
+      const ctx = document.getElementById('equityChart').getContext('2d');
+      if (equityChartInstance) equityChartInstance.destroy();
+
+      equityChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: { labels: fineDates, datasets: multiDatasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: { position: 'top', labels: { font: { weight: '600', size: 11 } } },
+            tooltip: {
+              callbacks: {
+                title: (items) => items.length > 0 ? `날짜: ${items[0].label}` : '',
+                label: (context) => ` ${context.dataset.label}: ${context.parsed.y >= 0 ? '+' : ''}${context.parsed.y.toFixed(1)}%`
+              }
+            }
+          }
+        }
+      });
+
+      document.getElementById('results-section').style.display = 'block';
+      document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
+    }
+
     // Clean standard page load initialization
     window.addEventListener('DOMContentLoaded', () => {
       loadDefaultBuyRules();
       loadDefaultSellRules();
+      initStrategySlots();
     });
   </script>
 </body>
