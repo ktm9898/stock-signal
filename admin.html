@@ -652,11 +652,31 @@
           <div class="card-title">
             전체 백테스트 매매 체결 일지
           </div>
-          <select id="log-filter-result" class="form-select" onchange="filterTradeLogs(this.value)">
-            <option value="ALL">전체 체결 결과</option>
-            <option value="WIN">익절 / 승리 거래만</option>
-            <option value="LOSS">손절 / 패배 거래만</option>
-          </select>
+        </div>
+
+        <!-- Search & Filter Controls -->
+        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-sub);">시장:</span>
+            <select id="log-filter-market" class="form-select" onchange="filterTradeLogs()">
+              <option value="ALL">전체 (KOSPI200 + KOSDAQ150)</option>
+              <option value="KOSPI200">KOSPI 200</option>
+              <option value="KOSDAQ150">KOSDAQ 150</option>
+            </select>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-sub);">체결 결과:</span>
+            <select id="log-filter-result" class="form-select" onchange="filterTradeLogs()">
+              <option value="ALL">전체 체결 결과</option>
+              <option value="WIN">익절 / 승리 거래만</option>
+              <option value="LOSS">손절 / 패배 거래만</option>
+            </select>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 180px;">
+            <input type="text" id="log-filter-search" placeholder="🔍 종목명/코드 검색..." class="form-input" style="flex: 1;" oninput="filterTradeLogs()">
+          </div>
         </div>
 
         <div class="table-container" style="max-height: 600px; overflow-y: auto;">
@@ -1259,10 +1279,22 @@
         if (el2) el2.textContent = (f === currentSortField ? iconSymbol : '↕');
       });
 
-      const filterVal = document.getElementById('log-filter-result') ? document.getElementById('log-filter-result').value : 'ALL';
+      const marketVal = document.getElementById('log-filter-market') ? document.getElementById('log-filter-market').value : 'ALL';
+      const resultVal = document.getElementById('log-filter-result') ? document.getElementById('log-filter-result').value : 'ALL';
+      const searchVal = document.getElementById('log-filter-search') ? document.getElementById('log-filter-search').value.trim().toLowerCase() : '';
+
       let filtered = sorted;
-      if (filterVal === 'WIN') filtered = sorted.filter(t => t.win);
-      if (filterVal === 'LOSS') filtered = sorted.filter(t => !t.win);
+      if (marketVal !== 'ALL') {
+        filtered = filtered.filter(t => t.market === marketVal);
+      }
+      if (resultVal === 'WIN') {
+        filtered = filtered.filter(t => t.win);
+      } else if (resultVal === 'LOSS') {
+        filtered = filtered.filter(t => !t.win);
+      }
+      if (searchVal) {
+        filtered = filtered.filter(t => t.name.toLowerCase().includes(searchVal) || t.ticker.toLowerCase().includes(searchVal));
+      }
 
       renderRecentTradesTable(filtered.slice(0, 50));
       renderFullTradeLogs(filtered);
