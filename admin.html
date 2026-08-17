@@ -438,12 +438,12 @@
             <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">
               1회 매수 금액 (원)
             </label>
-            <input type="number" id="opt-initial-capital" class="form-input" value="1000000" style="width: 100%;">
+            <input type="number" id="opt-initial-capital" class="form-input" value="10000000" style="width: 100%;">
           </div>
         </div>
 
         <div style="margin-top: 10px; font-size: 0.76rem; color: #64748b; background: #f8fafc; padding: 7px 10px; border-radius: 5px; border: 1px solid var(--border-color);">
-          * 매수 신호 시 1회 1,000,000원(기본 1백만 원)을 다음 날 시가(Open)에 진입하며, 매도 신호 시 전액 청산합니다. (수수료 0.15%, 슬리피지 0.10% 차감)
+          * 매수 신호 시 1회 10,000,000원(기본 1천만 원)을 다음 날 시가(Open)에 진입하며, 매도 신호 시 전액 청산합니다. (수수료 0.15%, 슬리피지 0.10% 차감)
         </div>
       </div>
 
@@ -901,7 +901,7 @@
         endDateStr = document.getElementById('opt-end-date').value || "2026-08-14";
       }
 
-      const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 1000000;
+      const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 10000000;
       const stopLossVal = parseFloat(document.getElementById('opt-stop-loss').value) || null;
       const takeProfitVal = parseFloat(document.getElementById('opt-take-profit').value) || null;
 
