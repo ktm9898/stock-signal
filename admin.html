@@ -1297,44 +1297,24 @@
 
       const targetMarketSelect = document.getElementById('opt-backtest-market');
       const targetMarket = targetMarketSelect ? targetMarketSelect.value : 'ALL';
-      const { sampleDates, dateBoundaries } = generateDynamicTimeline(startDateStr, endDateStr);
-      
-      // Calculate REAL KOSPI Index Curve (0% baseline)
-      let kospiBenchmarkData = dateBoundaries.map(() => 0);
-      if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
-        const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
-        if (kRows.length > 5) {
-          const baseClose = kRows[0].close;
-          kospiBenchmarkData = dateBoundaries.map(dbDate => {
-            const rowAtDate = kRows.filter(r => r.date <= dbDate).pop() || kRows[0];
-            const pctChange = ((rowAtDate.close - baseClose) / baseClose) * 100;
-            return parseFloat(pctChange.toFixed(1));
-          });
-        }
-      }
-
-      // Calculate REAL KOSDAQ Index Curve (0% baseline)
-      let kosdaqBenchmarkData = dateBoundaries.map(() => 0);
-      if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSDAQ']) {
-        const kqRows = REAL_PRELOADED_DATA['KOSDAQ'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
-        if (kqRows.length > 5) {
-          const baseClose = kqRows[0].close;
-          kosdaqBenchmarkData = dateBoundaries.map(dbDate => {
-            const rowAtDate = kqRows.filter(r => r.date <= dbDate).pop() || kqRows[0];
-            const pctChange = ((rowAtDate.close - baseClose) / baseClose) * 100;
-            return parseFloat(pctChange.toFixed(1));
-          });
-        }
-      }
-
-      // Calculate Strategy Equity Curve mapped EXACTLY to sampleDates timeline (0% baseline)
       const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 10000000;
+
+      // 1. Sort trades chronologically by exitDate
       const sortedChronological = trades.slice().sort((a, b) => a.exitDate.localeCompare(b.exitDate));
 
+      // 2. Build High-Resolution Timeline (Every Trade Exit Date for exact MDD visualization)
+      const fineDatesSet = new Set();
+      fineDatesSet.add(startDateStr);
+      sortedChronological.forEach(t => fineDatesSet.add(t.exitDate));
+      fineDatesSet.add(endDateStr);
+
+      const fineDates = Array.from(fineDatesSet).sort();
+
+      // 3. Compute High-Resolution Strategy Equity Curve (0% baseline)
       let runningGainSum = 0;
       let tradeIdx = 0;
 
-      const strategyData = dateBoundaries.map(dbDate => {
+      const strategyData = fineDates.map(dbDate => {
         while (tradeIdx < sortedChronological.length && sortedChronological[tradeIdx].exitDate <= dbDate) {
           const netGain = Math.round(tradeAmount * (sortedChronological[tradeIdx].returnPct / 100));
           runningGainSum += netGain;
@@ -1344,16 +1324,35 @@
         return parseFloat(cumPct.toFixed(1));
       });
 
-      // Include all remaining trades up to latest trade date
-      while (tradeIdx < sortedChronological.length) {
-        const netGain = Math.round(tradeAmount * (sortedChronological[tradeIdx].returnPct / 100));
-        runningGainSum += netGain;
-        tradeIdx++;
+      // 4. Compute High-Resolution Benchmark Curves
+      let kospiBenchmarkData = fineDates.map(() => 0);
+      if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
+        const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        if (kRows.length > 5) {
+          const baseClose = kRows[0].close;
+          kospiBenchmarkData = fineDates.map(dbDate => {
+            const rowAtDate = kRows.filter(r => r.date <= dbDate).pop() || kRows[0];
+            const pctChange = ((rowAtDate.close - baseClose) / baseClose) * 100;
+            return parseFloat(pctChange.toFixed(1));
+          });
+        }
       }
-      if (strategyData.length > 0) {
-        const finalCumPct = tradeAmount > 0 ? (runningGainSum / tradeAmount) * 100 : 0;
-        strategyData[strategyData.length - 1] = parseFloat(finalCumPct.toFixed(1));
+
+      let kosdaqBenchmarkData = fineDates.map(() => 0);
+      if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSDAQ']) {
+        const kqRows = REAL_PRELOADED_DATA['KOSDAQ'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        if (kqRows.length > 5) {
+          const baseClose = kqRows[0].close;
+          kosdaqBenchmarkData = fineDates.map(dbDate => {
+            const rowAtDate = kqRows.filter(r => r.date <= dbDate).pop() || kqRows[0];
+            const pctChange = ((rowAtDate.close - baseClose) / baseClose) * 100;
+            return parseFloat(pctChange.toFixed(1));
+          });
+        }
       }
+
+      // Format X-axis Labels cleanly (YYYY.MM format for clean autoSkip ticks)
+      const fineLabels = fineDates.map(d => d.slice(0, 7).replace('-', '.'));
 
       const datasets = [
         {
@@ -1363,7 +1362,9 @@
           backgroundColor: 'rgba(37, 99, 235, 0.05)',
           fill: true,
           borderWidth: 2,
-          tension: 0.2
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          tension: 0.1
         }
       ];
 
@@ -1374,8 +1375,9 @@
           borderColor: '#dc2626',
           borderDash: [4, 4],
           borderWidth: 1.5,
+          pointRadius: 0,
           fill: false,
-          tension: 0.2
+          tension: 0.1
         });
       }
 
@@ -1386,15 +1388,16 @@
           borderColor: '#059669',
           borderDash: [4, 4],
           borderWidth: 1.5,
+          pointRadius: 0,
           fill: false,
-          tension: 0.2
+          tension: 0.1
         });
       }
 
       equityChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: sampleDates,
+          labels: fineLabels,
           datasets: datasets
         },
         options: {
@@ -1409,7 +1412,14 @@
               grid: { color: '#f1f5f9' },
               ticks: { callback: (val) => `${val > 0 ? '+' : ''}${val}%` }
             },
-            x: { grid: { display: false } }
+            x: {
+              grid: { display: false },
+              ticks: {
+                maxTicksLimit: 12,
+                autoSkip: true,
+                font: { size: 10 }
+              }
+            }
           }
         }
       });
