@@ -760,6 +760,8 @@
       { id: "turn_up", name: "전날 대비 반등 (Turn Up)" }
     ];
 
+    let ALL_350_STOCKS = [];
+    let REAL_PRELOADED_DATA = null;
     let currentBuyRules = [];
     let currentSellRules = [];
     let equityChartInstance = null;
@@ -949,224 +951,235 @@
       btn.disabled = true;
       btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin" style="margin-right: 6px;"></i> 백테스트 시뮬레이션 계산 중...`;
 
-      const targetMarketSelect = document.getElementById('opt-backtest-market');
-      const targetMarket = targetMarketSelect ? targetMarketSelect.value : 'ALL';
-      const periodType = document.getElementById('opt-backtest-period').value;
-
-      let startDateStr = document.getElementById('opt-start-date').value;
-      let endDateStr = document.getElementById('opt-end-date').value;
-
-      const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 10000000;
-      const stopLossVal = parseFloat(document.getElementById('opt-stop-loss').value) || null;
-      const takeProfitVal = parseFloat(document.getElementById('opt-take-profit').value) || null;
-
-      const badge = document.getElementById('report-strat-name');
-      if (badge) {
-        if (targetMarket === 'KOSPI200') badge.textContent = "코스피 200 검증 성과";
-        else if (targetMarket === 'KOSDAQ150') badge.textContent = "코스닥 150 검증 성과";
-        else badge.textContent = "전체 (350종목) 검증 성과";
-      }
-
-      resetRecentTradesTableFilter();
-
-      if (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0) {
-        try {
-          const resStock = await fetch('data/stocks_350.json');
-          if (resStock.ok) {
-            ALL_350_STOCKS = await resStock.json();
-          }
-        } catch(e) {}
-      }
-
-      if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length < 100) {
-        try {
-          const res = await fetch('data/stocks_350_real.json');
-          if (res.ok) {
-            const d = await res.json();
-            REAL_PRELOADED_DATA = d.preloaded_data || {};
-          }
-        } catch(e) {}
-      }
-
       try {
+        const targetMarketSelect = document.getElementById('opt-backtest-market');
+        const targetMarket = targetMarketSelect ? targetMarketSelect.value : 'ALL';
+
+        let startDateStr = document.getElementById('opt-start-date').value;
+        let endDateStr = document.getElementById('opt-end-date').value;
+
+        const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 10000000;
+        const stopLossVal = parseFloat(document.getElementById('opt-stop-loss').value) || null;
+        const takeProfitVal = parseFloat(document.getElementById('opt-take-profit').value) || null;
+
+        const badge = document.getElementById('report-strat-name');
+        if (badge) {
+          if (targetMarket === 'KOSPI200') badge.textContent = "코스피 200 검증 성과";
+          else if (targetMarket === 'KOSDAQ150') badge.textContent = "코스닥 150 검증 성과";
+          else badge.textContent = "전체 (350종목) 검증 성과";
+        }
+
+        resetRecentTradesTableFilter();
+
+        if (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0) {
+          try {
+            const resStock = await fetch('data/stocks_350.json');
+            if (resStock.ok) {
+              ALL_350_STOCKS = await resStock.json();
+            }
+          } catch(e) {
+            console.warn("stocks_350.json load warning:", e);
+          }
+        }
+
+        if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length < 10) {
+          try {
+            const res = await fetch('data/stocks_350_real.json');
+            if (res.ok) {
+              const d = await res.json();
+              REAL_PRELOADED_DATA = d.preloaded_data || {};
+            }
+          } catch(e) {
+            console.warn("stocks_350_real.json load warning:", e);
+          }
+        }
+
+        if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length === 0) {
+          alert("주가 데이터를 로드할 수 없습니다. data/stocks_350_real.json 파일이 존재하지 않거나 서버 연결이 불안정합니다.");
+          return;
+        }
+
         const allExecutedTrades = [];
         const feeRate = 0.0015 + 0.0010;
 
         const tickers = Object.keys(REAL_PRELOADED_DATA);
-          
-          tickers.forEach(ticker => {
-            if (ticker === '069500' || ticker === 'KOSPI' || ticker === 'KOSDAQ') return;
+        
+        tickers.forEach(ticker => {
+          if (ticker === '069500' || ticker === 'KOSPI' || ticker === 'KOSDAQ') return;
 
-            const rawRows = REAL_PRELOADED_DATA[ticker];
-            if (!rawRows || rawRows.length < 30) return;
+          const rawRows = REAL_PRELOADED_DATA[ticker];
+          if (!rawRows || rawRows.length < 30) return;
 
-            const stockInfo = ALL_350_STOCKS.find(s => s.ticker === ticker) || { name: ticker, market: "KOSPI200" };
+          const stockInfo = (ALL_350_STOCKS && ALL_350_STOCKS.length > 0) 
+            ? (ALL_350_STOCKS.find(s => s.ticker === ticker) || { name: ticker, market: "KOSPI200" })
+            : { name: ticker, market: "KOSPI200" };
 
-            if (targetMarket !== 'ALL' && stockInfo.market !== targetMarket) return;
+          if (targetMarket !== 'ALL' && stockInfo.market !== targetMarket) return;
 
-            const rows = rawRows.filter(r => r.date >= startDateStr && r.date <= endDateStr);
-            if (rows.length < 5) return;
+          const rows = rawRows.filter(r => r.date >= startDateStr && r.date <= endDateStr);
+          if (rows.length < 5) return;
 
-            let inPosition = false;
-            let entryPrice = 0;
-            let entryDate = "";
-            let entrySignalDate = "";
+          let inPosition = false;
+          let entryPrice = 0;
+          let entryDate = "";
+          let entrySignalDate = "";
 
-            for (let i = 0; i < rows.length - 1; i++) {
-              const curr = rows[i];
-              const nextDay = rows[i + 1];
+          for (let i = 0; i < rows.length - 1; i++) {
+            const curr = rows[i];
+            const nextDay = rows[i + 1];
 
-              const isBuySignal = evaluateBuyCondition(curr, rows[i - 1]);
+            const isBuySignal = evaluateBuyCondition(curr, rows[i - 1]);
 
-              if (!inPosition) {
-                if (isBuySignal && nextDay.open > 0) {
-                  inPosition = true;
-                  entryPrice = nextDay.open * (1 + feeRate);
-                  entrySignalDate = curr.date;
-                  entryDate = nextDay.date;
+            if (!inPosition) {
+              if (isBuySignal && nextDay.open > 0) {
+                inPosition = true;
+                entryPrice = nextDay.open * (1 + feeRate);
+                entrySignalDate = curr.date;
+                entryDate = nextDay.date;
+              }
+            } else {
+              const currClose = curr.close;
+              const paperReturnPct = ((currClose - entryPrice) / entryPrice) * 100;
+
+              let isExit = false;
+              let triggerType = "SIGNAL";
+
+              if (stopLossVal !== null && paperReturnPct <= -Math.abs(stopLossVal)) {
+                isExit = true;
+                triggerType = "STOP_LOSS";
+              } else if (takeProfitVal !== null && paperReturnPct >= Math.abs(takeProfitVal)) {
+                isExit = true;
+                triggerType = "TAKE_PROFIT";
+              } else if (evaluateSellCondition(curr, rows[i - 1])) {
+                isExit = true;
+                triggerType = "SIGNAL";
+              }
+
+              if (isExit && nextDay.open > 0) {
+                const exitPrice = nextDay.open * (1 - feeRate);
+                const actualReturnPct = ((exitPrice - entryPrice) / entryPrice) * 100;
+                
+                const d1 = new Date(entryDate);
+                const d2 = new Date(nextDay.date);
+                const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+
+                let exitReason = "매도전략";
+                if (triggerType === "STOP_LOSS") {
+                  exitReason = "손절신호";
+                } else if (triggerType === "TAKE_PROFIT") {
+                  exitReason = "익절신호";
+                } else {
+                  exitReason = "매도전략";
                 }
-              } else {
-                const currClose = curr.close;
-                const paperReturnPct = ((currClose - entryPrice) / entryPrice) * 100;
 
-                let isExit = false;
-                let triggerType = "SIGNAL";
+                allExecutedTrades.push({
+                  ticker: ticker,
+                  name: stockInfo.name,
+                  market: stockInfo.market,
+                  signalDate: entrySignalDate,
+                  entryDate: entryDate,
+                  entryPrice: Math.round(entryPrice),
+                  exitDate: nextDay.date,
+                  exitPrice: Math.round(exitPrice),
+                  returnPct: parseFloat(actualReturnPct.toFixed(2)),
+                  holdingDays: holdingDays,
+                  reason: exitReason,
+                  win: actualReturnPct >= 0
+                });
 
-                if (stopLossVal !== null && paperReturnPct <= -Math.abs(stopLossVal)) {
-                  isExit = true;
-                  triggerType = "STOP_LOSS";
-                } else if (takeProfitVal !== null && paperReturnPct >= Math.abs(takeProfitVal)) {
-                  isExit = true;
-                  triggerType = "TAKE_PROFIT";
-                } else if (evaluateSellCondition(curr, rows[i - 1])) {
-                  isExit = true;
-                  triggerType = "SIGNAL";
-                }
-
-                if (isExit && nextDay.open > 0) {
-                  const exitPrice = nextDay.open * (1 - feeRate);
-                  const actualReturnPct = ((exitPrice - entryPrice) / entryPrice) * 100;
-                  
-                  const d1 = new Date(entryDate);
-                  const d2 = new Date(nextDay.date);
-                  const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
-
-                  let exitReason = "매도전략";
-                  if (triggerType === "STOP_LOSS") {
-                    exitReason = "손절신호";
-                  } else if (triggerType === "TAKE_PROFIT") {
-                    exitReason = "익절신호";
-                  } else {
-                    exitReason = "매도전략";
-                  }
-
-                  allExecutedTrades.push({
-                    ticker: ticker,
-                    name: stockInfo.name,
-                    market: stockInfo.market,
-                    signalDate: entrySignalDate,
-                    entryDate: entryDate,
-                    entryPrice: Math.round(entryPrice),
-                    exitDate: nextDay.date,
-                    exitPrice: Math.round(exitPrice),
-                    returnPct: parseFloat(actualReturnPct.toFixed(2)),
-                    holdingDays: holdingDays,
-                    reason: exitReason,
-                    win: actualReturnPct >= 0
-                  });
-
-                  inPosition = false;
-                }
+                inPosition = false;
               }
             }
+          }
 
-            if (inPosition && rows.length > 0) {
-              const lastRow = rows[rows.length - 1];
-              const exitPrice = lastRow.close * (1 - feeRate);
-              const actualReturnPct = ((exitPrice - entryPrice) / entryPrice) * 100;
-              const d1 = new Date(entryDate);
-              const d2 = new Date(lastRow.date);
-              const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+          if (inPosition && rows.length > 0) {
+            const lastRow = rows[rows.length - 1];
+            const exitPrice = lastRow.close * (1 - feeRate);
+            const actualReturnPct = ((exitPrice - entryPrice) / entryPrice) * 100;
+            const d1 = new Date(entryDate);
+            const d2 = new Date(lastRow.date);
+            const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
 
-              allExecutedTrades.push({
-                ticker: ticker,
-                name: stockInfo.name,
-                market: stockInfo.market,
-                signalDate: entrySignalDate,
-                entryDate: entryDate,
-                entryPrice: Math.round(entryPrice),
-                exitDate: lastRow.date,
-                exitPrice: Math.round(exitPrice),
-                returnPct: parseFloat(actualReturnPct.toFixed(2)),
-                holdingDays: holdingDays,
-                reason: "기간종료",
-                win: actualReturnPct >= 0
-              });
-              inPosition = false;
-            }
-          });
+            allExecutedTrades.push({
+              ticker: ticker,
+              name: stockInfo.name,
+              market: stockInfo.market,
+              signalDate: entrySignalDate,
+              entryDate: entryDate,
+              entryPrice: Math.round(entryPrice),
+              exitDate: lastRow.date,
+              exitPrice: Math.round(exitPrice),
+              returnPct: parseFloat(actualReturnPct.toFixed(2)),
+              holdingDays: holdingDays,
+              reason: "기간종료",
+              win: actualReturnPct >= 0
+            });
+            inPosition = false;
+          }
+        });
 
-          allExecutedTrades.sort((a, b) => b.entryDate.localeCompare(a.entryDate) || b.signalDate.localeCompare(a.signalDate));
+        allExecutedTrades.sort((a, b) => b.entryDate.localeCompare(a.entryDate) || b.signalDate.localeCompare(a.signalDate));
 
-          allExecutedTrades.forEach((t, idx) => t._origIdx = idx + 1);
-          cachedExecutedTrades = allExecutedTrades;
+        allExecutedTrades.forEach((t, idx) => t._origIdx = idx + 1);
+        cachedExecutedTrades = allExecutedTrades;
 
-          currentSortField = 'entryDate';
-          currentSortOrder = 'DESC';
+        currentSortField = 'entryDate';
+        currentSortOrder = 'DESC';
 
-          sortTradeLogTable('entryDate');
+        sortTradeLogTable('entryDate');
 
-          const totalTrades = allExecutedTrades.length;
-          const winTrades = allExecutedTrades.filter(t => t.win).length;
-          const lossTrades = totalTrades - winTrades;
-          const winRate = totalTrades > 0 ? (winTrades / totalTrades) * 100 : 0;
+        const totalTrades = allExecutedTrades.length;
+        const winTrades = allExecutedTrades.filter(t => t.win).length;
+        const lossTrades = totalTrades - winTrades;
+        const winRate = totalTrades > 0 ? (winTrades / totalTrades) * 100 : 0;
 
-          let totalProfitSum = 0;
-          let totalLossSum = 0;
-          let totalNetReturnAmount = 0;
+        let totalProfitSum = 0;
+        let totalLossSum = 0;
+        let totalNetReturnAmount = 0;
 
-          allExecutedTrades.forEach(t => {
-            const netGain = Math.round(tradeAmount * (t.returnPct / 100));
-            totalNetReturnAmount += netGain;
-            if (netGain > 0) totalProfitSum += netGain;
-            else totalLossSum += Math.abs(netGain);
-          });
+        allExecutedTrades.forEach(t => {
+          const netGain = Math.round(tradeAmount * (t.returnPct / 100));
+          totalNetReturnAmount += netGain;
+          if (netGain > 0) totalProfitSum += netGain;
+          else totalLossSum += Math.abs(netGain);
+        });
 
-          const profitFactor = totalLossSum > 0 ? (totalProfitSum / totalLossSum) : (totalProfitSum > 0 ? 9.99 : 1.0);
-          
-          const avgTradeRet = totalTrades > 0 ? (allExecutedTrades.reduce((s, t) => s + t.returnPct, 0) / totalTrades) : 0;
-          const totalReturnPct = avgTradeRet * (totalTrades > 0 ? Math.min(20, Math.max(1, totalTrades / 10)) : 1);
+        const profitFactor = totalLossSum > 0 ? (totalProfitSum / totalLossSum) : (totalProfitSum > 0 ? 9.99 : 1.0);
+        
+        const avgTradeRet = totalTrades > 0 ? (allExecutedTrades.reduce((s, t) => s + t.returnPct, 0) / totalTrades) : 0;
+        const totalReturnPct = avgTradeRet * (totalTrades > 0 ? Math.min(20, Math.max(1, totalTrades / 10)) : 1);
 
-          const dStart = new Date(startDateStr);
-          const dEnd = new Date(endDateStr);
-          const years = Math.max(0.2, (dEnd - dStart) / (1000 * 60 * 60 * 24 * 365.25));
-          const cagr = totalReturnPct > -100 ? (Math.pow(Math.max(0.01, 1 + totalReturnPct / 100), 1 / years) - 1) * 100 : 0;
+        const dStart = new Date(startDateStr);
+        const dEnd = new Date(endDateStr);
+        const years = Math.max(0.2, (dEnd - dStart) / (1000 * 60 * 60 * 24 * 365.25));
+        const cagr = totalReturnPct > -100 ? (Math.pow(Math.max(0.01, 1 + totalReturnPct / 100), 1 / years) - 1) * 100 : 0;
 
-          let maxDrawdown = 0;
-          let peakReturn = 0;
-          let cumRet = 0;
-          allExecutedTrades.slice().reverse().forEach(t => {
-            cumRet += t.returnPct;
-            if (cumRet > peakReturn) peakReturn = cumRet;
-            const dd = peakReturn - cumRet;
-            if (dd > maxDrawdown) maxDrawdown = dd;
-          });
+        let maxDrawdown = 0;
+        let peakReturn = 0;
+        let cumRet = 0;
+        allExecutedTrades.slice().reverse().forEach(t => {
+          cumRet += t.returnPct;
+          if (cumRet > peakReturn) peakReturn = cumRet;
+          const dd = peakReturn - cumRet;
+          if (dd > maxDrawdown) maxDrawdown = dd;
+        });
 
-          const avgHold = totalTrades > 0 ? (allExecutedTrades.reduce((a, b) => a + b.holdingDays, 0) / totalTrades).toFixed(1) : 0;
+        const avgHold = totalTrades > 0 ? (allExecutedTrades.reduce((a, b) => a + b.holdingDays, 0) / totalTrades).toFixed(1) : 0;
 
-          renderRecentTradesTable(allExecutedTrades.slice(0, 50));
-          renderFullTradeLogs(allExecutedTrades);
+        renderRecentTradesTable(allExecutedTrades.slice(0, 50));
+        renderFullTradeLogs(allExecutedTrades);
 
-          renderRealBenchmarkCurve(startDateStr, endDateStr, allExecutedTrades, totalNetReturnAmount, winRate, winTrades, lossTrades, profitFactor, avgTradeRet, totalTrades, avgHold);
+        renderRealBenchmarkCurve(startDateStr, endDateStr, allExecutedTrades, totalNetReturnAmount, winRate, winTrades, lossTrades, profitFactor, avgTradeRet, totalTrades, avgHold);
 
-          document.getElementById('results-section').style.display = 'block';
-          document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
-        } catch(err) {
-          console.error("Backtest execution error:", err);
-        } finally {
-          btn.disabled = false;
-          btn.innerHTML = `백테스트 시뮬레이션 실행`;
-        }
+        document.getElementById('results-section').style.display = 'block';
+        document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
+      } catch(err) {
+        console.error("Backtest execution error:", err);
+        alert("백테스트 실행 중 오류가 발생했습니다: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `백테스트 시뮬레이션 실행`;
+      }
     }
 
     
