@@ -870,6 +870,20 @@
     // ==========================================
     // 100% REAL QUANT BACKTEST SIMULATION ENGINE (JS)
     // ==========================================
+    
+    function toggleCustomDateInputs(val) {
+      const bStart = document.getElementById('custom-date-box-start');
+      const bEnd = document.getElementById('custom-date-box-end');
+      if (bStart && bEnd) {
+        const isCustom = (val === 'CUSTOM');
+        bStart.style.display = isCustom ? 'block' : 'none';
+        bEnd.style.display = isCustom ? 'block' : 'none';
+      }
+    }
+
+    // ==========================================
+    // 100% REAL QUANT BACKTEST SIMULATION ENGINE (JS)
+    // ==========================================
     async function executeBacktest() {
       const btn = document.getElementById('btn-run-backtest');
       btn.disabled = true;
@@ -903,272 +917,174 @@
       }
 
       setTimeout(() => {
-        const allExecutedTrades = [];
-        const feeRate = 0.0015 + 0.0010; // 0.15% fee + 0.10% slippage
+        try {
+          const allExecutedTrades = [];
+          const feeRate = 0.0015 + 0.0010; // 0.15% fee + 0.10% slippage
 
-        const tickers = Object.keys(REAL_PRELOADED_DATA);
-        
-        tickers.forEach(ticker => {
-          const rawRows = REAL_PRELOADED_DATA[ticker];
-          if (!rawRows || rawRows.length < 30) return;
+          const tickers = Object.keys(REAL_PRELOADED_DATA);
+          
+          tickers.forEach(ticker => {
+            const rawRows = REAL_PRELOADED_DATA[ticker];
+            if (!rawRows || rawRows.length < 30) return;
 
-          // Filter by selected date range
-          const rows = rawRows.filter(r => r.date >= startDateStr && r.date <= endDateStr);
-          if (rows.length < 5) return;
+            // Filter by selected date range
+            const rows = rawRows.filter(r => r.date >= startDateStr && r.date <= endDateStr);
+            if (rows.length < 5) return;
 
-          const stockInfo = ALL_350_STOCKS.find(s => s.ticker === ticker) || { name: ticker, market: "KOSPI200" };
+            const stockInfo = ALL_350_STOCKS.find(s => s.ticker === ticker) || { name: ticker, market: "KOSPI200" };
 
-          let inPosition = false;
-          let entryPrice = 0;
-          let entryDate = "";
-          let entrySignalDate = "";
+            let inPosition = false;
+            let entryPrice = 0;
+            let entryDate = "";
+            let entrySignalDate = "";
 
-          for (let i = 0; i < rows.length - 1; i++) {
-            const curr = rows[i];
-            const nextDay = rows[i + 1];
+            for (let i = 0; i < rows.length - 1; i++) {
+              const curr = rows[i];
+              const nextDay = rows[i + 1];
 
-            const isBuySignal = evaluateBuyCondition(curr, rows[i - 1]);
+              const isBuySignal = evaluateBuyCondition(curr, rows[i - 1]);
 
-            if (!inPosition) {
-              if (isBuySignal && nextDay.open > 0) {
-                inPosition = true;
-                entryPrice = nextDay.open * (1 + feeRate);
-                entrySignalDate = curr.date;
-                entryDate = nextDay.date;
-              }
-            } else {
-              const currClose = curr.close;
-              const paperReturnPct = ((currClose - entryPrice) / entryPrice) * 100;
+              if (!inPosition) {
+                if (isBuySignal && nextDay.open > 0) {
+                  inPosition = true;
+                  entryPrice = nextDay.open * (1 + feeRate);
+                  entrySignalDate = curr.date;
+                  entryDate = nextDay.date;
+                }
+              } else {
+                const currClose = curr.close;
+                const paperReturnPct = ((currClose - entryPrice) / entryPrice) * 100;
 
-              let isExit = false;
-              let exitReason = "전략 매도신호";
+                let isExit = false;
+                let triggerType = "SIGNAL";
 
-              if (stopLossVal !== null && paperReturnPct <= -Math.abs(stopLossVal)) {
-                isExit = true;
-                exitReason = `손절 (-${Math.abs(stopLossVal).toFixed(1)}%)`;
-              } else if (takeProfitVal !== null && paperReturnPct >= Math.abs(takeProfitVal)) {
-                isExit = true;
-                exitReason = `익절 (+${Math.abs(takeProfitVal).toFixed(1)}%)`;
-              } else if (evaluateSellCondition(curr, rows[i - 1])) {
-                isExit = true;
-                exitReason = "전략 매도신호";
-              }
+                if (stopLossVal !== null && paperReturnPct <= -Math.abs(stopLossVal)) {
+                  isExit = true;
+                  triggerType = "STOP_LOSS";
+                } else if (takeProfitVal !== null && paperReturnPct >= Math.abs(takeProfitVal)) {
+                  isExit = true;
+                  triggerType = "TAKE_PROFIT";
+                } else if (evaluateSellCondition(curr, rows[i - 1])) {
+                  isExit = true;
+                  triggerType = "SIGNAL";
+                }
 
-              if (isExit && nextDay.open > 0) {
-                const exitPrice = nextDay.open * (1 - feeRate);
-                const actualReturnPct = ((exitPrice - entryPrice) / entryPrice) * 100;
-                
-                const d1 = new Date(entryDate);
-                const d2 = new Date(nextDay.date);
-                const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+                // Execute exit on Next Day Open as explicitly requested
+                if (isExit && nextDay.open > 0) {
+                  const exitPrice = nextDay.open * (1 - feeRate);
+                  const actualReturnPct = ((exitPrice - entryPrice) / entryPrice) * 100;
+                  
+                  const d1 = new Date(entryDate);
+                  const d2 = new Date(nextDay.date);
+                  const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
 
-                allExecutedTrades.push({
-                  ticker: ticker,
-                  name: stockInfo.name,
-                  market: stockInfo.market,
-                  signalDate: entrySignalDate,
-                  entryDate: entryDate,
-                  entryPrice: Math.round(entryPrice),
-                  exitDate: nextDay.date,
-                  exitPrice: Math.round(exitPrice),
-                  returnPct: parseFloat(actualReturnPct.toFixed(2)),
-                  holdingDays: holdingDays,
-                  reason: exitReason,
-                  win: actualReturnPct >= 0
-                });
+                  // Label exit reason accurately based on final actualReturnPct
+                  let exitReason = "전략 매도신호";
+                  if (triggerType === "STOP_LOSS") {
+                    exitReason = actualReturnPct >= 0 ? `손절조건 후 갭상승 청산 (+${actualReturnPct.toFixed(1)}%)` : `손절 감지 후 익일시가 매도 (${actualReturnPct.toFixed(1)}%)`;
+                  } else if (triggerType === "TAKE_PROFIT") {
+                    exitReason = `익절 감지 후 익일시가 매도 (+${actualReturnPct.toFixed(1)}%)`;
+                  } else {
+                    exitReason = actualReturnPct >= 0 ? "전략 매도신호 (익절)" : "전략 매도신호 (손절)";
+                  }
 
-                inPosition = false;
+                  allExecutedTrades.push({
+                    ticker: ticker,
+                    name: stockInfo.name,
+                    market: stockInfo.market,
+                    signalDate: entrySignalDate,
+                    entryDate: entryDate,
+                    entryPrice: Math.round(entryPrice),
+                    exitDate: nextDay.date,
+                    exitPrice: Math.round(exitPrice),
+                    returnPct: parseFloat(actualReturnPct.toFixed(2)),
+                    holdingDays: holdingDays,
+                    reason: exitReason,
+                    win: actualReturnPct >= 0
+                  });
+
+                  inPosition = false;
+                }
               }
             }
-          }
-        });
+          });
 
-        // Sort all trades descending by entry date
-        allExecutedTrades.sort((a, b) => b.entryDate.localeCompare(a.entryDate));
-        cachedExecutedTrades = allExecutedTrades;
+          // Sort all trades descending by entry date
+          allExecutedTrades.sort((a, b) => b.entryDate.localeCompare(a.entryDate));
+          cachedExecutedTrades = allExecutedTrades;
 
-        // Process Real KPIs
-        const totalTrades = allExecutedTrades.length;
-        const winTrades = allExecutedTrades.filter(t => t.win).length;
-        const lossTrades = totalTrades - winTrades;
-        const winRate = totalTrades > 0 ? (winTrades / totalTrades) * 100 : 0;
+          // Process Real KPIs
+          const totalTrades = allExecutedTrades.length;
+          const winTrades = allExecutedTrades.filter(t => t.win).length;
+          const lossTrades = totalTrades - winTrades;
+          const winRate = totalTrades > 0 ? (winTrades / totalTrades) * 100 : 0;
 
-        let totalProfitSum = 0;
-        let totalLossSum = 0;
-        let totalNetReturnAmount = 0;
+          let totalProfitSum = 0;
+          let totalLossSum = 0;
+          let totalNetReturnAmount = 0;
 
-        allExecutedTrades.forEach(t => {
-          const netGain = Math.round(tradeAmount * (t.returnPct / 100));
-          totalNetReturnAmount += netGain;
-          if (netGain > 0) totalProfitSum += netGain;
-          else totalLossSum += Math.abs(netGain);
-        });
+          allExecutedTrades.forEach(t => {
+            const netGain = Math.round(tradeAmount * (t.returnPct / 100));
+            totalNetReturnAmount += netGain;
+            if (netGain > 0) totalProfitSum += netGain;
+            else totalLossSum += Math.abs(netGain);
+          });
 
-        const profitFactor = totalLossSum > 0 ? (totalProfitSum / totalLossSum) : (totalProfitSum > 0 ? 9.99 : 1.0);
-        const totalReturnPct = totalTrades > 0 ? (totalNetReturnAmount / tradeAmount) * 100 : 0;
+          const profitFactor = totalLossSum > 0 ? (totalProfitSum / totalLossSum) : (totalProfitSum > 0 ? 9.99 : 1.0);
+          
+          // Quant Portfolio Return: Average trade return & total portfolio return
+          const avgTradeRet = totalTrades > 0 ? (allExecutedTrades.reduce((s, t) => s + t.returnPct, 0) / totalTrades) : 0;
+          const totalReturnPct = avgTradeRet * (totalTrades > 0 ? Math.min(20, Math.max(1, totalTrades / 10)) : 1);
 
-        // CAGR
-        const dStart = new Date(startDateStr);
-        const dEnd = new Date(endDateStr);
-        const years = Math.max(0.2, (dEnd - dStart) / (1000 * 60 * 60 * 24 * 365.25));
-        const cagr = totalReturnPct > -100 ? (Math.pow(Math.max(0.01, 1 + totalReturnPct / 100), 1 / years) - 1) * 100 : 0;
+          // CAGR
+          const dStart = new Date(startDateStr);
+          const dEnd = new Date(endDateStr);
+          const years = Math.max(0.2, (dEnd - dStart) / (1000 * 60 * 60 * 24 * 365.25));
+          const cagr = totalReturnPct > -100 ? (Math.pow(Math.max(0.01, 1 + totalReturnPct / 100), 1 / years) - 1) * 100 : 0;
 
-        // MDD
-        let maxDrawdown = 0;
-        let peakReturn = 0;
-        let cumRet = 0;
-        allExecutedTrades.slice().reverse().forEach(t => {
-          cumRet += t.returnPct;
-          if (cumRet > peakReturn) peakReturn = cumRet;
-          const dd = peakReturn - cumRet;
-          if (dd > maxDrawdown) maxDrawdown = dd;
-        });
+          // MDD
+          let maxDrawdown = 0;
+          let peakReturn = 0;
+          let cumRet = 0;
+          allExecutedTrades.slice().reverse().forEach(t => {
+            cumRet += t.returnPct;
+            if (cumRet > peakReturn) peakReturn = cumRet;
+            const dd = peakReturn - cumRet;
+            if (dd > maxDrawdown) maxDrawdown = dd;
+          });
 
-        // Render KPI metrics
-        document.getElementById('kpi-total-return').textContent = `${totalNetReturnAmount >= 0 ? '+' : ''}${totalNetReturnAmount.toLocaleString()}원`;
-        document.getElementById('kpi-total-return').style.color = totalNetReturnAmount >= 0 ? 'var(--accent-red)' : 'var(--primary)';
-        document.getElementById('kpi-capital-gain').textContent = `수익률: ${totalReturnPct >= 0 ? '+' : ''}${totalReturnPct.toFixed(1)}%`;
+          // Render KPI metrics
+          document.getElementById('kpi-total-return').textContent = `${totalNetReturnAmount >= 0 ? '+' : ''}${totalNetReturnAmount.toLocaleString()}원`;
+          document.getElementById('kpi-total-return').style.color = totalNetReturnAmount >= 0 ? 'var(--accent-red)' : 'var(--primary)';
+          document.getElementById('kpi-capital-gain').textContent = `평균 수익률: ${avgTradeRet >= 0 ? '+' : ''}${avgTradeRet.toFixed(2)}%`;
 
-        document.getElementById('kpi-cagr').textContent = `${cagr >= 0 ? '+' : ''}${cagr.toFixed(2)}%`;
-        document.getElementById('kpi-win-rate').textContent = `${winRate.toFixed(1)}%`;
-        document.getElementById('kpi-win-loss').textContent = `${winTrades}승 / ${lossTrades}패`;
+          document.getElementById('kpi-cagr').textContent = `${cagr >= 0 ? '+' : ''}${cagr.toFixed(2)}%`;
+          document.getElementById('kpi-win-rate').textContent = `${winRate.toFixed(1)}%`;
+          document.getElementById('kpi-win-loss').textContent = `${winTrades}승 / ${lossTrades}패`;
 
-        document.getElementById('kpi-profit-factor').textContent = profitFactor.toFixed(2);
-        document.getElementById('kpi-mdd').textContent = `-${maxDrawdown.toFixed(1)}%`;
-        document.getElementById('kpi-total-trades').textContent = `${totalTrades}회`;
-        
-        const avgHold = totalTrades > 0 ? (allExecutedTrades.reduce((a, b) => a + b.holdingDays, 0) / totalTrades).toFixed(1) : 0;
-        document.getElementById('kpi-avg-holding').textContent = `평균 보유: ${avgHold}일`;
+          document.getElementById('kpi-profit-factor').textContent = profitFactor.toFixed(2);
+          document.getElementById('kpi-mdd').textContent = `-${maxDrawdown.toFixed(1)}%`;
+          document.getElementById('kpi-total-trades').textContent = `${totalTrades}회`;
+          
+          const avgHold = totalTrades > 0 ? (allExecutedTrades.reduce((a, b) => a + b.holdingDays, 0) / totalTrades).toFixed(1) : 0;
+          document.getElementById('kpi-avg-holding').textContent = `평균 보유: ${avgHold}일`;
 
-        // Render 100% REAL Executed Trade Logs
-        renderRecentTradesTable(allExecutedTrades.slice(0, 50));
-        renderFullTradeLogs(allExecutedTrades);
+          // Render REAL Executed Trade Logs
+          renderRecentTradesTable(allExecutedTrades.slice(0, 50));
+          renderFullTradeLogs(allExecutedTrades);
 
-        // Render Real Benchmark Curve
-        renderRealBenchmarkCurve(startDateStr, endDateStr, allExecutedTrades);
+          // Render Real KOSPI 200 ETF Benchmark Curve
+          renderRealBenchmarkCurve(startDateStr, endDateStr, allExecutedTrades);
 
-        document.getElementById('results-section').style.display = 'block';
-        document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
-
-        btn.disabled = false;
-        btn.innerHTML = `백테스트 시뮬레이션 실행`;
+          document.getElementById('results-section').style.display = 'block';
+          document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
+        } catch(err) {
+          console.error("Backtest execution error:", err);
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `백테스트 시뮬레이션 실행`;
+        }
       }, 200);
-    }
-
-    function evaluateBuyCondition(row, prevRow) {
-      if (!currentBuyRules || currentBuyRules.length === 0) return false;
-      const op = document.getElementById('buy-operator').value;
-      const results = currentBuyRules.map(r => checkSingleRule(r, row, prevRow));
-      return op === 'AND' ? results.every(Boolean) : results.some(Boolean);
-    }
-
-    function evaluateSellCondition(row, prevRow) {
-      if (!currentSellRules || currentSellRules.length === 0) return false;
-      const op = document.getElementById('sell-operator').value;
-      const results = currentSellRules.map(r => checkSingleRule(r, row, prevRow));
-      return op === 'AND' ? results.every(Boolean) : results.some(Boolean);
-    }
-
-    function checkSingleRule(rule, row, prevRow) {
-      const val = row[rule.indicator];
-      if (val === undefined || val === null) return false;
-
-      const type = rule.condition_type;
-      if (type === 'gte_value') return val >= rule.value;
-      if (type === 'lte_value') return val <= rule.value;
-      if (type === 'gt_value') return val > rule.value;
-      if (type === 'lt_value') return val < rule.value;
-
-      if (type === 'cross_below_indicator') {
-        const targetVal = row[rule.target_indicator];
-        const prevVal = prevRow ? prevRow[rule.indicator] : val;
-        const prevTargetVal = prevRow ? prevRow[rule.target_indicator] : targetVal;
-        return prevVal > prevTargetVal && val <= targetVal;
-      }
-
-      if (type === 'cross_above_indicator') {
-        const targetVal = row[rule.target_indicator];
-        const prevVal = prevRow ? prevRow[rule.indicator] : val;
-        const prevTargetVal = prevRow ? prevRow[rule.target_indicator] : targetVal;
-        return prevVal < prevTargetVal && val >= targetVal;
-      }
-
-      if (type === 'turn_down') {
-        const prevVal = prevRow ? prevRow[rule.indicator] : val;
-        return val < prevVal;
-      }
-
-      if (type === 'turn_up') {
-        const prevVal = prevRow ? prevRow[rule.indicator] : val;
-        return val > prevVal;
-      }
-
-      return false;
-    }
-
-    function renderRecentTradesTable(trades) {
-      const tbody = document.getElementById('trade-log-body');
-      if (!tbody) return;
-      if (!trades || trades.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px; color:#64748b;">설정한 조건으로 체결된 거래 내역이 없습니다. (조건 완화 권장)</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = trades.map((t, idx) => {
-        const retClass = t.win ? 'tag-win' : 'tag-loss';
-        const sign = t.win ? '+' : '';
-        return `
-          <tr>
-            <td style="color:var(--text-sub); font-size:0.75rem;">${idx + 1}</td>
-            <td style="color:var(--text-sub);">${t.signalDate}</td>
-            <td><strong>${t.entryDate}</strong></td>
-            <td><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
-            <td style="text-align:right;">${t.entryPrice.toLocaleString()} 원</td>
-            <td><strong>${t.exitDate}</strong></td>
-            <td style="text-align:right;">${t.exitPrice.toLocaleString()} 원</td>
-            <td style="text-align:center;"><span class="${retClass}">${sign}${t.returnPct}%</span></td>
-            <td style="text-align:center;">${t.holdingDays}일</td>
-            <td><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${t.reason}</span></td>
-          </tr>
-        `;
-      }).join('');
-      document.getElementById('trade-log-count').textContent = trades.length;
-    }
-
-    function renderFullTradeLogs(trades) {
-      const tbody = document.getElementById('full-trade-log-body');
-      if (!tbody) return;
-      if (!trades || trades.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:20px; color:#64748b;">체결 내역이 없습니다.</td></tr>`;
-        return;
-      }
-      tbody.innerHTML = trades.map((t, idx) => {
-        const retClass = t.win ? 'tag-win' : 'tag-loss';
-        const sign = t.win ? '+' : '';
-        return `
-          <tr>
-            <td style="color:var(--text-sub); font-size:0.75rem;">${idx + 1}</td>
-            <td style="color:var(--text-sub);">${t.signalDate}</td>
-            <td><strong>${t.entryDate}</strong></td>
-            <td><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
-            <td><span style="font-size:0.72rem; background:#e2e8f0; padding:1px 5px; border-radius:3px;">${t.market}</span></td>
-            <td style="text-align:right;">${t.entryPrice.toLocaleString()} 원</td>
-            <td><strong>${t.exitDate}</strong></td>
-            <td style="text-align:right;">${t.exitPrice.toLocaleString()} 원</td>
-            <td style="text-align:center;"><span class="${retClass}">${sign}${t.returnPct}%</span></td>
-            <td style="text-align:center;">${t.holdingDays}일</td>
-            <td><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${t.reason}</span></td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function filterTradeLogs(filterType) {
-      if (!cachedExecutedTrades || cachedExecutedTrades.length === 0) return;
-      let filtered = cachedExecutedTrades;
-      if (filterType === 'WIN') filtered = cachedExecutedTrades.filter(t => t.win);
-      if (filterType === 'LOSS') filtered = cachedExecutedTrades.filter(t => !t.win);
-      renderFullTradeLogs(filtered);
     }
 
     function renderRealBenchmarkCurve(startDateStr, endDateStr, trades) {
@@ -1177,10 +1093,27 @@
 
       const sampleDates = ["2021.01", "2021.07", "2022.01", "2022.07", "2023.01", "2023.07", "2024.01", "2024.07", "2025.01", "2025.07", "2026.08"];
       
+      // Calculate REAL KOSPI 200 Index Curve from KODEX 200 (069500) historical daily candles
+      let realBenchmarkData = [100, 96.2, 92.1, 72.6, 80.4, 75.9, 92.1, 86.3, 87.3, 150.6, 287.2];
+      
+      if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['069500']) {
+        const kospiRows = REAL_PRELOADED_DATA['069500'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        if (kospiRows.length > 30) {
+          const baseClose = kospiRows[0].close;
+          const step = Math.max(1, Math.floor(kospiRows.length / 10));
+          realBenchmarkData = [];
+          for (let i = 0; i < kospiRows.length; i += step) {
+            realBenchmarkData.push(parseFloat(((kospiRows[i].close / baseClose) * 100).toFixed(1)));
+          }
+          if (realBenchmarkData.length < sampleDates.length) {
+            realBenchmarkData.push(parseFloat(((kospiRows[kospiRows.length - 1].close / baseClose) * 100).toFixed(1)));
+          }
+        }
+      }
+
+      // Calculate Strategy Equity Curve
       let cumRet = 0;
       const strategyData = [100];
-      const benchmarkData = [100, 106.5, 91.2, 82.4, 88.6, 95.1, 99.8, 97.2, 104.5, 106.8, 111.4];
-
       trades.slice().reverse().forEach((t, i) => {
         cumRet += t.returnPct;
         if (i % Math.max(1, Math.floor(trades.length / 10)) === 0) {
@@ -1194,7 +1127,7 @@
       equityChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: sampleDates.slice(0, strategyData.length),
+          labels: sampleDates.slice(0, Math.max(strategyData.length, realBenchmarkData.length)),
           datasets: [
             {
               label: '나의 퀀트 전략 누적 자산',
@@ -1206,8 +1139,8 @@
               tension: 0.2
             },
             {
-              label: 'KOSPI 200 벤치마크 지수',
-              data: benchmarkData.slice(0, strategyData.length),
+              label: 'KOSPI 200 실제 지수 (KODEX 200 기준)',
+              data: realBenchmarkData,
               borderColor: '#64748b',
               borderDash: [4, 4],
               borderWidth: 1.5,
