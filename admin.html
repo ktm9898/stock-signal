@@ -535,7 +535,7 @@
         <div class="quant-card">
           <div class="card-header">
             <div class="card-title" id="recent-trades-title">
-              매매 체결 일지 <span style="font-size:0.75rem; color:#64748b; font-weight:400; margin-left:6px;">(💡 차트 날짜 지점을 클릭하면 해당 날짜 체결 내역만 바로 표시됩니다)</span>
+              최근 매매 체결 일지 <span style="font-size:0.75rem; color:#64748b; font-weight:400; margin-left:6px;">(💡 차트 날짜 지점을 클릭하면 해당 날짜까지의 최근 50개 내역이 표시됩니다)</span>
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
               <button id="btn-reset-date-filter" class="btn-sm-action" style="display:none; background:#e2e8f0; color:#1e293b; font-size:0.72rem; padding:3px 8px;" onclick="resetChartDateFilter()">
@@ -1307,16 +1307,16 @@
     function filterTradeLogByClickedDate(dateStr) {
       if (!cachedExecutedTrades || cachedExecutedTrades.length === 0) return;
 
-      const matching = cachedExecutedTrades.filter(t => t.exitDate === dateStr || t.entryDate === dateStr);
+      const tradesUpToDate = cachedExecutedTrades.filter(t => t.exitDate <= dateStr || t.entryDate <= dateStr);
       const titleEl = document.getElementById('recent-trades-title');
       const resetBtn = document.getElementById('btn-reset-date-filter');
 
-      if (matching.length > 0) {
-        if (titleEl) titleEl.innerHTML = `📅 <span style="color:#2563eb; font-weight:700;">${dateStr}</span> 체결 내역 (총 ${matching.length}건)`;
+      if (tradesUpToDate.length > 0) {
+        if (titleEl) titleEl.innerHTML = `📅 <span style="color:#2563eb; font-weight:700;">${dateStr}</span> 까지의 최근 매매 체결 일지 <span style="font-size:0.75rem; color:#64748b; font-weight:400; margin-left:6px;">(최대 50개)</span>`;
         if (resetBtn) resetBtn.style.display = 'inline-block';
-        renderRecentTradesTable(matching);
+        renderRecentTradesTable(tradesUpToDate.slice(0, 50));
       } else {
-        if (titleEl) titleEl.innerHTML = `📅 <span style="color:#64748b; font-weight:600;">${dateStr}</span> (해당 날짜 체결 내역 없음)`;
+        if (titleEl) titleEl.innerHTML = `📅 <span style="color:#64748b; font-weight:600;">${dateStr}</span> 이전 체결 내역 없음`;
         if (resetBtn) resetBtn.style.display = 'inline-block';
         renderRecentTradesTable([]);
       }
@@ -1325,7 +1325,7 @@
     function resetChartDateFilter() {
       const titleEl = document.getElementById('recent-trades-title');
       const resetBtn = document.getElementById('btn-reset-date-filter');
-      if (titleEl) titleEl.innerHTML = `매매 체결 일지 <span style="font-size:0.75rem; color:#64748b; font-weight:400; margin-left:6px;">(💡 차트 날짜 지점을 클릭하면 해당 날짜 체결 내역만 바로 표시됩니다)</span>`;
+      if (titleEl) titleEl.innerHTML = `최근 매매 체결 일지 <span style="font-size:0.75rem; color:#64748b; font-weight:400; margin-left:6px;">(💡 차트 날짜 지점을 클릭하면 해당 날짜까지의 최근 50개 내역이 표시됩니다)</span>`;
       if (resetBtn) resetBtn.style.display = 'none';
 
       sortTradeLogTable(currentSortField);
