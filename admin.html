@@ -955,12 +955,11 @@
         } catch(e) {}
       }
 
-      setTimeout(() => {
-        try {
-          const allExecutedTrades = [];
-          const feeRate = 0.0015 + 0.0010; // 0.15% fee + 0.10% slippage
+      try {
+        const allExecutedTrades = [];
+        const feeRate = 0.0015 + 0.0010; // 0.15% fee + 0.10% slippage
 
-          const tickers = Object.keys(REAL_PRELOADED_DATA);
+        const tickers = Object.keys(REAL_PRELOADED_DATA);
           
           tickers.forEach(ticker => {
             // Exclude benchmark ETF/Index from individual trading iteration
@@ -1160,7 +1159,6 @@
           btn.disabled = false;
           btn.innerHTML = `백테스트 시뮬레이션 실행`;
         }
-      }, 200);
     }
 
     
