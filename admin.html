@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>StockSignal 퀀트 랩 - 전략 설정 & 5년 백테스터</title>
+  <title>StockSignal 퀀트 랩 - 전략 설정 & 백테스터</title>
   
   <!-- Google Fonts & Font Awesome -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -143,7 +143,7 @@
       gap: 8px;
     }
 
-    /* Minimal Header Actions */
+    /* Header Actions */
     .header-btn-group {
       display: flex;
       gap: 6px;
@@ -443,13 +443,13 @@
         </div>
 
         <div style="margin-top: 10px; font-size: 0.76rem; color: #64748b; background: #f8fafc; padding: 7px 10px; border-radius: 5px; border: 1px solid var(--border-color);">
-          * 매수 신호 시 1회 1,000,000원(기본 1백만 원)을 다음 날 시가에 진입하며, 매도 신호 시 전액 청산합니다. (수수료 0.15%, 슬리피지 0.10% 차감)
+          * 매수 신호 시 1회 1,000,000원(기본 1백만 원)을 다음 날 시가(Open)에 진입하며, 매도 신호 시 전액 청산합니다. (수수료 0.15%, 슬리피지 0.10% 차감)
         </div>
       </div>
 
       <!-- Execute Button -->
       <button class="btn-execute" id="btn-run-backtest" onclick="executeBacktest()">
-        5년치 백테스트 시뮬레이션 실행
+        백테스트 시뮬레이션 실행
       </button>
 
       <!-- Results Section -->
@@ -458,10 +458,10 @@
         <div class="quant-card">
           <div class="card-header">
             <div class="card-title">
-              5년 백테스팅 성과 리포트
+              백테스팅 성과 리포트
             </div>
             <span id="report-strat-name" style="font-size: 0.78rem; font-weight: 700; color: #1e293b; background: #f1f5f9; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border-subtle);">
-              기존 ADX 반전 전략
+              실제 퀀트 검증 성과
             </span>
           </div>
 
@@ -469,38 +469,38 @@
           <div class="kpi-grid-6">
             <div class="kpi-card">
               <div class="kpi-title">총 순수익 금액</div>
-              <div class="kpi-value" id="kpi-total-return" style="color: var(--accent-red);">+8,460,000원</div>
-              <div class="kpi-sub" id="kpi-capital-gain">수익률: +84.6%</div>
+              <div class="kpi-value" id="kpi-total-return" style="color: var(--accent-red);">+0원</div>
+              <div class="kpi-sub" id="kpi-capital-gain">수익률: 0.0%</div>
             </div>
 
             <div class="kpi-card">
               <div class="kpi-title">연평균 수익률 (CAGR)</div>
-              <div class="kpi-value" id="kpi-cagr" style="color: var(--accent-purple);">+13.04%</div>
-              <div class="kpi-sub">5년 복리 환산</div>
+              <div class="kpi-value" id="kpi-cagr" style="color: var(--accent-purple);">0.0%</div>
+              <div class="kpi-sub">연환산 수익률</div>
             </div>
 
             <div class="kpi-card">
               <div class="kpi-title">매매 승률 (Win Rate)</div>
-              <div class="kpi-value" id="kpi-win-rate" style="color: var(--accent-green);">62.4%</div>
-              <div class="kpi-sub" id="kpi-win-loss">267승 / 161패</div>
+              <div class="kpi-value" id="kpi-win-rate" style="color: var(--accent-green);">0.0%</div>
+              <div class="kpi-sub" id="kpi-win-loss">0승 / 0패</div>
             </div>
 
             <div class="kpi-card">
               <div class="kpi-title">손익비 (Profit Factor)</div>
-              <div class="kpi-value" id="kpi-profit-factor" style="color: #0284c7;">1.88</div>
+              <div class="kpi-value" id="kpi-profit-factor" style="color: #0284c7;">0.0</div>
               <div class="kpi-sub">총이익 / 총손실</div>
             </div>
 
             <div class="kpi-card">
               <div class="kpi-title">최대 낙폭 (MDD)</div>
-              <div class="kpi-value" id="kpi-mdd" style="color: var(--accent-red);">-14.8%</div>
+              <div class="kpi-value" id="kpi-mdd" style="color: var(--accent-red);">0.0%</div>
               <div class="kpi-sub">고점 대비 최대 하락</div>
             </div>
 
             <div class="kpi-card">
               <div class="kpi-title">총 체결수 & 보유일</div>
-              <div class="kpi-value" id="kpi-total-trades" style="color: #334155;">428회</div>
-              <div class="kpi-sub" id="kpi-avg-holding">평균 보유: 6.8일</div>
+              <div class="kpi-value" id="kpi-total-trades" style="color: #334155;">0회</div>
+              <div class="kpi-sub" id="kpi-avg-holding">평균 보유: 0일</div>
             </div>
           </div>
 
@@ -508,7 +508,7 @@
           <div style="margin-top: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <h4 style="font-size: 0.88rem; font-weight: 700; color: #1e293b;">
-                5년 누적 자산 성장 곡선 (vs KOSPI 200 벤치마크)
+                누적 자산 성장 곡선 (vs KOSPI 200 벤치마크)
               </h4>
             </div>
             <div style="height: 280px; width: 100%;">
@@ -521,10 +521,10 @@
         <div class="quant-card">
           <div class="card-header">
             <div class="card-title">
-              최근 50개 매매 체결 일지
+              최근 매매 체결 일지 (최대 50개)
             </div>
             <div style="font-size: 0.75rem; color: var(--text-sub);">
-              총 <span id="trade-log-count" style="font-weight: 700; color: #2563eb;">50</span>건
+              총 <span id="trade-log-count" style="font-weight: 700; color: #2563eb;">0</span>건
             </div>
           </div>
 
@@ -553,7 +553,7 @@
 
     </div>
 
-    <!-- TAB 2: Data Viewer (Identical to screener.py columns and order) -->
+    <!-- TAB 2: Data Viewer -->
     <div id="tab-dataviewer" class="tab-view">
       <div class="quant-card">
         <div class="card-header">
@@ -596,7 +596,7 @@
           </div>
         </div>
 
-        <!-- Raw OHLCV & Indicators Table (Identical order as screener.py) -->
+        <!-- Raw OHLCV Table -->
         <div class="table-container" style="max-height: 550px; overflow-y: auto;">
           <table>
             <thead>
@@ -703,9 +703,9 @@
     let currentBuyRules = [];
     let currentSellRules = [];
     let equityChartInstance = null;
-    let cached50Trades = [];
+    let cachedExecutedTrades = [];
 
-    // Load default hardcoded buy/sell rules matching screener.py exactly (RSI 50 removed from buy)
+    // Load default hardcoded buy/sell rules matching screener.py exactly (ADX >= 25 & -DI cross_below ADX)
     function loadDefaultBuyRules() {
       currentBuyRules = [
         {
@@ -775,8 +775,15 @@
       renderRules();
     }
 
+    function updateRule(type, index, key, val) {
+      const list = type === 'buy' ? currentBuyRules : currentSellRules;
+      if (list[index]) {
+        list[index][key] = (key === 'value' ? parseFloat(val) || 0 : val);
+        if (key === 'condition_type') renderRules();
+      }
+    }
+
     function renderRules() {
-      // Render Buy Rules (named 조건 1, 조건 2)
       const buyContainer = document.getElementById('buy-rules-container');
       if (buyContainer) {
         if (currentBuyRules.length === 0) {
@@ -813,7 +820,6 @@
         }
       }
 
-      // Render Sell Rules (named 조건 1, 조건 2)
       const sellContainer = document.getElementById('sell-rules-container');
       if (sellContainer) {
         if (currentSellRules.length === 0) {
@@ -851,16 +857,6 @@
       }
     }
 
-    function updateRule(type, index, key, val) {
-      const list = type === 'buy' ? currentBuyRules : currentSellRules;
-      if (list[index]) {
-        list[index][key] = (key === 'value' ? parseFloat(val) || 0 : val);
-        if (key === 'condition_type') renderRules();
-      }
-    }
-
-    // Execute Backtest Simulation (Supports 5Y, 3Y, 1Y selected periods)
-    
     function toggleCustomDateInputs(val) {
       const bStart = document.getElementById('custom-date-box-start');
       const bEnd = document.getElementById('custom-date-box-end');
@@ -879,7 +875,7 @@
       btn.disabled = true;
       btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> 350개 전 종목 5년치 실제 데이터 시뮬레이션 연산 중...`;
 
-      // 1. Determine Date Window
+      // Determine Date Window
       const periodVal = document.getElementById('opt-backtest-period').value;
       let startDateStr = "2021-01-04";
       let endDateStr = "2026-08-14";
@@ -895,7 +891,7 @@
       const stopLossVal = parseFloat(document.getElementById('opt-stop-loss').value) || null;
       const takeProfitVal = parseFloat(document.getElementById('opt-take-profit').value) || null;
 
-      // Ensure preloaded 5Y dataset is fetched
+      // Ensure preloaded dataset is available
       if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length === 0) {
         try {
           const res = await fetch('data/stocks_350_real.json');
@@ -989,7 +985,7 @@
 
         // Sort all trades descending by entry date
         allExecutedTrades.sort((a, b) => b.entryDate.localeCompare(a.entryDate));
-        cached50Trades = allExecutedTrades;
+        cachedExecutedTrades = allExecutedTrades;
 
         // Process Real KPIs
         const totalTrades = allExecutedTrades.length;
@@ -1053,42 +1049,11 @@
 
         document.getElementById('results-section').style.display = 'block';
         document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
-      } catch(err) {
-        console.error("Backtest execution error:", err);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = `백테스트 시뮬레이션 다시 실행`;
-      }
-    }, 300);
-  }
 
-  function renderFullTradeLogs(trades) {
-    const tbody = document.getElementById('full-trade-log-body');
-    if (!tbody) return;
-    if (!trades || trades.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:20px; color:#64748b;">체결 내역이 없습니다.</td></tr>`;
-      return;
+        btn.disabled = false;
+        btn.innerHTML = `백테스트 시뮬레이션 실행`;
+      }, 200);
     }
-    tbody.innerHTML = trades.map((t, idx) => {
-      const retClass = t.win ? 'tag-win' : 'tag-loss';
-      const sign = t.win ? '+' : '';
-      return `
-        <tr>
-          <td style="color:var(--text-sub); font-size:0.75rem;">${idx + 1}</td>
-          <td style="color:var(--text-sub);">${t.signalDate}</td>
-          <td><strong>${t.entryDate}</strong></td>
-          <td><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
-          <td><span style="font-size:0.72rem; background:#e2e8f0; padding:1px 5px; border-radius:3px;">${t.market}</span></td>
-          <td style="text-align:right;">${t.entryPrice.toLocaleString()} 원</td>
-          <td><strong>${t.exitDate}</strong></td>
-          <td style="text-align:right;">${t.exitPrice.toLocaleString()} 원</td>
-          <td style="text-align:center;"><span class="${retClass}">${sign}${t.returnPct}%</span></td>
-          <td style="text-align:center;">${t.holdingDays}일</td>
-          <td><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${t.reason}</span></td>
-        </tr>
-      `;
-    }).join('');
-  }
 
     function evaluateBuyCondition(row, prevRow) {
       if (!currentBuyRules || currentBuyRules.length === 0) return false;
@@ -1170,6 +1135,42 @@
       document.getElementById('trade-log-count').textContent = trades.length;
     }
 
+    function renderFullTradeLogs(trades) {
+      const tbody = document.getElementById('full-trade-log-body');
+      if (!tbody) return;
+      if (!trades || trades.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; padding:20px; color:#64748b;">체결 내역이 없습니다.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = trades.map((t, idx) => {
+        const retClass = t.win ? 'tag-win' : 'tag-loss';
+        const sign = t.win ? '+' : '';
+        return `
+          <tr>
+            <td style="color:var(--text-sub); font-size:0.75rem;">${idx + 1}</td>
+            <td style="color:var(--text-sub);">${t.signalDate}</td>
+            <td><strong>${t.entryDate}</strong></td>
+            <td><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
+            <td><span style="font-size:0.72rem; background:#e2e8f0; padding:1px 5px; border-radius:3px;">${t.market}</span></td>
+            <td style="text-align:right;">${t.entryPrice.toLocaleString()} 원</td>
+            <td><strong>${t.exitDate}</strong></td>
+            <td style="text-align:right;">${t.exitPrice.toLocaleString()} 원</td>
+            <td style="text-align:center;"><span class="${retClass}">${sign}${t.returnPct}%</span></td>
+            <td style="text-align:center;">${t.holdingDays}일</td>
+            <td><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${t.reason}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterTradeLogs(filterType) {
+      if (!cachedExecutedTrades || cachedExecutedTrades.length === 0) return;
+      let filtered = cachedExecutedTrades;
+      if (filterType === 'WIN') filtered = cachedExecutedTrades.filter(t => t.win);
+      if (filterType === 'LOSS') filtered = cachedExecutedTrades.filter(t => !t.win);
+      renderFullTradeLogs(filtered);
+    }
+
     function renderRealBenchmarkCurve(startDateStr, endDateStr, trades) {
       const ctx = document.getElementById('equityChart').getContext('2d');
       if (equityChartInstance) equityChartInstance.destroy();
@@ -1233,9 +1234,8 @@
       });
     }
 
-
     // ==========================================
-    // TAB 2: DATA VIEWER ENGINE (Identical to screener.py columns and order)
+    // TAB 2: DATA VIEWER ENGINE
     // ==========================================
     let ALL_350_STOCKS = [];
     let REAL_PRELOADED_DATA = {};
@@ -1364,11 +1364,13 @@
       if (!currentLoadedViewerData || currentLoadedViewerData.length === 0) return;
       const targetName = document.getElementById('viewer-target-name').textContent;
       
-      let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-      csvContent += "Date,Open,High,Low,Close,Volume,ADX,Minus_DI,Plus_DI,RSI,BB_Pct,MACD,MACD_Osc,Stoch_K,Stoch_D,Disparity20,Volume_Ratio\n";
+      let csvContent = "data:text/csv;charset=utf-8,﻿";
+      csvContent += "Date,Open,High,Low,Close,Volume,ADX,Minus_DI,Plus_DI,RSI,BB_Pct,MACD,MACD_Osc,Stoch_K,Stoch_D,Disparity20,Volume_Ratio
+";
 
       currentLoadedViewerData.forEach(r => {
-        csvContent += `${r.date},${r.open},${r.high},${r.low},${r.close},${r.volume},${r.adx},${r.minus_di},${r.plus_di},${r.rsi},${r.bb_pct},${r.macd},${r.macd_osc||0},${r.stoch_k},${r.stoch_d||r.stoch_k},${r.disparity20||100},${r.volume_ratio||100}\n`;
+        csvContent += `${r.date},${r.open},${r.high},${r.low},${r.close},${r.volume},${r.adx},${r.minus_di},${r.plus_di},${r.rsi},${r.bb_pct},${r.macd},${r.macd_osc||0},${r.stoch_k},${r.stoch_d||r.stoch_k},${r.disparity20||100},${r.volume_ratio||100}
+`;
       });
 
       const encodedUri = encodeURI(csvContent);
@@ -1380,21 +1382,11 @@
       document.body.removeChild(link);
     }
 
-    function initAppStrategyDefaults() {
-      try {
-        loadDefaultBuyRules();
-        loadDefaultSellRules();
-      } catch(e) {
-        console.error("Init defaults error:", e);
-      }
-    }
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initAppStrategyDefaults);
-    } else {
-      initAppStrategyDefaults();
-    }
-    window.addEventListener('load', initAppStrategyDefaults);
+    // Clean standard page load initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      loadDefaultBuyRules();
+      loadDefaultSellRules();
+    });
   </script>
 </body>
 </html>
