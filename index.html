@@ -98,6 +98,27 @@
     }
     .btn-header-refresh:hover { background: #f1f5f9; color: #2563eb; }
 
+    .btn-admin-nav {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #ffffff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-admin-nav:hover {
+      background: linear-gradient(135deg, #4338ca, #6d28d9);
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.35);
+      transform: translateY(-1px);
+    }
+
     /* Layout Containers */
     .container { max-width: 1280px; margin: 16px auto; padding: 0 20px; }
 
@@ -347,6 +368,9 @@
         <button class="btn-manual-exec" id="manual-trigger-btn" onclick="triggerManualScreening()">
           수동 실행
         </button>
+        <a href="admin.html" class="btn-admin-nav" title="퀀트 전략 커스텀 & 5년 백테스터">
+          <i class="fa-solid fa-sliders"></i> <span class="label-desktop">퀀트 랩</span>
+        </a>
       </div>
     </div>
   </header>
