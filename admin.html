@@ -403,9 +403,9 @@
               백테스트 대상 종목
             </label>
             <select id="opt-backtest-market" class="form-select" style="width: 100%; font-weight: 600;">
-              <option value="ALL" selected>전체 (KOSPI 200 + KOSDAQ 150)</option>
-              <option value="KOSPI200">KOSPI 200만 (대형주)</option>
-              <option value="KOSDAQ150">KOSDAQ 150만 (중소형/성장주)</option>
+              <option value="ALL" selected>전체</option>
+              <option value="KOSPI200">코스피 200</option>
+              <option value="KOSDAQ150">코스닥 150</option>
             </select>
           </div>
 
@@ -790,7 +790,9 @@
       const list = type === 'buy' ? currentBuyRules : currentSellRules;
       if (list[index]) {
         list[index][key] = (key === 'value' ? parseFloat(val) || 0 : val);
-        if (key === 'condition_type') renderRules();
+        if (key === 'condition_type' || key === 'indicator' || key === 'target_indicator') {
+          renderRules();
+        }
       }
     }
 
@@ -920,9 +922,9 @@
       // Update Report Title Badge
       const badge = document.getElementById('report-strat-name');
       if (badge) {
-        if (targetMarket === 'KOSPI200') badge.textContent = "KOSPI 200 검증 성과";
-        else if (targetMarket === 'KOSDAQ150') badge.textContent = "KOSDAQ 150 검증 성과";
-        else badge.textContent = "전체 350종목 (KOSPI+KOSDAQ) 검증 성과";
+        if (targetMarket === 'KOSPI200') badge.textContent = "코스피 200 검증 성과";
+        else if (targetMarket === 'KOSDAQ150') badge.textContent = "코스닥 150 검증 성과";
+        else badge.textContent = "전체 (344종목) 검증 성과";
       }
 
       // Ensure preloaded dataset is available
@@ -1128,36 +1130,41 @@
     }
 
     function checkSingleRule(rule, row, prevRow) {
-      const val = row[rule.indicator];
-      if (val === undefined || val === null) return false;
+      const rawVal = row[rule.indicator];
+      if (rawVal === undefined || rawVal === null) return false;
 
+      const val = Number(rawVal);
+      const ruleVal = Number(rule.value !== undefined ? rule.value : 0);
       const type = rule.condition_type;
-      if (type === 'gte_value') return val >= rule.value;
-      if (type === 'lte_value') return val <= rule.value;
-      if (type === 'gt_value') return val > rule.value;
-      if (type === 'lt_value') return val < rule.value;
+
+      if (type === 'gte_value') return val >= ruleVal;
+      if (type === 'lte_value') return val <= ruleVal;
+      if (type === 'gt_value') return val > ruleVal;
+      if (type === 'lt_value') return val < ruleVal;
 
       if (type === 'cross_below_indicator') {
-        const targetVal = row[rule.target_indicator];
-        const prevVal = prevRow ? prevRow[rule.indicator] : val;
-        const prevTargetVal = prevRow ? prevRow[rule.target_indicator] : targetVal;
+        const targetVal = Number(row[rule.target_indicator]);
+        if (isNaN(targetVal)) return false;
+        const prevVal = prevRow ? Number(prevRow[rule.indicator]) : val;
+        const prevTargetVal = prevRow ? Number(prevRow[rule.target_indicator]) : targetVal;
         return prevVal > prevTargetVal && val <= targetVal;
       }
 
       if (type === 'cross_above_indicator') {
-        const targetVal = row[rule.target_indicator];
-        const prevVal = prevRow ? prevRow[rule.indicator] : val;
-        const prevTargetVal = prevRow ? prevRow[rule.target_indicator] : targetVal;
+        const targetVal = Number(row[rule.target_indicator]);
+        if (isNaN(targetVal)) return false;
+        const prevVal = prevRow ? Number(prevRow[rule.indicator]) : val;
+        const prevTargetVal = prevRow ? Number(prevRow[rule.target_indicator]) : targetVal;
         return prevVal < prevTargetVal && val >= targetVal;
       }
 
       if (type === 'turn_down') {
-        const prevVal = prevRow ? prevRow[rule.indicator] : val;
+        const prevVal = prevRow ? Number(prevRow[rule.indicator]) : val;
         return val < prevVal;
       }
 
       if (type === 'turn_up') {
-        const prevVal = prevRow ? prevRow[rule.indicator] : val;
+        const prevVal = prevRow ? Number(prevRow[rule.indicator]) : val;
         return val > prevVal;
       }
 
