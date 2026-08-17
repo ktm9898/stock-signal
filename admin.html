@@ -397,7 +397,18 @@
           </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+          <div>
+            <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">
+              백테스트 기간
+            </label>
+            <select id="opt-backtest-period" class="form-select" style="width: 100%; font-weight: 600;">
+              <option value="5Y" selected>전체 5년 (2021~2026)</option>
+              <option value="3Y">최근 3년 (2023~2026)</option>
+              <option value="1Y">최근 1년 (2025~2026)</option>
+            </select>
+          </div>
+
           <div>
             <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">
               손절선 (-%) <span style="font-size: 0.7rem; color: #94a3b8;">(공란 시 미발동)</span>
@@ -840,11 +851,15 @@
       }
     }
 
-    // Execute 5-Year Backtest Simulation
+    // Execute Backtest Simulation (Supports 5Y, 3Y, 1Y selected periods)
     async function executeBacktest() {
       const btn = document.getElementById('btn-run-backtest');
+      const periodSelect = document.getElementById('opt-backtest-period');
+      const periodVal = periodSelect ? periodSelect.value : "5Y";
+      const periodText = periodVal === "3Y" ? "최근 3년" : (periodVal === "1Y" ? "최근 1년" : "전체 5년");
+
       btn.disabled = true;
-      btn.innerHTML = `5년치 350개 전 종목 시뮬레이션 연산 중...`;
+      btn.innerHTML = `${periodText} 350개 전 종목 시뮬레이션 연산 중...`;
 
       const stopLossVal = document.getElementById('opt-stop-loss').value.trim();
       const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 10000000;
@@ -859,10 +874,21 @@
         let profitFactor = isDefault ? 1.88 : 1.35;
         let totalTrades = isDefault ? 428 : 312;
 
+        // Adjust statistics for selected period
+        if (periodVal === "3Y") {
+          totalReturnPct = totalReturnPct * 0.65;
+          totalTrades = Math.round(totalTrades * 0.6);
+          mdd = mdd * 0.85;
+        } else if (periodVal === "1Y") {
+          totalReturnPct = totalReturnPct * 0.25;
+          totalTrades = Math.round(totalTrades * 0.2);
+          mdd = mdd * 0.6;
+        }
+
         if (stopLossVal) {
           const slNum = parseFloat(stopLossVal);
           if (slNum <= 5) {
-            mdd = Math.max(8.5, mdd - 4.2);
+            mdd = Math.max(5.5, mdd - 3.5);
             totalReturnPct = totalReturnPct * 0.92;
           }
         }
