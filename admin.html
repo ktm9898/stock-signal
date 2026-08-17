@@ -340,12 +340,49 @@
       .kpi-value { font-size: 1.0rem !important; }
       .kpi-sub { font-size: 0.68rem !important; }
 
-      .rule-box { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }
-      .rule-select, .rule-input { width: 100% !important; font-size: 0.82rem !important; }
+      .rule-box { 
+        display: flex !important;
+        flex-direction: row !important; 
+        flex-wrap: nowrap !important;
+        align-items: center !important; 
+        gap: 6px !important; 
+        padding: 6px 8px !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+      }
+      .rule-box select, .rule-box input { 
+        flex: 0 0 auto !important;
+        width: auto !important; 
+        max-width: 130px !important;
+        font-size: 0.78rem !important; 
+        padding: 4px 6px !important;
+      }
+      .rule-tag {
+        font-size: 0.74rem !important;
+        padding: 3px 6px !important;
+        white-space: nowrap !important;
+        flex: 0 0 auto !important;
+      }
 
       .modal-content { width: 94vw !important; max-width: 94vw !important; padding: 14px !important; }
       
       #equityChart { height: 260px !important; }
+    }
+    .operator-select-sm {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      font-weight: 700;
+      font-size: 0.78rem;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-left: auto;
+      outline: none;
+      height: 28px;
+    }
+    .operator-select-sm:hover {
+      background: #dbeafe;
     }
     @media (max-width: 480px) {
       .kpi-grid-6 { grid-template-columns: repeat(2, 1fr) !important; }
@@ -399,21 +436,19 @@
 
       <!-- Buy Rules -->
       <div class="quant-card">
-        <div class="card-header">
-          <div class="card-title">
-            매수 조건 설정
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div class="card-title">매수 조건 설정</div>
             <div class="header-btn-group">
               <button class="btn-sm-action" onclick="openLoadModal()">불러오기</button>
               <button class="btn-sm-action" onclick="loadDefaultBuyRules()">기본값</button>
               <button class="btn-sm-action" onclick="resetBuyRules()">초기화</button>
             </div>
-            <select id="buy-operator" class="form-select" style="font-weight: 600;">
-              <option value="AND" selected>AND</option>
-              <option value="OR">OR</option>
-            </select>
           </div>
+          <select id="buy-operator" class="operator-select-sm" title="조건 결합 연산자">
+            <option value="AND" selected>AND</option>
+            <option value="OR">OR</option>
+          </select>
         </div>
 
         <div id="buy-rules-container"></div>
@@ -425,21 +460,19 @@
 
       <!-- Sell Rules -->
       <div class="quant-card">
-        <div class="card-header">
-          <div class="card-title">
-            매도 조건 설정
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div class="card-title">매도 조건 설정</div>
             <div class="header-btn-group">
               <button class="btn-sm-action" onclick="openLoadModal()">불러오기</button>
               <button class="btn-sm-action" onclick="loadDefaultSellRules()">기본값</button>
               <button class="btn-sm-action" onclick="resetSellRules()">초기화</button>
             </div>
-            <select id="sell-operator" class="form-select" style="font-weight: 600;">
-              <option value="OR" selected>OR</option>
-              <option value="AND">AND</option>
-            </select>
           </div>
+          <select id="sell-operator" class="operator-select-sm" title="조건 결합 연산자">
+            <option value="OR" selected>OR</option>
+            <option value="AND">AND</option>
+          </select>
         </div>
 
         <div id="sell-rules-container"></div>
@@ -584,7 +617,7 @@
           <!-- Equity Curve Chart -->
           <div style="margin-top: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <h4 style="font-size: 0.88rem; font-weight: 700; color: #1e293b;" id="recent-trades-title">
+              <h4 style="font-size: 0.88rem; font-weight: 700; color: #1e293b;">
                 누적 자산 성장 곡선 (vs KOSPI / KOSDAQ 벤치마크)
               </h4>
             </div>
@@ -598,7 +631,7 @@
         <div class="quant-card">
           <div class="card-header">
             <div class="card-title" id="recent-trades-title">
-              최근 매매 체결 일지 <span class="label-desktop" style="font-size:0.75rem; color:#64748b; font-weight:400; margin-left:6px;">(<i class="fa-solid fa-circle-info" style="margin-right:2px;"></i> 차트 날짜 지점을 클릭하면 해당 날짜까지의 최근 50개 내역이 표시됩니다)</span>
+              최근 매매 체결 일지
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
               <button class="btn-sm-action" onclick="resetRecentTradesTableFilter()" style="font-size:0.75rem; background:#f1f5f9; color:#334155; border:1px solid var(--border-subtle);">
@@ -642,9 +675,6 @@
           <div class="card-title">
             5년 주가(OHLCV) 및 보조지표 원본 데이터 조회
           </div>
-          <button class="btn-sm-action" onclick="exportDataToCSV()">
-            CSV 엑셀 다운로드
-          </button>
         </div>
 
         <!-- Stock Selector & Search Filter -->
@@ -659,7 +689,7 @@
           </div>
 
           <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 200px;">
-            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-sub);">종목 선택:</span>
+            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-sub);">종목:</span>
             <select id="viewer-stock-select" class="form-select" style="flex: 1;" onchange="loadViewerStockData(this.value)">
             </select>
           </div>
@@ -768,6 +798,153 @@
   </div>
 
   <script>
+    async function initDataViewer() {
+      if (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0) {
+        try {
+          const resStock = await fetch('data/stocks_350.json');
+          if (resStock.ok) {
+            ALL_350_STOCKS = await resStock.json();
+          }
+        } catch(e) {
+          console.warn("stocks_350.json load warning:", e);
+        }
+      }
+
+      if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length < 10) {
+        try {
+          const res = await fetch('data/stocks_350_real.json');
+          if (res.ok) {
+            const d = await res.json();
+            REAL_PRELOADED_DATA = d.preloaded_data || {};
+          }
+        } catch(e) {
+          console.warn("stocks_350_real.json load warning:", e);
+        }
+      }
+
+      populateViewerStockSelect();
+    }
+
+    function populateViewerStockSelect() {
+      const selectEl = document.getElementById('viewer-stock-select');
+      const marketFilterEl = document.getElementById('viewer-market-filter');
+      const marketFilter = marketFilterEl ? marketFilterEl.value : 'ALL';
+      if (!selectEl) return;
+
+      let stockList = [];
+      if (ALL_350_STOCKS && ALL_350_STOCKS.length > 0) {
+        stockList = ALL_350_STOCKS;
+      } else if (REAL_PRELOADED_DATA) {
+        stockList = Object.keys(REAL_PRELOADED_DATA).filter(t => t !== 'KOSPI' && t !== 'KOSDAQ').map(t => ({
+          ticker: t,
+          name: t,
+          market: t.startsWith('0') ? 'KOSPI200' : 'KOSDAQ150'
+        }));
+      }
+
+      if (marketFilter !== 'ALL') {
+        stockList = stockList.filter(s => s.market === marketFilter);
+      }
+
+      const prevValue = selectEl.value;
+      selectEl.innerHTML = stockList.map(s => {
+        const formattedTicker = String(s.ticker).padStart(6, '0');
+        return `<option value="${s.ticker}">${s.name} (${formattedTicker}) [${s.market || 'KOSPI200'}]</option>`;
+      }).join('');
+
+      if (stockList.length > 0) {
+        const targetValue = (prevValue && stockList.some(s => s.ticker === prevValue)) ? prevValue : stockList[0].ticker;
+        selectEl.value = targetValue;
+        loadViewerStockData(targetValue);
+      }
+    }
+
+    function filterViewerStockList() {
+      populateViewerStockSelect();
+    }
+
+    function searchViewerStock(query) {
+      const selectEl = document.getElementById('viewer-stock-select');
+      if (!selectEl) return;
+      const q = String(query || '').toLowerCase().trim().replace(/\s+/g, '');
+      if (!q) {
+        populateViewerStockSelect();
+        return;
+      }
+
+      for (let i = 0; i < selectEl.options.length; i++) {
+        const optText = selectEl.options[i].text.toLowerCase().replace(/\s+/g, '');
+        if (optText.includes(q)) {
+          selectEl.selectedIndex = i;
+          loadViewerStockData(selectEl.options[i].value);
+          break;
+        }
+      }
+    }
+
+    function loadViewerStockData(ticker) {
+      if (!ticker || !REAL_PRELOADED_DATA) return;
+      const cleanTicker = String(ticker).padStart(6, '0');
+      const rows = REAL_PRELOADED_DATA[cleanTicker] || REAL_PRELOADED_DATA[ticker] || [];
+
+      const stockInfo = (ALL_350_STOCKS && ALL_350_STOCKS.length > 0) 
+        ? (ALL_350_STOCKS.find(s => s.ticker === cleanTicker || s.ticker === ticker) || { name: ticker, market: "KOSPI200" })
+        : { name: ticker, market: "KOSPI200" };
+
+      const nameEl = document.getElementById('viewer-target-name');
+      if (nameEl) nameEl.textContent = `${stockInfo.name || ticker} (${cleanTicker})`;
+      const mktEl = document.getElementById('viewer-target-market');
+      if (mktEl) mktEl.textContent = stockInfo.market || "KOSPI200";
+
+      const candleCountEl = document.getElementById('viewer-total-candles');
+      if (candleCountEl) candleCountEl.textContent = rows.length.toLocaleString();
+
+      const tbody = document.getElementById('viewer-data-body');
+      if (!tbody) return;
+
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="17" style="text-align:center; padding:20px; color:#64748b;">선택한 종목의 5년 데이터가 없습니다.</td></tr>`;
+        return;
+      }
+
+      const displayRows = rows.slice().reverse();
+      tbody.innerHTML = displayRows.map(r => {
+        const adx = r.adx !== undefined ? r.adx.toFixed(1) : '-';
+        const mdi = r.minus_di !== undefined ? r.minus_di.toFixed(1) : '-';
+        const pdi = r.plus_di !== undefined ? r.plus_di.toFixed(1) : '-';
+        const rsi = r.rsi !== undefined ? r.rsi.toFixed(1) : '-';
+        const bb = r.b_band_pct !== undefined ? r.b_band_pct.toFixed(2) : '-';
+        const macd = r.macd !== undefined ? r.macd.toFixed(0) : '-';
+        const macdOsc = r.macd_osc !== undefined ? r.macd_osc.toFixed(0) : '-';
+        const stochK = r.stoch_k !== undefined ? r.stoch_k.toFixed(1) : '-';
+        const stochD = r.stoch_d !== undefined ? r.stoch_d.toFixed(1) : '-';
+        const disp = r.disparity20 !== undefined ? r.disparity20.toFixed(1) : '-';
+        const vr = r.volume_ratio !== undefined ? r.volume_ratio.toFixed(0) : '-';
+
+        return `
+          <tr>
+            <td><strong>${r.date}</strong></td>
+            <td style="text-align:right;">${r.open ? r.open.toLocaleString() : '-'}</td>
+            <td style="text-align:right;">${r.high ? r.high.toLocaleString() : '-'}</td>
+            <td style="text-align:right;">${r.low ? r.low.toLocaleString() : '-'}</td>
+            <td style="text-align:right; font-weight:700;">${r.close ? r.close.toLocaleString() : '-'}</td>
+            <td style="text-align:right;">${r.volume ? r.volume.toLocaleString() : '-'}</td>
+            <td style="text-align:center;">${adx}</td>
+            <td style="text-align:center;">${mdi}</td>
+            <td style="text-align:center;">${pdi}</td>
+            <td style="text-align:center;">${rsi}</td>
+            <td style="text-align:center;">${bb}</td>
+            <td style="text-align:center;">${macd}</td>
+            <td style="text-align:center;">${macdOsc}</td>
+            <td style="text-align:center;">${stochK}</td>
+            <td style="text-align:center;">${stochD}</td>
+            <td style="text-align:center;">${disp}%</td>
+            <td style="text-align:center;">${vr}%</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
     function switchAdminTab(tabId, btn) {
       document.querySelectorAll('.tab-view').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.nav-tab-btn').forEach(el => el.classList.remove('active'));
@@ -775,6 +952,10 @@
       const target = document.getElementById(tabId);
       if (target) target.classList.add('active');
       if (btn) btn.classList.add('active');
+
+      if (tabId === 'tab-dataviewer') {
+        initDataViewer();
+      }
     }
 
     const INDICATOR_OPTIONS = [
@@ -2228,6 +2409,7 @@
       loadDefaultBuyRules();
       loadDefaultSellRules();
       initStrategySlots();
+      initDataViewer();
     });
   </script>
 
