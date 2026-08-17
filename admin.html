@@ -1408,15 +1408,35 @@
       }).join('');
     }
 
-    function renderRealBenchmarkCurve(startDateStr, endDateStr, trades, totalNetReturnAmount, winRate, winTrades, lossTrades, profitFactor, avgTradeRet, totalTrades, avgHold) {
+    function renderRealBenchmarkCurve(startDateStr, endDateStr, trades, totalNetReturnAmount = 0, winRate = 0, winTrades = 0, lossTrades = 0, profitFactor = 1.0, avgTradeRet = 0, totalTrades = 0, avgHold = 0) {
+      const ctx = document.getElementById('equityChart').getContext('2d');
+      if (equityChartInstance) equityChartInstance.destroy();
+
+      const targetMarketSelect = document.getElementById('opt-backtest-market');
+      const targetMarket = targetMarketSelect ? targetMarketSelect.value : 'ALL';
       const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 10000000;
-      
+
+      // 1. Sort trades chronologically by exitDate
+      const sortedChronological = trades.slice().sort((a, b) => a.exitDate.localeCompare(b.exitDate));
+
+      // 2. Build Continuous Daily Timeline (Every single trading day for smooth continuous tracking)
       let fineDates = [];
       if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
         const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
-        if (kRows.length > 0) fineDates = kRows.map(r => r.date);
+        if (kRows.length > 0) {
+          fineDates = kRows.map(r => r.date);
+        }
       }
 
+      if (fineDates.length === 0) {
+        const fineDatesSet = new Set();
+        fineDatesSet.add(startDateStr);
+        sortedChronological.forEach(t => fineDatesSet.add(t.exitDate));
+        fineDatesSet.add(endDateStr);
+        fineDates = Array.from(fineDatesSet).sort();
+      }
+
+      // 3. Fast Price Map for Mark-to-Market Portfolio Equity Curves
       const priceMap = {};
       if (REAL_PRELOADED_DATA) {
         Object.keys(REAL_PRELOADED_DATA).forEach(ticker => {
@@ -1426,57 +1446,27 @@
         });
       }
 
+      // Compute Daily Average Engaged Capital Balance across fineDates (투자금 평잔)
       let dailyEngagedCapitalSum = 0;
       fineDates.forEach(dbDate => {
         const activeCount = trades.filter(t => t.entryDate <= dbDate && t.exitDate >= dbDate).length;
-        dailyEngagedCapitalSum += Math.max(1, activeCount) * tradeAmount;
+        const engaged = Math.max(1, activeCount) * tradeAmount;
+        dailyEngagedCapitalSum += engaged;
       });
       const averageCapitalBalance = fineDates.length > 0 ? (dailyEngagedCapitalSum / fineDates.length) : tradeAmount;
 
-      const capitalGainPct = averageCapitalBalance > 0 ? (totalNetReturnAmount / averageCapitalBalance) * 100 : 0;
-
-      const signNet = totalNetReturnAmount >= 0 ? '+' : '';
-      const signCap = capitalGainPct >= 0 ? '+' : '';
-
-      const kpiTotalRet = document.getElementById('kpi-total-return');
-      if (kpiTotalRet) {
-        kpiTotalRet.textContent = `${signNet}${totalNetReturnAmount.toLocaleString()}원`;
-        kpiTotalRet.style.color = totalNetReturnAmount >= 0 ? 'var(--accent-red)' : '#2563eb';
-      }
-
-      const kpiCapGain = document.getElementById('kpi-capital-gain');
-      if (kpiCapGain) {
-        kpiCapGain.textContent = `평잔 수익률: ${signCap}${capitalGainPct.toFixed(1)}%`;
-      }
-
-      const kpiAvgCap = document.getElementById('kpi-avg-capital');
-      if (kpiAvgCap) {
-        kpiAvgCap.textContent = `${Math.round(averageCapitalBalance).toLocaleString()}원`;
-      }
-
-      const kpiTradeAmtSub = document.getElementById('kpi-trade-amount-sub');
-      if (kpiTradeAmtSub) {
-        kpiTradeAmtSub.textContent = `1회 투자금: ${Math.round(tradeAmount / 10000).toLocaleString()}만 원`;
-      }
-
-      const kpiWinRate = document.getElementById('kpi-win-rate');
-      if (kpiWinRate) kpiWinRate.textContent = `${winRate.toFixed(1)}%`;
-
-      const kpiWinLoss = document.getElementById('kpi-win-loss');
-      if (kpiWinLoss) kpiWinLoss.textContent = `${winTrades}승 / ${lossTrades}패`;
-
-      const kpiPF = document.getElementById('kpi-profit-factor');
-      if (kpiPF) kpiPF.textContent = profitFactor.toFixed(2);
-
+      // Compute High-Resolution Strategy Equity Curves (Unrealized Mark-to-Market & Realized)
       const strategyUnrealizedData = [];
-      let peakEquity = -99999999;
-      let maxDrawdownPct = 0;
+      const strategyRealizedData = [];
 
       fineDates.forEach(dbDate => {
         const closed = trades.filter(t => t.exitDate <= dbDate);
         const activeOpen = trades.filter(t => t.entryDate <= dbDate && t.exitDate > dbDate);
+
+        // Accumulated realized KRW net profit from trades exited on or before dbDate
         const closedNetGainSum = closed.reduce((sum, t) => sum + Math.round(tradeAmount * (t.returnPct / 100)), 0);
 
+        // Live paper KRW net profit from trades open on dbDate
         let openPaperGainSum = 0;
         activeOpen.forEach(t => {
           const stockPrices = priceMap[t.ticker] || {};
@@ -1485,25 +1475,69 @@
           openPaperGainSum += Math.round(tradeAmount * (paperPct / 100));
         });
 
+        const realizedPct = averageCapitalBalance > 0 ? (closedNetGainSum / averageCapitalBalance) * 100 : 0;
         const unrealizedPct = averageCapitalBalance > 0 ? ((closedNetGainSum + openPaperGainSum) / averageCapitalBalance) * 100 : 0;
-        strategyUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
 
-        const currentEquity = averageCapitalBalance + closedNetGainSum + openPaperGainSum;
-        if (currentEquity > peakEquity) peakEquity = currentEquity;
-        const ddPct = peakEquity > 0 ? ((peakEquity - currentEquity) / peakEquity) * 100 : 0;
-        if (ddPct > maxDrawdownPct) maxDrawdownPct = ddPct;
+        strategyRealizedData.push(parseFloat(realizedPct.toFixed(1)));
+        strategyUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
       });
 
-      const kpiMdd = document.getElementById('kpi-mdd');
-      if (kpiMdd) kpiMdd.textContent = `-${maxDrawdownPct.toFixed(1)}%`;
+      // Calculate Portfolio Peak-to-Trough MDD from strategyUnrealizedData
+      let peakVal = -999999;
+      let maxDrawdownVal = 0;
+      strategyUnrealizedData.forEach(val => {
+        if (val > peakVal) peakVal = val;
+        const dd = peakVal - val;
+        if (dd > maxDrawdownVal) maxDrawdownVal = dd;
+      });
+      const portfolioMDD = maxDrawdownVal > 0 ? -parseFloat(maxDrawdownVal.toFixed(1)) : 0.0;
 
-      const signAvg = avgTradeRet >= 0 ? '+' : '';
-      const kpiCagr = document.getElementById('kpi-cagr');
-      if (kpiCagr) kpiCagr.textContent = `${signAvg}${avgTradeRet.toFixed(2)}%`;
+      // Calculate Return on Average Capital Balance
+      const returnOnAvgCapital = averageCapitalBalance > 0 ? ((totalNetReturnAmount / averageCapitalBalance) * 100) : 0;
 
-      const kpiAvgHold = document.getElementById('kpi-avg-holding');
-      if (kpiAvgHold) kpiAvgHold.textContent = `평균 보유: ${avgHold}일 | 총 ${totalTrades}회`;
+      // Update 6 KPI Card Metrics in UI
+      const kpiTotalEl = document.getElementById('kpi-total-return');
+      if (kpiTotalEl) {
+        kpiTotalEl.textContent = `${totalNetReturnAmount >= 0 ? '+' : ''}${totalNetReturnAmount.toLocaleString()}원`;
+        kpiTotalEl.style.color = totalNetReturnAmount >= 0 ? 'var(--accent-red)' : 'var(--primary)';
+      }
 
+      const kpiCapGainEl = document.getElementById('kpi-capital-gain');
+      if (kpiCapGainEl) {
+        kpiCapGainEl.textContent = `평잔 수익률: ${returnOnAvgCapital >= 0 ? '+' : ''}${returnOnAvgCapital.toFixed(1)}%`;
+      }
+
+      const kpiAvgCapEl = document.getElementById('kpi-avg-capital');
+      if (kpiAvgCapEl) {
+        kpiAvgCapEl.textContent = `${Math.round(averageCapitalBalance).toLocaleString()}원`;
+      }
+
+      const kpiTradeAmtSubEl = document.getElementById('kpi-trade-amount-sub');
+      if (kpiTradeAmtSubEl) {
+        const amtStr = tradeAmount >= 10000000 ? `${(tradeAmount / 10000000 * 1000).toLocaleString()}만 원` : `${(tradeAmount / 10000).toLocaleString()}만 원`;
+        kpiTradeAmtSubEl.textContent = `1회 투자금: ${amtStr}`;
+      }
+
+      const kpiWinRateEl = document.getElementById('kpi-win-rate');
+      if (kpiWinRateEl) kpiWinRateEl.textContent = `${winRate.toFixed(1)}%`;
+
+      const kpiWinLossEl = document.getElementById('kpi-win-loss');
+      if (kpiWinLossEl) kpiWinLossEl.textContent = `${winTrades}승 / ${lossTrades}패`;
+
+      const kpiPfEl = document.getElementById('kpi-profit-factor');
+      if (kpiPfEl) kpiPfEl.textContent = profitFactor.toFixed(2);
+
+      const kpiMddEl = document.getElementById('kpi-mdd');
+      if (kpiMddEl) kpiMddEl.textContent = `${portfolioMDD.toFixed(1)}%`;
+
+      const kpiCagrEl = document.getElementById('kpi-cagr');
+      if (kpiCagrEl) kpiCagrEl.textContent = `${avgTradeRet >= 0 ? '+' : ''}${avgTradeRet.toFixed(2)}%`;
+
+      const kpiAvgHoldingEl = document.getElementById('kpi-avg-holding');
+      if (kpiAvgHoldingEl) kpiAvgHoldingEl.textContent = `평균 보유: ${avgHold}일 | 총 ${totalTrades}회`;
+
+      // 4. Compute High-Resolution Benchmark Curves with accurate start-date base close
+      const kospiCloseList = [];
       let kospiBenchmarkData = fineDates.map(() => 0);
       if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
         const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
@@ -1511,62 +1545,146 @@
           const baseClose = kRows[0].close;
           kospiBenchmarkData = fineDates.map(dbDate => {
             const rowAtDate = kRows.filter(r => r.date <= dbDate).pop() || kRows[0];
+            kospiCloseList.push(rowAtDate.close);
             const pctChange = ((rowAtDate.close - baseClose) / baseClose) * 100;
             return parseFloat(pctChange.toFixed(1));
           });
         }
       }
 
-      const canvas = document.getElementById('equityChart');
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        if (equityChartInstance) equityChartInstance.destroy();
+      const kosdaqCloseList = [];
+      let kosdaqBenchmarkData = fineDates.map(() => 0);
+      if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSDAQ']) {
+        const kqRows = REAL_PRELOADED_DATA['KOSDAQ'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        if (kqRows.length > 0) {
+          const baseClose = kqRows[0].close;
+          kosdaqBenchmarkData = fineDates.map(dbDate => {
+            const rowAtDate = kqRows.filter(r => r.date <= dbDate).pop() || kqRows[0];
+            kosdaqCloseList.push(rowAtDate.close);
+            const pctChange = ((rowAtDate.close - baseClose) / baseClose) * 100;
+            return parseFloat(pctChange.toFixed(1));
+          });
+        }
+      }
 
-        equityChartInstance = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: fineDates,
-            datasets: [
-              {
-                label: '나의 퀀트 전략 (평잔수익률)',
-                data: strategyUnrealizedData,
-                borderColor: '#2563eb',
-                backgroundColor: 'rgba(37, 99, 235, 0.05)',
-                borderWidth: 2,
-                fill: true,
-                pointRadius: 0,
-                pointHoverRadius: 5,
-                tension: 0.1
-              },
-              {
-                label: 'KOSPI 벤치마크 지수',
-                data: kospiBenchmarkData,
-                borderColor: '#dc2626',
-                borderDash: [4, 4],
-                borderWidth: 1.5,
-                fill: false,
-                pointRadius: 0,
-                tension: 0.1
-              }
-            ]
+      const datasets = [
+        {
+          label: '나의 퀀트 전략 (평가손익)',
+          data: strategyUnrealizedData,
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37, 99, 235, 0.05)',
+          fill: true,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          tension: 0.1
+        },
+        {
+          label: '나의 퀀트 전략 (실현손익)',
+          data: strategyRealizedData,
+          borderColor: '#7c3aed',
+          fill: false,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          tension: 0.1
+        }
+      ];
+
+      if (targetMarket === 'KOSPI200' || targetMarket === 'ALL') {
+        datasets.push({
+          label: 'KOSPI',
+          data: kospiBenchmarkData,
+          borderColor: '#dc2626',
+          borderDash: [4, 4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          fill: false,
+          tension: 0.1
+        });
+      }
+
+      if (targetMarket === 'KOSDAQ150' || targetMarket === 'ALL') {
+        datasets.push({
+          label: 'KOSDAQ',
+          data: kosdaqBenchmarkData,
+          borderColor: '#059669',
+          borderDash: [4, 4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          fill: false,
+          tension: 0.1
+        });
+      }
+
+      equityChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: fineDates,
+          datasets: datasets
+        },
+        options: {
+          onClick: (evt, activeElements) => {
+            if (activeElements && activeElements.length > 0) {
+              const clickedIdx = activeElements[0].index;
+              const clickedDate = fineDates[clickedIdx];
+              filterTradeLogByClickedDate(clickedDate);
+            }
           },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { intersect: false, mode: 'index' },
-            plugins: {
-              legend: { position: 'top', labels: { font: { weight: '600', size: 11 } } },
-              tooltip: {
-                callbacks: {
-                  title: (items) => items.length > 0 ? `날짜: ${items[0].label}` : '',
-                  label: (context) => ` ${context.dataset.label}: ${context.parsed.y >= 0 ? '+' : ''}${context.parsed.y.toFixed(1)}%`
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: 'index' },
+          plugins: {
+            legend: { position: 'top', labels: { font: { weight: '600', size: 11 } } },
+            tooltip: {
+              callbacks: {
+                title: (items) => items.length > 0 ? `날짜: ${items[0].label}` : '',
+                label: (context) => {
+                  const dataIdx = context.dataIndex;
+                  const label = context.dataset.label;
+                  const val = context.parsed.y;
+                  const sign = val >= 0 ? '+' : '';
+
+                  if (label.includes('평가손익')) {
+                    return ` 나의 퀀트 전략 (평가손익): ${sign}${val.toFixed(1)}%`;
+                  } else if (label.includes('실현손익')) {
+                    return ` 나의 퀀트 전략 (실현손익): ${sign}${val.toFixed(1)}%`;
+                  } else if (label === 'KOSPI') {
+                    const pt = kospiCloseList[dataIdx];
+                    const ptText = pt ? ` (${pt.toLocaleString()}pt)` : '';
+                    return ` KOSPI: ${sign}${val.toFixed(1)}%${ptText}`;
+                  } else if (label === 'KOSDAQ') {
+                    const pt = kosdaqCloseList[dataIdx];
+                    const ptText = pt ? ` (${pt.toLocaleString()}pt)` : '';
+                    return ` KOSDAQ: ${sign}${val.toFixed(1)}%${ptText}`;
+                  }
+                  return ` ${label}: ${sign}${val}%`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              grid: { color: '#f1f5f9' },
+              ticks: { callback: (val) => `${val > 0 ? '+' : ''}${val}%` }
+            },
+            x: {
+              grid: { display: false },
+              ticks: {
+                maxTicksLimit: 12,
+                autoSkip: true,
+                font: { size: 10 },
+                callback: function(val, idx) {
+                  const rawDate = this.getLabelForValue(val);
+                  return rawDate ? rawDate.slice(0, 7).replace('-', '.') : '';
                 }
               }
             }
           }
         }
-        );
-      }
+      });
     }
 
     // ==========================================
