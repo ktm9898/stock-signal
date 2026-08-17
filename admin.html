@@ -381,6 +381,24 @@
         font-size: 14px !important;
         -webkit-text-size-adjust: 100%;
       }
+
+      .btn-header-refresh, .btn-manual-exec, .btn-dashboard-nav, .btn-admin-nav {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 8px !important;
+        font-size: 0.95rem !important;
+        box-sizing: border-box !important;
+      }
+      .btn-header-refresh i, .btn-manual-exec i, .btn-dashboard-nav i, .btn-admin-nav i {
+        margin: 0 !important;
+        font-size: 0.95rem !important;
+      }
     }
 
     .filter-bar-responsive {
@@ -742,23 +760,21 @@
           <table>
             <thead>
               <tr>
-                <th>일자 (Date)</th>
+                <th>일자</th>
                 <th style="text-align:right;">시가</th>
                 <th style="text-align:right;">고가</th>
                 <th style="text-align:right;">저가</th>
                 <th style="text-align:right;">종가</th>
                 <th style="text-align:right;">거래량</th>
-                <th style="text-align:center;">ADX</th>
-                <th style="text-align:center;">-DI</th>
-                <th style="text-align:center;">+DI</th>
-                <th style="text-align:center;">RSI</th>
-                <th style="text-align:center;">BB %b</th>
-                <th style="text-align:center;">MACD</th>
-                <th style="text-align:center;">MACD Osc</th>
-                <th style="text-align:center;">STOCH %K</th>
-                <th style="text-align:center;">STOCH %D</th>
-                <th style="text-align:center;">이격도</th>
-                <th style="text-align:center;">거래량 비율</th>
+                <th style="text-align:center; cursor:pointer;" onclick="showIndicatorHelp('ADX')" title="클릭 시 ADX 지표 설명 보기">ADX <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th style="text-align:center; cursor:pointer;" onclick="showIndicatorHelp('-DI')" title="클릭 시 -DI 지표 설명 보기">-DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th style="text-align:center; cursor:pointer;" onclick="showIndicatorHelp('+DI')" title="클릭 시 +DI 지표 설명 보기">+DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th style="text-align:center; cursor:pointer;" onclick="showIndicatorHelp('RSI')" title="클릭 시 RSI 지표 설명 보기">RSI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th style="text-align:center; cursor:pointer;" onclick="showIndicatorHelp('BB_Pct')" title="클릭 시 BB 지표 설명 보기">BB <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th style="text-align:center; cursor:pointer;" onclick="showIndicatorHelp('MACD')" title="클릭 시 MACD 지표 설명 보기">MACD <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th style="text-align:center; cursor:pointer;" onclick="showIndicatorHelp('STOCH')" title="클릭 시 STOCH 지표 설명 보기">STOCH <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th style="text-align:center; cursor:pointer;" onclick="showIndicatorHelp('DISPARITY')" title="클릭 시 이격도 지표 설명 보기">이격도 <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th style="text-align:center; cursor:pointer;" onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
               </tr>
             </thead>
             <tbody id="viewer-data-body"></tbody>
@@ -1002,10 +1018,24 @@
         const mdi = (r.minus_di !== undefined && r.minus_di !== null) ? Number(r.minus_di).toFixed(1) : '-';
         const pdi = (r.plus_di !== undefined && r.plus_di !== null) ? Number(r.plus_di).toFixed(1) : '-';
         const rsi = (r.rsi !== undefined && r.rsi !== null) ? Number(r.rsi).toFixed(1) : '-';
+
         const bbVal = r.bb_pct !== undefined ? r.bb_pct : r.b_band_pct;
-        const bb = (bbVal !== undefined && bbVal !== null) ? Number(bbVal).toFixed(2) : '-';
-        const macd = (r.macd !== undefined && r.macd !== null) ? Number(r.macd).toFixed(0) : '-';
+        const bBandPctVal = (bbVal !== undefined && bbVal !== null) ? Number(bbVal) : NaN;
+        const bbStr = !isNaN(bBandPctVal) ? bBandPctVal.toFixed(2) : '-';
+        let bbColor = 'inherit';
+        if (!isNaN(bBandPctVal)) {
+          if (bBandPctVal <= 0.0) bbColor = 'var(--accent-green)';
+          else if (bBandPctVal >= 1.0) bbColor = '#f87171';
+        }
+
         const macdOsc = (r.macd_osc !== undefined && r.macd_osc !== null) ? Number(r.macd_osc).toFixed(0) : '-';
+        const macdOscNum = Number(macdOsc);
+        let macdColor = 'inherit';
+        if (!isNaN(macdOscNum)) {
+          if (macdOscNum > 0) macdColor = '#f87171';
+          else if (macdOscNum < 0) macdColor = 'var(--accent-cyan)';
+        }
+
         const stochK = (r.stoch_k !== undefined && r.stoch_k !== null) ? Number(r.stoch_k).toFixed(1) : '-';
         const stochD = (r.stoch_d !== undefined && r.stoch_d !== null) ? Number(r.stoch_d).toFixed(1) : '-';
         const disp = (r.disparity20 !== undefined && r.disparity20 !== null) ? Number(r.disparity20).toFixed(1) : '-';
@@ -1019,17 +1049,15 @@
             <td style="text-align:right;">${r.low ? r.low.toLocaleString() : '-'}</td>
             <td style="text-align:right; font-weight:700;">${r.close ? r.close.toLocaleString() : '-'}</td>
             <td style="text-align:right;">${r.volume ? r.volume.toLocaleString() : '-'}</td>
-            <td style="text-align:center;">${adx}</td>
+            <td style="text-align:center;"><strong style="color: ${Number(adx) >= 30 ? 'var(--accent-cyan)' : 'inherit'}">${adx}</strong></td>
             <td style="text-align:center;">${mdi}</td>
             <td style="text-align:center;">${pdi}</td>
-            <td style="text-align:center;">${rsi}</td>
-            <td style="text-align:center;">${bb}</td>
-            <td style="text-align:center;">${macd}</td>
-            <td style="text-align:center;">${macdOsc}</td>
-            <td style="text-align:center;">${stochK}</td>
-            <td style="text-align:center;">${stochD}</td>
-            <td style="text-align:center;">${disp}%</td>
-            <td style="text-align:center;">${vr}%</td>
+            <td style="text-align:center;"><span style="color: ${Number(rsi) <= 40 ? 'var(--accent-green)' : (Number(rsi) >= 65 ? '#f87171' : 'inherit')}">${rsi}</span></td>
+            <td style="text-align:center;"><span style="color: ${bbColor}">${bbStr}</span></td>
+            <td style="text-align:center;"><span style="color: ${macdColor}">${macdOsc}</span></td>
+            <td style="text-align:center;">${stochK} / ${stochD}</td>
+            <td style="text-align:center;"><span style="color: ${Number(disp) <= 95 ? 'var(--accent-green)' : (Number(disp) >= 105 ? '#f87171' : 'inherit')}">${disp}%</span></td>
+            <td style="text-align:center;"><strong style="color: ${Number(vr) >= 150 ? 'var(--accent-warning)' : 'inherit'}">${vr}%</strong></td>
           </tr>
         `;
       }).join('');
@@ -2593,6 +2621,96 @@
         </button>
       </div>
     </div>
+  <!-- Modal 4: Indicator Help Modal -->
+  <div id="info-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div class="modal-content" style="background:#fff; border-radius:12px; width:90%; max-width:480px; padding:20px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <h4 id="info-modal-title" style="font-size:1.0rem; font-weight:700; color:#0f172a;">지표 설명</h4>
+          <span id="info-modal-badge" class="badge badge-t2">안내</span>
+        </div>
+        <button onclick="closeInfoModal()" style="background:none; border:none; font-size:1.2rem; color:#64748b; cursor:pointer;">✕</button>
+      </div>
+      <div id="info-modal-body" style="font-size:0.82rem; color:#334155; line-height:1.6; white-space:pre-line; max-height:60vh; overflow-y:auto; padding-right:4px;"></div>
+      <div style="margin-top:16px; text-align:right;">
+        <button class="btn-sm-action" onclick="closeInfoModal()" style="background:#2563eb; color:#fff; padding:6px 16px;">확인</button>
+      </div>
+    </div>
   </div>
+
+  <script>
+    function showIndicatorHelp(type) {
+      const helpData = {
+        'ADX': {
+          title: 'ADX (Average Directional Index)',
+          badge: '추세 강도 지표',
+          badgeClass: 'badge-t1',
+          content: `[개념]\n주가의 상승/하락 여부와 상관없이 현재 추세(Trend)가 얼마나 강력한지를 나타냅니다.\n\n[수치별 의미]\n• 20 이하 : 약한 추세 (횡보/박스권 구간)\n• 25 이상 : 명확한 추세 형성 시작\n• 30 이상 : 강력한 추세 진행 중 (본 시스템 핵심 조건)\n\n[실전 활용 팁]\nADX가 30 이상으로 치솟을 때 추세 매매(Trend Following) 전략을 사용하면 속임수 신호를 피할 수 있습니다.`
+        },
+        '-DI': {
+          title: '-DI (Minus Directional Indicator)',
+          badge: '하락 방향 지표',
+          badgeClass: 'badge-sell-warn',
+          content: `[개념]\n주가의 하락 압력(Bearish Momentum)의 크기를 나타냅니다.\n\n[수치별 의미]\n• +DI보다 위에 위치 : 하락세가 상승세보다 강함\n• -DI가 ADX 아래로 하향 돌파 : 하락 압력이 급격히 소멸하는 순간`
+        },
+        '+DI': {
+          title: '+DI (Plus Directional Indicator)',
+          badge: '상승 방향 지표',
+          badgeClass: 'badge-t2',
+          content: `[개념]\n주가의 상승 압력(Bullish Momentum)의 크기를 나타냅니다.\n\n[수치별 의미]\n• -DI보다 위에 위치 : 상승세가 하락세보다 강함`
+        },
+        'RSI': {
+          title: 'RSI (Relative Strength Index)',
+          badge: '상대강도 과열 지표',
+          badgeClass: 'badge-t2',
+          content: `[개념]\n최근 14일간 가격 변동 중 상승 폭과 하락 폭의 상대적 강도를 백분율(%)로 나타냅니다.\n\n[수치별 의미]\n• 30 이하 : 극단적 과매도 (바닥권 반등 타점)\n• 40 이하 : 단기 과매도\n• 65 이상 : 단기 과열 (익절 고려 구간)`
+        },
+        'BB_Pct': {
+          title: '볼린저 밴드 %b (Bollinger %b)',
+          badge: '밴드위치 비율',
+          badgeClass: 'badge-t2',
+          content: `[개념]\n주가가 볼린저 밴드(20일, 2표준편차) 상단과 하단 사이에서 어디에 위치하는지 0~1 비율로 나타냅니다.\n\n[수치별 의미]\n• 0.0 이하 : 밴드 하단 이탈/터치 (주가 극단적 바닥권)\n• 0.5 : 밴드 중앙선 (20일 이동평균선)\n• 1.0 이상 : 밴드 상단 이탈/터치`
+        },
+        'MACD': {
+          title: 'MACD 오실레이터 (MACD Oscillator)',
+          badge: '추세 모멘텀',
+          badgeClass: 'badge-t2',
+          content: `[개념]\nMACD와 Signal선의 차이를 나타내는 오실레이터 수치입니다.\n\n[수치별 의미]\n• 양수 (+) : 상승 모멘텀 우세\n• 음수 (-) : 하락 모멘텀 우세\n• 음수에서 양수로 전환 : 골든크로스 발생`
+        },
+        'STOCH': {
+          title: '스토캐스틱 슬로우 (Stochastic Slow)',
+          badge: '단기 반전 지표',
+          badgeClass: 'badge-t3',
+          content: `[개념]\n최근 14일간 최고가-최저가 범위 내 현재 주가의 상대적 위치(%K)와 이동평균(%D)을 나타냅니다.\n\n[수치별 의미]\n• 20 이하 : 단기 과매도\n• 80 이상 : 단기 과매수`
+        },
+        'DISPARITY': {
+          title: '20일 이격도 (Disparity 20)',
+          badge: '이동평균 이격률',
+          badgeClass: 'badge-t2',
+          content: `[개념]\n현재 주가가 20일 이동평균선과 얼마나 떨어져 있는지를 백분율(%)로 나타냅니다.\n\n[수치별 의미]\n• 95% 이하 : 20일선 대비 5% 이상 하락 (단기 과매도/눌림목)\n• 100% : 주가 20일선 일치`
+        },
+        'VOLUME': {
+          title: '거래량 비율 (Volume Ratio, VR)',
+          badge: '수급 폭발 지표',
+          badgeClass: 'badge-t1',
+          content: `[개념]\n최근 5일간 평균 거래량 대비 당일 거래량이 얼마나 터졌는지를 백분율(%)로 나타냅니다.\n\n[수치별 의미]\n• 100% : 최근 5일 평균과 동일한 거래량\n• 120% 이상 : 거래량 급증`
+        }
+      };
+
+      const item = helpData[type];
+      if (!item) return;
+      document.getElementById('info-modal-title').textContent = item.title;
+      const badgeEl = document.getElementById('info-modal-badge');
+      badgeEl.textContent = item.badge;
+      badgeEl.className = 'badge ' + item.badgeClass;
+      document.getElementById('info-modal-body').textContent = item.content;
+      document.getElementById('info-modal').style.display = 'flex';
+    }
+
+    function closeInfoModal() {
+      const el = document.getElementById('info-modal');
+      if (el) el.style.display = 'none';
+    }
+  </script>
 </body>
 </html>

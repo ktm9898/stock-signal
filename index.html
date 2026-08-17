@@ -269,6 +269,24 @@
       }
       .time-badge { display: none; }
 
+      .btn-header-refresh, .btn-manual-exec, .btn-admin-nav {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 8px !important;
+        font-size: 0.95rem !important;
+        box-sizing: border-box !important;
+      }
+      .btn-header-refresh i, .btn-manual-exec i, .btn-admin-nav i {
+        margin: 0 !important;
+        font-size: 0.95rem !important;
+      }
+
       .container { padding: 0 10px; margin: 10px auto; }
       
       .metrics-grid {
@@ -546,7 +564,7 @@
               <th style="text-align:center;" onclick="showIndicatorHelp('MACD')" title="클릭 시 MACD 지표 설명 보기">MACD <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
               <th style="text-align:center;" onclick="showIndicatorHelp('STOCH')" title="클릭 시 STOCH 지표 설명 보기">STOCH <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
               <th style="text-align:center;" onclick="showIndicatorHelp('DISPARITY')" title="클릭 시 이격도 지표 설명 보기">이격도 <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('VOLUME')" title="클릭 시 거래량 비율 설명 보기">거래량 <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
               <th style="text-align:right; padding-right: 28px;">현재가</th>
               <th style="text-align:center;">상태</th>
             </tr>
@@ -591,7 +609,7 @@
               <th style="text-align:center;" onclick="showIndicatorHelp('MACD')" title="클릭 시 MACD 지표 설명 보기">MACD <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
               <th style="text-align:center;" onclick="showIndicatorHelp('STOCH')" title="클릭 시 STOCH 지표 설명 보기">STOCH <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
               <th style="text-align:center;" onclick="showIndicatorHelp('DISPARITY')" title="클릭 시 이격도 지표 설명 보기">이격도 <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('VOLUME')" title="클릭 시 거래량 비율 설명 보기">거래량 <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
               <th style="text-align:right; padding-right: 28px;">현재가</th>
               <th style="text-align:center;">상태</th>
             </tr>
