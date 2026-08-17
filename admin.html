@@ -669,7 +669,7 @@
           <div style="margin-top: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <h4 style="font-size: 0.88rem; font-weight: 700; color: #1e293b;">
-                누적 자산 성장 곡선 (vs KOSPI / KOSDAQ 벤치마크)
+                백테스트 수익률 곡선 (vs KOSPI / KOSDAQ 벤치마크)
               </h4>
             </div>
             <div style="height: 280px; width: 100%;">
@@ -1925,7 +1925,7 @@
 
       const datasets = [
         {
-          label: '평가손익',
+          label: '전략 수익률 (%)',
           data: strategyUnrealizedData,
           borderColor: '#2563eb',
           backgroundColor: 'rgba(37, 99, 235, 0.05)',
@@ -1936,7 +1936,7 @@
           tension: 0.1
         },
         {
-          label: '실현손익',
+          label: '체결 실현 수익률 (%)',
           data: strategyRealizedData,
           borderColor: '#7c3aed',
           fill: false,
