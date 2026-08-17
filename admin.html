@@ -481,40 +481,46 @@
 
           <!-- 6 KPI Cards In 1 Row -->
           <div class="kpi-grid-6">
+            <!-- Card 1: Total Net Profit & Return on Avg Capital -->
             <div class="kpi-card">
               <div class="kpi-title">총 순수익 금액</div>
               <div class="kpi-value" id="kpi-total-return" style="color: var(--accent-red);">+0원</div>
-              <div class="kpi-sub" id="kpi-capital-gain">누적 수익률: +0.0%</div>
+              <div class="kpi-sub" id="kpi-capital-gain">평잔 수익률: +0.0%</div>
             </div>
 
+            <!-- Card 2: Average Capital Balance -->
             <div class="kpi-card">
-              <div class="kpi-title">건당 평균 수익률</div>
-              <div class="kpi-value" id="kpi-cagr" style="color: var(--accent-purple);">0.0%</div>
-              <div class="kpi-sub">회당 평균 기대 수익률</div>
+              <div class="kpi-title">투자금 평잔</div>
+              <div class="kpi-value" id="kpi-avg-capital" style="color: #2563eb;">0원</div>
+              <div class="kpi-sub" id="kpi-trade-amount-sub">1회 투자금: 1,000만 원</div>
             </div>
 
+            <!-- Card 3: Win Rate -->
             <div class="kpi-card">
               <div class="kpi-title">매매 승률 (Win Rate)</div>
               <div class="kpi-value" id="kpi-win-rate" style="color: var(--accent-green);">0.0%</div>
               <div class="kpi-sub" id="kpi-win-loss">0승 / 0패</div>
             </div>
 
+            <!-- Card 4: Profit Factor -->
             <div class="kpi-card">
               <div class="kpi-title">손익비 (Profit Factor)</div>
               <div class="kpi-value" id="kpi-profit-factor" style="color: #0284c7;">0.0</div>
               <div class="kpi-sub">총이익 / 총손실</div>
             </div>
 
+            <!-- Card 5: Portfolio MDD -->
             <div class="kpi-card">
-              <div class="kpi-title">최대 낙폭 (MDD)</div>
+              <div class="kpi-title">포트폴리오 최대 낙폭 (MDD)</div>
               <div class="kpi-value" id="kpi-mdd" style="color: var(--accent-red);">0.0%</div>
-              <div class="kpi-sub">고점 대비 최대 하락</div>
+              <div class="kpi-sub">자산 고점 대비 최대 하락</div>
             </div>
 
+            <!-- Card 6: Average Return per Trade & Holding Days -->
             <div class="kpi-card">
-              <div class="kpi-title">총 체결수 & 보유일</div>
-              <div class="kpi-value" id="kpi-total-trades" style="color: #334155;">0회</div>
-              <div class="kpi-sub" id="kpi-avg-holding">평균 보유: 0일</div>
+              <div class="kpi-title">건당 평균 수익률</div>
+              <div class="kpi-value" id="kpi-cagr" style="color: var(--accent-purple);">0.0%</div>
+              <div class="kpi-sub" id="kpi-avg-holding">평균 보유: 0일 | 총 0회</div>
             </div>
           </div>
 
@@ -1152,30 +1158,12 @@
             if (dd > maxDrawdown) maxDrawdown = dd;
           });
 
-          const cumReturnPct = tradeAmount > 0 ? (totalNetReturnAmount / tradeAmount) * 100 : 0;
-
-          // Render KPI metrics
-          document.getElementById('kpi-total-return').textContent = `${totalNetReturnAmount >= 0 ? '+' : ''}${totalNetReturnAmount.toLocaleString()}원`;
-          document.getElementById('kpi-total-return').style.color = totalNetReturnAmount >= 0 ? 'var(--accent-red)' : 'var(--primary)';
-          document.getElementById('kpi-capital-gain').textContent = `누적 수익률: ${cumReturnPct >= 0 ? '+' : ''}${cumReturnPct.toFixed(1)}%`;
-
-          document.getElementById('kpi-cagr').textContent = `${avgTradeRet >= 0 ? '+' : ''}${avgTradeRet.toFixed(2)}%`;
-          document.getElementById('kpi-win-rate').textContent = `${winRate.toFixed(1)}%`;
-          document.getElementById('kpi-win-loss').textContent = `${winTrades}승 / ${lossTrades}패`;
-
-          document.getElementById('kpi-profit-factor').textContent = profitFactor.toFixed(2);
-          document.getElementById('kpi-mdd').textContent = `-${maxDrawdown.toFixed(1)}%`;
-          document.getElementById('kpi-total-trades').textContent = `${totalTrades}회`;
-          
-          const avgHold = totalTrades > 0 ? (allExecutedTrades.reduce((a, b) => a + b.holdingDays, 0) / totalTrades).toFixed(1) : 0;
-          document.getElementById('kpi-avg-holding').textContent = `평균 보유: ${avgHold}일`;
-
           // Render REAL Executed Trade Logs
           renderRecentTradesTable(allExecutedTrades.slice(0, 50));
           renderFullTradeLogs(allExecutedTrades);
 
-          // Render Real KOSPI 200 ETF Benchmark Curve
-          renderRealBenchmarkCurve(startDateStr, endDateStr, allExecutedTrades);
+          // Render Real Benchmark Curve & Populate 6 Overhauled KPI Cards
+          renderRealBenchmarkCurve(startDateStr, endDateStr, allExecutedTrades, totalNetReturnAmount, winRate, winTrades, lossTrades, profitFactor, avgTradeRet, totalTrades, avgHold);
 
           document.getElementById('results-section').style.display = 'block';
           document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
@@ -1436,7 +1424,7 @@
       return { sampleDates, dateBoundaries };
     }
 
-    function renderRealBenchmarkCurve(startDateStr, endDateStr, trades) {
+    function renderRealBenchmarkCurve(startDateStr, endDateStr, trades, totalNetReturnAmount = 0, winRate = 0, winTrades = 0, lossTrades = 0, profitFactor = 1.0, avgTradeRet = 0, totalTrades = 0, avgHold = 0) {
       const ctx = document.getElementById('equityChart').getContext('2d');
       if (equityChartInstance) equityChartInstance.destroy();
 
@@ -1509,6 +1497,60 @@
         strategyRealizedData.push(parseFloat(realizedPct.toFixed(1)));
         strategyUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
       });
+
+      // Calculate Portfolio Peak-to-Trough MDD from strategyUnrealizedData
+      let peakVal = -999999;
+      let maxDrawdownVal = 0;
+      strategyUnrealizedData.forEach(val => {
+        if (val > peakVal) peakVal = val;
+        const dd = peakVal - val;
+        if (dd > maxDrawdownVal) maxDrawdownVal = dd;
+      });
+      const portfolioMDD = maxDrawdownVal > 0 ? -parseFloat(maxDrawdownVal.toFixed(1)) : 0.0;
+
+      // Calculate Return on Average Capital Balance
+      const returnOnAvgCapital = averageCapitalBalance > 0 ? ((totalNetReturnAmount / averageCapitalBalance) * 100) : 0;
+
+      // Update 6 KPI Card Metrics in UI
+      const kpiTotalEl = document.getElementById('kpi-total-return');
+      if (kpiTotalEl) {
+        kpiTotalEl.textContent = `${totalNetReturnAmount >= 0 ? '+' : ''}${totalNetReturnAmount.toLocaleString()}원`;
+        kpiTotalEl.style.color = totalNetReturnAmount >= 0 ? 'var(--accent-red)' : 'var(--primary)';
+      }
+
+      const kpiCapGainEl = document.getElementById('kpi-capital-gain');
+      if (kpiCapGainEl) {
+        kpiCapGainEl.textContent = `평잔 수익률: ${returnOnAvgCapital >= 0 ? '+' : ''}${returnOnAvgCapital.toFixed(1)}%`;
+      }
+
+      const kpiAvgCapEl = document.getElementById('kpi-avg-capital');
+      if (kpiAvgCapEl) {
+        kpiAvgCapEl.textContent = `${Math.round(averageCapitalBalance).toLocaleString()}원`;
+      }
+
+      const kpiTradeAmtSubEl = document.getElementById('kpi-trade-amount-sub');
+      if (kpiTradeAmtSubEl) {
+        const amtStr = tradeAmount >= 10000000 ? `${(tradeAmount / 10000000 * 1000).toLocaleString()}만 원` : `${(tradeAmount / 10000).toLocaleString()}만 원`;
+        kpiTradeAmtSubEl.textContent = `1회 투자금: ${amtStr}`;
+      }
+
+      const kpiWinRateEl = document.getElementById('kpi-win-rate');
+      if (kpiWinRateEl) kpiWinRateEl.textContent = `${winRate.toFixed(1)}%`;
+
+      const kpiWinLossEl = document.getElementById('kpi-win-loss');
+      if (kpiWinLossEl) kpiWinLossEl.textContent = `${winTrades}승 / ${lossTrades}패`;
+
+      const kpiPfEl = document.getElementById('kpi-profit-factor');
+      if (kpiPfEl) kpiPfEl.textContent = profitFactor.toFixed(2);
+
+      const kpiMddEl = document.getElementById('kpi-mdd');
+      if (kpiMddEl) kpiMddEl.textContent = `${portfolioMDD.toFixed(1)}%`;
+
+      const kpiCagrEl = document.getElementById('kpi-cagr');
+      if (kpiCagrEl) kpiCagrEl.textContent = `${avgTradeRet >= 0 ? '+' : ''}${avgTradeRet.toFixed(2)}%`;
+
+      const kpiAvgHoldingEl = document.getElementById('kpi-avg-holding');
+      if (kpiAvgHoldingEl) kpiAvgHoldingEl.textContent = `평균 보유: ${avgHold}일 | 총 ${totalTrades}회`;
 
       // 4. Compute High-Resolution Benchmark Curves with accurate start-date base close
       const kospiCloseList = [];
