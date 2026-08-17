@@ -339,11 +339,8 @@ def calculate_indicators(df, period=14):
 def evaluate_buy_signal(df):
     """
     Evaluate ADX Reversal Buy Signal.
-    Condition: ADX >= 25 AND Prev(-DI) > Prev(ADX) AND Curr(-DI) <= Curr(ADX)
-    Priority Rating:
-      - 3단계: Buy Signal + RSI <= 40 (최우선 과매도)
-      - 2단계: Buy Signal + Volume >= 1.2x 5-day avg volume (거래량 급증)
-      - 1단계: General Buy Signal (일반)
+    Condition: ADX >= 30 AND Prev(-DI) > Prev(ADX) AND Curr(-DI) <= Curr(ADX)
+    Signal Name: 전략매수
     """
     if len(df) < 2 or 'adx' not in df.columns:
         return None
@@ -351,23 +348,15 @@ def evaluate_buy_signal(df):
     prev_adx, curr_adx = df['adx'].iloc[-2], df['adx'].iloc[-1]
     prev_mdi, curr_mdi = df['minus_di'].iloc[-2], df['minus_di'].iloc[-1]
     curr_rsi = df['rsi'].iloc[-1]
-    curr_vol = df['거래량'].iloc[-1]
-    avg_vol5 = df['거래량'].iloc[-6:-1].mean() if len(df) >= 6 else curr_vol
 
-    # Base Buy Signal
-    is_buy = (curr_adx >= 25) and (prev_mdi > prev_adx) and (curr_mdi <= curr_adx)
+    # Base Buy Signal: ADX >= 30 & -DI Cross Below ADX
+    is_buy = (curr_adx >= 30.0) and (prev_mdi > prev_adx) and (curr_mdi <= curr_adx)
 
     if not is_buy:
         return None
 
-    priority = "1단계: 매수 추천"
+    priority = "전략매수"
     score = 1
-    if curr_rsi <= 40:
-        priority = "3단계: 강력 매수"
-        score = 3
-    elif avg_vol5 > 0 and (curr_vol >= avg_vol5 * 1.2):
-        priority = "2단계: 적극 매수"
-        score = 2
 
     curr_bb_pct = df['b_band_pct'].iloc[-1] if 'b_band_pct' in df.columns else 0.5
 
@@ -387,9 +376,8 @@ def evaluate_sell_signal(df, buy_price):
     """
     Evaluate Sell Signal for a held stock.
     Conditions:
-    1단계: RSI >= 60 (익절 준비 - 과매도 탈출 후 단기 목표 도달)
-    2단계: Prev(+DI) > Curr(+DI) (상승 둔화 - 반등 모멘텀 약화)
-    3단계: Curr(-DI) > Prev(-DI) AND Gap(-DI - +DI) 확대 OR 손절률 <= -5.0% (하락 재발동 / 손절)
+    - 손절매도: returnRate <= -20.0%
+    - 전략매도: RSI >= 65.0
     """
     if len(df) < 2 or 'adx' not in df.columns or 'plus_di' not in df.columns:
         return None
@@ -410,23 +398,16 @@ def evaluate_sell_signal(df, buy_price):
 
     details = []
 
-    # Check Conditions
-    rsi_high = (curr_rsi >= 60.0)
-    pdi_drop = (prev_pdi >= 20.0) and (prev_pdi > curr_pdi)
-    curr_gap = curr_mdi - curr_pdi
-    prev_gap = prev_mdi - prev_pdi
-    mdi_rebound = (curr_mdi > prev_mdi) and (curr_gap > prev_gap)
+    # Sell conditions
+    is_stop_loss = (buy_price and buy_price > 0 and return_rate <= -20.0)
+    is_strategy_sell = (curr_rsi >= 65.0)
 
-    # Priority determination (3단계 -> 2단계 -> 1단계)
-    if mdi_rebound:
-        level = "3단계: 강력 매도"
-        details.append(f"하락 압력 재확대 (-DI: {prev_mdi:.1f} → {curr_mdi:.1f}, 격차: {prev_gap:.1f} → {curr_gap:.1f})")
-    elif pdi_drop:
-        level = "2단계: 적극 매도"
-        details.append(f"상승 동력(+DI) 꺾임 (+DI: {prev_pdi:.1f} → {curr_pdi:.1f} >= 20)")
-    elif rsi_high:
-        level = "1단계: 매도 추천"
-        details.append(f"RSI 단기 과매수 상단 도달 (RSI: {curr_rsi:.1f} >= 60)")
+    if is_stop_loss:
+        level = "손절매도"
+        details.append(f"손절선(-20%) 도달 이탈 (현재 수익률: {return_rate:.2f}%)")
+    elif is_strategy_sell:
+        level = "전략매도"
+        details.append(f"RSI 과매수 도달 (RSI: {curr_rsi:.1f} >= 65)")
     else:
         level = "관망"
         details.append(f"정상 관망 (추세 유지 중 | ADX: {curr_adx:.1f})")

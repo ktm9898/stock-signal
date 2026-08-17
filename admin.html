@@ -772,7 +772,7 @@
         {
           indicator: "adx",
           condition_type: "gte_value",
-          value: 25.0
+          value: 30.0
         },
         {
           indicator: "minus_di",
@@ -794,14 +794,11 @@
         {
           indicator: "rsi",
           condition_type: "gte_value",
-          value: 60.0
-        },
-        {
-          indicator: "plus_di",
-          condition_type: "turn_down",
-          value: 0
+          value: 65.0
         }
       ];
+      const stopLossEl = document.getElementById('opt-stop-loss');
+      if (stopLossEl) stopLossEl.value = 20;
       renderRules();
     }
 
@@ -1733,7 +1730,7 @@
       const select = document.getElementById('save-slot-select');
       if (select) {
         select.innerHTML = strategySlots.map((s, idx) => `
-          <option value="${idx}">슬롯 #${idx + 1}: ${s.isEmpty ? '(비어있음)' : s.name}</option>
+          <option value="${idx}">전략 ${idx + 1}: ${s.isEmpty ? '(비어있음)' : s.name}</option>
         `).join('');
         onSaveSlotSelectChange(select.value);
       }
@@ -1793,7 +1790,7 @@
       localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
       saveSlotsToGoogleSheetAsync();
       closeSaveModal();
-      alert(`[슬롯 #${idx + 1}: ${name}]에 전체 전략 설정이 성공적으로 저장되었습니다!`);
+      alert(`[전략 ${idx + 1}: ${name}]에 전체 전략 설정이 성공적으로 저장되었습니다!`);
     }
 
     function openLoadModal() {
@@ -1818,7 +1815,7 @@
         return `
           <tr style="border-bottom:1px solid #f1f5f9; ${isSlotEmpty ? 'opacity:0.65;' : ''}">
             <td style="text-align:center; font-weight:700; color:#2563eb; padding:8px;">
-              #${idx + 1}
+              전략 ${idx + 1}
             </td>
             <td style="padding:8px; font-weight:600; color:#1e293b;">
               ${slotName}
@@ -1843,7 +1840,7 @@
     function loadSlotToCurrent(idx) {
       const slot = strategySlots[idx];
       if (!slot || slot.isEmpty || !slot.buyRules) {
-        alert("해당 슬롯은 비어있습니다.");
+        alert("해당 전략은 비어있습니다.");
         return;
       }
 
@@ -1865,11 +1862,11 @@
       if (slot.tradeAmount) document.getElementById('opt-initial-capital').value = slot.tradeAmount;
 
       closeLoadModal();
-      alert(`[슬롯 #${idx + 1}: ${slot.name}] 설정을 불러왔습니다!`);
+      alert(`[전략 ${idx + 1}: ${slot.name}] 설정을 불러왔습니다!`);
     }
 
     function clearSlot(idx) {
-      if (!confirm(`슬롯 #${idx + 1}을(를) 정말 삭제하시겠습니까?`)) return;
+      if (!confirm(`[전략 ${idx + 1}]을(를) 정말 삭제하시겠습니까?`)) return;
       strategySlots[idx] = {
         id: idx + 1,
         name: `전략 ${idx + 1} (비어있음)`,
@@ -1903,7 +1900,7 @@
             <div style="display:flex; align-items:center; gap:10px;">
               <input type="checkbox" class="slot-compare-check" value="${idx}" ${isSlotEmpty ? 'disabled' : ''} style="width:17px; height:17px; cursor:pointer;">
               <div>
-                <span style="font-weight:700; color:#2563eb; font-size:0.85rem; margin-right:6px;">슬롯 #${idx + 1}</span>
+                <span style="font-weight:700; color:#2563eb; font-size:0.85rem; margin-right:6px;">전략 ${idx + 1}</span>
                 <span style="font-weight:600; color:#1e293b; font-size:0.88rem;">${slot.name}</span>
                 <div style="font-size:0.75rem; color:#64748b; margin-top:2px;">${slot.memo || '설명 없음'}</div>
               </div>
