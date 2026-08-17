@@ -1302,13 +1302,22 @@
       // 1. Sort trades chronologically by exitDate
       const sortedChronological = trades.slice().sort((a, b) => a.exitDate.localeCompare(b.exitDate));
 
-      // 2. Build High-Resolution Timeline (Every Trade Exit Date for exact MDD visualization)
-      const fineDatesSet = new Set();
-      fineDatesSet.add(startDateStr);
-      sortedChronological.forEach(t => fineDatesSet.add(t.exitDate));
-      fineDatesSet.add(endDateStr);
+      // 2. Build Continuous Daily Timeline (Every single trading day for smooth continuous tracking)
+      let fineDates = [];
+      if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
+        const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        if (kRows.length > 0) {
+          fineDates = kRows.map(r => r.date);
+        }
+      }
 
-      const fineDates = Array.from(fineDatesSet).sort();
+      if (fineDates.length === 0) {
+        const fineDatesSet = new Set();
+        fineDatesSet.add(startDateStr);
+        sortedChronological.forEach(t => fineDatesSet.add(t.exitDate));
+        fineDatesSet.add(endDateStr);
+        fineDates = Array.from(fineDatesSet).sort();
+      }
 
       // 3. Compute High-Resolution Strategy Equity Curve (0% baseline)
       let runningGainSum = 0;
