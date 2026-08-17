@@ -203,45 +203,63 @@ def fetch_stock_5y_ohlcv(ticker, start_date, end_date):
 
     return None
 
-def calculate_full_indicators(df):
-    """Compute ADX, +DI, -DI, RSI, Bollinger %b, MACD, Stochastic K/D, Disparity20, VolumeRatio."""
-    if df is None or len(df) < 30:
+def calculate_full_indicators(df, period=14):
+    """
+    Compute KIS MTS/HTS Standard indicators matching screener.py exactly:
+    ADX(14), +DI, -DI, RSI(14), BB %b(20,2), MACD(12,26,9), MACD Osc, Stoch(14,3,3) K/D, Disparity20, VolumeRatio.
+    """
+    if df is None or len(df) < 30 or not {'고가', '저가', '종가', '거래량'}.issubset(df.columns):
         return df
 
-    high = df['고가']
-    low = df['저가']
-    close = df['종가']
-    volume = df['거래량']
+    highs = df['고가'].values
+    lows = df['저가'].values
+    closes = df['종가'].values
+    volumes = df['거래량'].values
+    n = len(closes)
 
-    # 1. ADX, +DI, -DI (Period = 14)
-    period = 14
-    up_move = high - high.shift(1)
-    down_move = low.shift(1) - low
+    # 1. ADX, +DI, -DI (KIS HTS Exact Matching Algorithm: EMA alpha = 2 / (period + 1))
+    tr, dm_p, dm_m = [], [], []
+    for i in range(1, n):
+        h, l, c = highs[i], lows[i], closes[i]
+        ph, pl, pc = highs[i-1], lows[i-1], closes[i-1]
+        
+        tr_val = max(h - l, abs(h - pc), abs(l - pc))
+        up = h - ph
+        down = pl - l
+        
+        dp = up if (up > down and up > 0) else 0.0
+        dm = down if (down > up and down > 0) else 0.0
+        
+        tr.append(tr_val)
+        dm_p.append(dp)
+        dm_m.append(dm)
 
-    plus_dm = np.where((up_move > down_move) & (up_move > 0), up_move, 0.0)
-    minus_dm = np.where((down_move > up_move) & (down_move > 0), down_move, 0.0)
+    alpha = 2.0 / (period + 1)
+    
+    def calc_ema(arr):
+        if not arr:
+            return []
+        res = [arr[0]]
+        for val in arr[1:]:
+            res.append(val * alpha + res[-1] * (1 - alpha))
+        return res
 
-    tr1 = high - low
-    tr2 = (high - close.shift(1)).abs()
-    tr3 = (low - close.shift(1)).abs()
-    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    tr_ema = calc_ema(tr)
+    dp_ema = calc_ema(dm_p)
+    dm_ema = calc_ema(dm_m)
 
-    tr_smooth = tr.ewm(alpha=1/period, adjust=False).mean()
-    plus_dm_smooth = pd.Series(plus_dm, index=df.index).ewm(alpha=1/period, adjust=False).mean()
-    minus_dm_smooth = pd.Series(minus_dm, index=df.index).ewm(alpha=1/period, adjust=False).mean()
+    pdi = [100 * p / t if t != 0 else 0 for p, t in zip(dp_ema, tr_ema)]
+    mdi = [100 * m / t if t != 0 else 0 for m, t in zip(dm_ema, tr_ema)]
+    dx = [100 * abs(p - m) / (p + m) if (p + m) != 0 else 0 for p, m in zip(pdi, mdi)]
+    adx = calc_ema(dx)
 
-    plus_di = 100 * (plus_dm_smooth / (tr_smooth + 1e-9))
-    minus_di = 100 * (minus_dm_smooth / (tr_smooth + 1e-9))
-
-    dx = 100 * ((plus_di - minus_di).abs() / ((plus_di + minus_di) + 1e-9))
-    adx = dx.ewm(alpha=1/period, adjust=False).mean()
-
-    df['adx'] = adx
-    df['plus_di'] = plus_di
-    df['minus_di'] = minus_di
+    df['plus_di'] = [np.nan] + pdi
+    df['minus_di'] = [np.nan] + mdi
+    df['adx'] = [np.nan] + adx
 
     # 2. RSI (14)
-    delta = close.diff()
+    close_series = df['종가']
+    delta = close_series.diff()
     gain = delta.clip(lower=0)
     loss = (-delta).clip(lower=0)
     avg_gain = gain.ewm(alpha=1/period, adjust=False).mean()
@@ -249,35 +267,37 @@ def calculate_full_indicators(df):
     rs = avg_gain / (avg_loss + 1e-9)
     df['rsi'] = 100 - (100 / (1 + rs))
 
-    # 3. Bollinger Bands (20, 2)
-    ma20 = close.rolling(window=20).mean()
-    std20 = close.rolling(window=20).std()
-    upper = ma20 + (std20 * 2)
-    lower = ma20 - (std20 * 2)
-    df['b_band_pct'] = (close - lower) / ((upper - lower) + 1e-9)
+    # 3. Moving Averages & Bollinger Bands (20, 2)
+    df['ma5'] = close_series.rolling(window=5).mean()
+    df['ma20'] = close_series.rolling(window=20).mean()
+    std20 = close_series.rolling(window=20).std(ddof=0)
+    upper_b = df['ma20'] + (2 * std20)
+    lower_b = df['ma20'] - (2 * std20)
+    band_width = upper_b - lower_b
+    df['b_band_pct'] = np.where(band_width != 0, (close_series - lower_b) / (band_width + 1e-9), 0.5)
 
     # 4. MACD (12, 26, 9)
-    ema12 = close.ewm(span=12, adjust=False).mean()
-    ema26 = close.ewm(span=26, adjust=False).mean()
+    ema12 = close_series.ewm(span=12, adjust=False).mean()
+    ema26 = close_series.ewm(span=26, adjust=False).mean()
     macd = ema12 - ema26
     macd_signal = macd.ewm(span=9, adjust=False).mean()
     df['macd'] = macd
     df['macd_signal'] = macd_signal
     df['macd_osc'] = macd - macd_signal
 
-    # 5. Stochastic Fast & Slow (14, 3, 3)
-    low_14 = low.rolling(window=14).min()
-    high_14 = high.rolling(window=14).max()
-    fast_k = 100 * ((close - low_14) / ((high_14 - low_14) + 1e-9))
+    # 5. Stochastic Slow (14, 3, 3)
+    low_14 = df['저가'].rolling(window=14).min()
+    high_14 = df['고가'].rolling(window=14).max()
+    fast_k = 100 * ((close_series - low_14) / ((high_14 - low_14) + 1e-9))
     stoch_k = fast_k.rolling(window=3).mean()
     stoch_d = stoch_k.rolling(window=3).mean()
     df['stoch_k'] = stoch_k
     df['stoch_d'] = stoch_d
 
     # 6. Disparity 20 & Volume Ratio
-    df['disparity20'] = (close / (ma20 + 1e-9)) * 100
-    ma5_vol = volume.rolling(window=5).mean()
-    df['volume_ratio'] = (volume / (ma5_vol + 1e-9)) * 100
+    df['disparity20'] = (close_series / (df['ma20'] + 1e-9)) * 100.0
+    ma5_vol = df['거래량'].rolling(window=5).mean()
+    df['volume_ratio'] = (df['거래량'] / (ma5_vol + 1e-9)) * 100.0
 
     return df
 
