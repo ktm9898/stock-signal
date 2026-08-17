@@ -903,10 +903,47 @@
       }
     }
 
+    function ensureIndicators(rows) {
+      if (!rows || rows.length === 0) return rows;
+      let macdSignal = null;
+      const kMacd = 2 / (9 + 1);
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        if (r.bb_pct === undefined && r.b_band_pct !== undefined) r.bb_pct = r.b_band_pct;
+        if (r.b_band_pct === undefined && r.bb_pct !== undefined) r.b_band_pct = r.bb_pct;
+
+        if (r.macd !== undefined && r.macd !== null) {
+          if (r.macd_signal === undefined || r.macd_signal === null) {
+            if (macdSignal === null) macdSignal = r.macd;
+            else macdSignal = (r.macd * kMacd) + (macdSignal * (1 - kMacd));
+            r.macd_signal = macdSignal;
+          }
+          if (r.macd_osc === undefined || r.macd_osc === null) {
+            r.macd_osc = r.macd - (r.macd_signal !== undefined ? r.macd_signal : macdSignal);
+          }
+        }
+
+        if (r.stoch_d === undefined || r.stoch_d === null) {
+          if (r.stoch_k !== undefined && r.stoch_k !== null) {
+            let sum = 0, count = 0;
+            for (let j = Math.max(0, i - 2); j <= i; j++) {
+              if (rows[j].stoch_k !== undefined && rows[j].stoch_k !== null) {
+                sum += rows[j].stoch_k;
+                count++;
+              }
+            }
+            r.stoch_d = count > 0 ? sum / count : r.stoch_k;
+          }
+        }
+      }
+      return rows;
+    }
+
     function loadViewerStockData(ticker) {
       if (!ticker || !REAL_PRELOADED_DATA) return;
       const cleanTicker = String(ticker).padStart(6, '0');
-      const rows = REAL_PRELOADED_DATA[cleanTicker] || REAL_PRELOADED_DATA[ticker] || [];
+      const rawRows = REAL_PRELOADED_DATA[cleanTicker] || REAL_PRELOADED_DATA[ticker] || [];
+      const rows = ensureIndicators(rawRows);
 
       const stockInfo = (ALL_350_STOCKS && ALL_350_STOCKS.length > 0) 
         ? (ALL_350_STOCKS.find(s => s.ticker === cleanTicker || s.ticker === ticker) || { name: ticker, market: "KOSPI200" })
@@ -930,17 +967,18 @@
 
       const displayRows = rows.slice().reverse();
       tbody.innerHTML = displayRows.map(r => {
-        const adx = r.adx !== undefined ? r.adx.toFixed(1) : '-';
-        const mdi = r.minus_di !== undefined ? r.minus_di.toFixed(1) : '-';
-        const pdi = r.plus_di !== undefined ? r.plus_di.toFixed(1) : '-';
-        const rsi = r.rsi !== undefined ? r.rsi.toFixed(1) : '-';
-        const bb = r.b_band_pct !== undefined ? r.b_band_pct.toFixed(2) : '-';
-        const macd = r.macd !== undefined ? r.macd.toFixed(0) : '-';
-        const macdOsc = r.macd_osc !== undefined ? r.macd_osc.toFixed(0) : '-';
-        const stochK = r.stoch_k !== undefined ? r.stoch_k.toFixed(1) : '-';
-        const stochD = r.stoch_d !== undefined ? r.stoch_d.toFixed(1) : '-';
-        const disp = r.disparity20 !== undefined ? r.disparity20.toFixed(1) : '-';
-        const vr = r.volume_ratio !== undefined ? r.volume_ratio.toFixed(0) : '-';
+        const adx = (r.adx !== undefined && r.adx !== null) ? Number(r.adx).toFixed(1) : '-';
+        const mdi = (r.minus_di !== undefined && r.minus_di !== null) ? Number(r.minus_di).toFixed(1) : '-';
+        const pdi = (r.plus_di !== undefined && r.plus_di !== null) ? Number(r.plus_di).toFixed(1) : '-';
+        const rsi = (r.rsi !== undefined && r.rsi !== null) ? Number(r.rsi).toFixed(1) : '-';
+        const bbVal = r.bb_pct !== undefined ? r.bb_pct : r.b_band_pct;
+        const bb = (bbVal !== undefined && bbVal !== null) ? Number(bbVal).toFixed(2) : '-';
+        const macd = (r.macd !== undefined && r.macd !== null) ? Number(r.macd).toFixed(0) : '-';
+        const macdOsc = (r.macd_osc !== undefined && r.macd_osc !== null) ? Number(r.macd_osc).toFixed(0) : '-';
+        const stochK = (r.stoch_k !== undefined && r.stoch_k !== null) ? Number(r.stoch_k).toFixed(1) : '-';
+        const stochD = (r.stoch_d !== undefined && r.stoch_d !== null) ? Number(r.stoch_d).toFixed(1) : '-';
+        const disp = (r.disparity20 !== undefined && r.disparity20 !== null) ? Number(r.disparity20).toFixed(1) : '-';
+        const vr = (r.volume_ratio !== undefined && r.volume_ratio !== null) ? Number(r.volume_ratio).toFixed(0) : '-';
 
         return `
           <tr>
