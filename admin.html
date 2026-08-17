@@ -543,16 +543,16 @@
             <table>
               <thead>
                 <tr>
-                  <th>No</th>
-                  <th>신호 포착일</th>
-                  <th>매수일 (시가)</th>
-                  <th>종목명 (코드)</th>
-                  <th style="text-align:right;">매수가</th>
-                  <th>매도일 (시가)</th>
-                  <th style="text-align:right;">매도가</th>
-                  <th style="text-align:center;">수익률</th>
-                  <th style="text-align:center;">보유기간</th>
-                  <th>청산 사유</th>
+                  <th style="cursor:pointer;" onclick="sortTradeLogTable('idx')">No <span id="sort-icon-idx" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                  <th style="cursor:pointer;" onclick="sortTradeLogTable('signalDate')">신호 포착일 <span id="sort-icon-signalDate" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                  <th style="cursor:pointer;" onclick="sortTradeLogTable('entryDate')">매수일 (시가) <span id="sort-icon-entryDate" style="font-size:0.7rem; opacity:0.7;">▼</span></th>
+                  <th style="cursor:pointer;" onclick="sortTradeLogTable('name')">종목명 (코드) <span id="sort-icon-name" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                  <th style="cursor:pointer; text-align:right;" onclick="sortTradeLogTable('entryPrice')">매수가 <span id="sort-icon-entryPrice" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                  <th style="cursor:pointer;" onclick="sortTradeLogTable('exitDate')">매도일 (시가) <span id="sort-icon-exitDate" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                  <th style="cursor:pointer; text-align:right;" onclick="sortTradeLogTable('exitPrice')">매도가 <span id="sort-icon-exitPrice" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('returnPct')">수익률 <span id="sort-icon-returnPct" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('holdingDays')">보유기간 <span id="sort-icon-holdingDays" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                  <th style="cursor:pointer;" onclick="sortTradeLogTable('reason')">청산 사유 <span id="sort-icon-reason" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
                 </tr>
               </thead>
               <tbody id="trade-log-body"></tbody>
@@ -655,17 +655,17 @@
           <table>
             <thead>
               <tr>
-                <th>No</th>
-                <th>신호 포착일</th>
-                <th>매수일 (시가)</th>
-                <th>종목명 (코드)</th>
-                <th>시장</th>
-                <th style="text-align:right;">매수가</th>
-                <th>매도일 (시가)</th>
-                <th style="text-align:right;">매도가</th>
-                <th style="text-align:center;">수익률</th>
-                <th style="text-align:center;">보유기간</th>
-                <th>청산 사유</th>
+                <th style="cursor:pointer;" onclick="sortTradeLogTable('idx')">No <span id="full-sort-icon-idx" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer;" onclick="sortTradeLogTable('signalDate')">신호 포착일 <span id="full-sort-icon-signalDate" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer;" onclick="sortTradeLogTable('entryDate')">매수일 (시가) <span id="full-sort-icon-entryDate" style="font-size:0.7rem; opacity:0.7;">▼</span></th>
+                <th style="cursor:pointer;" onclick="sortTradeLogTable('name')">종목명 (코드) <span id="full-sort-icon-name" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer;" onclick="sortTradeLogTable('market')">시장 <span id="full-sort-icon-market" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer; text-align:right;" onclick="sortTradeLogTable('entryPrice')">매수가 <span id="full-sort-icon-entryPrice" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer;" onclick="sortTradeLogTable('exitDate')">매도일 (시가) <span id="full-sort-icon-exitDate" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer; text-align:right;" onclick="sortTradeLogTable('exitPrice')">매도가 <span id="full-sort-icon-exitPrice" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('returnPct')">수익률 <span id="full-sort-icon-returnPct" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('holdingDays')">보유기간 <span id="full-sort-icon-holdingDays" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer;" onclick="sortTradeLogTable('reason')">청산 사유 <span id="full-sort-icon-reason" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
               </tr>
             </thead>
             <tbody id="full-trade-log-body"></tbody>
@@ -1059,9 +1059,12 @@
             }
           });
 
-          // Sort all trades descending by entry date
-          allExecutedTrades.sort((a, b) => b.entryDate.localeCompare(a.entryDate));
+          // Assign original index _origIdx before sorting
+          allExecutedTrades.forEach((t, idx) => t._origIdx = idx + 1);
           cachedExecutedTrades = allExecutedTrades;
+
+          // Render tables with sortable header system
+          sortTradeLogTable('entryDate');
 
           // Process Real KPIs
           const totalTrades = allExecutedTrades.length;
@@ -1196,6 +1199,60 @@
       return false;
     }
 
+    let currentSortField = 'entryDate';
+    let currentSortOrder = 'DESC';
+
+    function sortTradeLogTable(field) {
+      if (!cachedExecutedTrades || cachedExecutedTrades.length === 0) return;
+
+      if (currentSortField === field) {
+        currentSortOrder = (currentSortOrder === 'ASC' ? 'DESC' : 'ASC');
+      } else {
+        currentSortField = field;
+        currentSortOrder = (field === 'returnPct' || field === 'entryDate' || field === 'exitDate' || field === 'holdingDays' || field === 'entryPrice' || field === 'exitPrice' ? 'DESC' : 'ASC');
+      }
+
+      const sorted = cachedExecutedTrades.slice().sort((a, b) => {
+        let valA = a[field];
+        let valB = b[field];
+
+        if (field === 'idx') {
+          valA = a._origIdx !== undefined ? a._origIdx : 0;
+          valB = b._origIdx !== undefined ? b._origIdx : 0;
+        }
+
+        if (typeof valA === 'string') {
+          const cmp = valA.localeCompare(valB);
+          return currentSortOrder === 'ASC' ? cmp : -cmp;
+        } else {
+          return currentSortOrder === 'ASC' ? valA - valB : valB - valA;
+        }
+      });
+
+      // Update Sort Icons
+      const fields = ['idx', 'signalDate', 'entryDate', 'name', 'market', 'entryPrice', 'exitDate', 'exitPrice', 'returnPct', 'holdingDays', 'reason'];
+      const iconSymbol = currentSortOrder === 'ASC' ? '▲' : '▼';
+
+      fields.forEach(f => {
+        const el1 = document.getElementById(`sort-icon-${f}`);
+        const el2 = document.getElementById(`full-sort-icon-${f}`);
+        if (el1) el1.textContent = (f === currentSortField ? iconSymbol : '↕');
+        if (el2) el2.textContent = (f === currentSortField ? iconSymbol : '↕');
+      });
+
+      const filterVal = document.getElementById('log-filter-result') ? document.getElementById('log-filter-result').value : 'ALL';
+      let filtered = sorted;
+      if (filterVal === 'WIN') filtered = sorted.filter(t => t.win);
+      if (filterVal === 'LOSS') filtered = sorted.filter(t => !t.win);
+
+      renderRecentTradesTable(filtered.slice(0, 50));
+      renderFullTradeLogs(filtered);
+    }
+
+    function filterTradeLogs(val) {
+      sortTradeLogTable(currentSortField);
+    }
+
     function renderRecentTradesTable(trades) {
       const tbody = document.getElementById('trade-log-body');
       if (!tbody) return;
@@ -1207,9 +1264,10 @@
       tbody.innerHTML = trades.map((t, idx) => {
         const retClass = t.win ? 'tag-win' : 'tag-loss';
         const sign = t.win ? '+' : '';
+        const displayIdx = t._origIdx !== undefined ? t._origIdx : idx + 1;
         return `
           <tr>
-            <td style="color:var(--text-sub); font-size:0.75rem;">${idx + 1}</td>
+            <td style="color:var(--text-sub); font-size:0.75rem;">${displayIdx}</td>
             <td style="color:var(--text-sub);">${t.signalDate}</td>
             <td><strong>${t.entryDate}</strong></td>
             <td><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
@@ -1235,9 +1293,10 @@
       tbody.innerHTML = trades.map((t, idx) => {
         const retClass = t.win ? 'tag-win' : 'tag-loss';
         const sign = t.win ? '+' : '';
+        const displayIdx = t._origIdx !== undefined ? t._origIdx : idx + 1;
         return `
           <tr>
-            <td style="color:var(--text-sub); font-size:0.75rem;">${idx + 1}</td>
+            <td style="color:var(--text-sub); font-size:0.75rem;">${displayIdx}</td>
             <td style="color:var(--text-sub);">${t.signalDate}</td>
             <td><strong>${t.entryDate}</strong></td>
             <td><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
