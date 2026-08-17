@@ -978,14 +978,14 @@
                   const d2 = new Date(nextDay.date);
                   const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
 
-                  // Label exit reason accurately based on final actualReturnPct
+                  // Clean simple exit reasons
                   let exitReason = "전략 매도신호";
                   if (triggerType === "STOP_LOSS") {
-                    exitReason = actualReturnPct >= 0 ? `손절조건 후 갭상승 청산 (+${actualReturnPct.toFixed(1)}%)` : `손절 감지 후 익일시가 매도 (${actualReturnPct.toFixed(1)}%)`;
+                    exitReason = "손절신호";
                   } else if (triggerType === "TAKE_PROFIT") {
-                    exitReason = `익절 감지 후 익일시가 매도 (+${actualReturnPct.toFixed(1)}%)`;
+                    exitReason = "익절신호";
                   } else {
-                    exitReason = actualReturnPct >= 0 ? "전략 매도신호 (익절)" : "전략 매도신호 (손절)";
+                    exitReason = "전략 매도신호";
                   }
 
                   allExecutedTrades.push({
