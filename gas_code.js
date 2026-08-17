@@ -74,7 +74,7 @@ function doGet(e) {
         endDate: r[6] || '',
         stopLoss: r[7] !== '' ? Number(r[7]) : null,
         takeProfit: r[8] !== '' ? Number(r[8]) : null,
-        tradeAmount: r[9] ? Number(r[9]) : 10000000,
+        tradeAmount: r[9] ? Number(r[9]) : 1000000,
         buyRules: r[10] ? JSON.parse(r[10]) : [],
         sellRules: r[11] ? JSON.parse(r[11]) : [],
         updatedAt: r[12] || '-'
@@ -135,7 +135,7 @@ function doPost(e) {
           s.endDate || '',
           s.stopLoss !== null && s.stopLoss !== undefined ? s.stopLoss : '',
           s.takeProfit !== null && s.takeProfit !== undefined ? s.takeProfit : '',
-          s.tradeAmount || 10000000,
+          s.tradeAmount || 1000000,
           JSON.stringify(s.buyRules || []),
           JSON.stringify(s.sellRules || []),
           s.updatedAt || '-'
