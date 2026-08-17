@@ -1484,7 +1484,7 @@
       fineDates.forEach((dbDate, idx) => {
         const prevDbDate = idx > 0 ? fineDates[idx - 1] : dbDate;
 
-        // 3a. Unrealized Mark-to-Market Indexing (Daily ratio of open & exited positions)
+        // 3a. Unrealized Mark-to-Market Indexing (Daily ratio of active positions)
         const activePositions = trades.filter(t => t.entryDate <= dbDate && t.exitDate >= dbDate);
         if (activePositions.length > 0) {
           let dailyRatioSum = 0;
@@ -1499,15 +1499,20 @@
           unrealizedMultiplier *= (1 + avgDailyRatio);
         }
 
-        // 3b. Realized Cumulative Indexing (Updated on exit dates)
+        // 3b. Realized Cumulative Indexing (Only updates on trade exit dates)
         const exitedTradesOnDate = trades.filter(t => t.exitDate === dbDate);
         if (exitedTradesOnDate.length > 0) {
           const avgExitReturn = exitedTradesOnDate.reduce((sum, t) => sum + (t.returnPct / 100), 0) / exitedTradesOnDate.length;
-          realizedMultiplier *= (1 + (avgExitReturn * 0.15));
+          realizedMultiplier *= (1 + avgExitReturn);
         }
 
         const unrealizedPct = (unrealizedMultiplier - 1.0) * 100;
-        const realizedPct = (realizedMultiplier - 1.0) * 100;
+        let realizedPct = (realizedMultiplier - 1.0) * 100;
+
+        // On the final backtest date, all open positions are force-closed (기간종료), so realized = unrealized 100%!
+        if (idx === fineDates.length - 1) {
+          realizedPct = unrealizedPct;
+        }
 
         strategyUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
         strategyRealizedData.push(parseFloat(realizedPct.toFixed(1)));
@@ -1560,9 +1565,8 @@
           label: '나의 퀀트 전략 (실현손익)',
           data: strategyRealizedData,
           borderColor: '#7c3aed',
-          borderDash: [5, 5],
           fill: false,
-          borderWidth: 1.5,
+          borderWidth: 2,
           pointRadius: 0,
           pointHoverRadius: 4,
           tension: 0.1
