@@ -1464,7 +1464,7 @@
         fineDates = Array.from(fineDatesSet).sort();
       }
 
-      // 3. Fast Price Map for Mark-to-Market Portfolio Value Indexing
+      // 3. Fast Price Map for Mark-to-Market Portfolio Equity Curves
       const priceMap = {};
       if (REAL_PRELOADED_DATA) {
         Object.keys(REAL_PRELOADED_DATA).forEach(ticker => {
@@ -1474,6 +1474,9 @@
         });
       }
 
+      // Base Capital Pool for Portfolio Scaling (10x tradeAmount = 100,000,000 KRW standard base)
+      const baseCapitalPool = tradeAmount * 10;
+
       // Compute High-Resolution Strategy Equity Curves (Unrealized Mark-to-Market & Realized)
       const strategyUnrealizedData = [];
       const strategyRealizedData = [];
@@ -1482,19 +1485,20 @@
         const closed = trades.filter(t => t.exitDate <= dbDate);
         const activeOpen = trades.filter(t => t.entryDate <= dbDate && t.exitDate > dbDate);
 
-        const closedSum = closed.reduce((sum, t) => sum + t.returnPct, 0);
+        // Accumulated realized KRW net profit from trades exited on or before dbDate
+        const closedNetGainSum = closed.reduce((sum, t) => sum + Math.round(tradeAmount * (t.returnPct / 100)), 0);
 
-        let openPaperSum = 0;
+        // Live paper KRW net profit from trades open on dbDate
+        let openPaperGainSum = 0;
         activeOpen.forEach(t => {
           const stockPrices = priceMap[t.ticker] || {};
           const closeP = stockPrices[dbDate] !== undefined ? stockPrices[dbDate] : t.entryPrice;
           const paperPct = ((closeP - t.entryPrice) / t.entryPrice) * 100;
-          openPaperSum += paperPct;
+          openPaperGainSum += Math.round(tradeAmount * (paperPct / 100));
         });
 
-        const denom = Math.max(1, closed.length + activeOpen.length);
-        const realizedPct = closed.length > 0 ? (closedSum / denom) : 0;
-        const unrealizedPct = (closedSum + openPaperSum) / denom;
+        const realizedPct = baseCapitalPool > 0 ? (closedNetGainSum / baseCapitalPool) * 100 : 0;
+        const unrealizedPct = baseCapitalPool > 0 ? ((closedNetGainSum + openPaperGainSum) / baseCapitalPool) * 100 : 0;
 
         strategyRealizedData.push(parseFloat(realizedPct.toFixed(1)));
         strategyUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
