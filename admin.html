@@ -1474,8 +1474,14 @@
         });
       }
 
-      // Base Capital Pool for Portfolio Scaling (10x tradeAmount = 100,000,000 KRW standard base)
-      const baseCapitalPool = tradeAmount * 10;
+      // Compute Daily Average Engaged Capital Balance across fineDates (투자금 평잔)
+      let dailyEngagedCapitalSum = 0;
+      fineDates.forEach(dbDate => {
+        const activeCount = trades.filter(t => t.entryDate <= dbDate && t.exitDate >= dbDate).length;
+        const engaged = Math.max(1, activeCount) * tradeAmount;
+        dailyEngagedCapitalSum += engaged;
+      });
+      const averageCapitalBalance = fineDates.length > 0 ? (dailyEngagedCapitalSum / fineDates.length) : tradeAmount;
 
       // Compute High-Resolution Strategy Equity Curves (Unrealized Mark-to-Market & Realized)
       const strategyUnrealizedData = [];
@@ -1497,8 +1503,8 @@
           openPaperGainSum += Math.round(tradeAmount * (paperPct / 100));
         });
 
-        const realizedPct = baseCapitalPool > 0 ? (closedNetGainSum / baseCapitalPool) * 100 : 0;
-        const unrealizedPct = baseCapitalPool > 0 ? ((closedNetGainSum + openPaperGainSum) / baseCapitalPool) * 100 : 0;
+        const realizedPct = averageCapitalBalance > 0 ? (closedNetGainSum / averageCapitalBalance) * 100 : 0;
+        const unrealizedPct = averageCapitalBalance > 0 ? ((closedNetGainSum + openPaperGainSum) / averageCapitalBalance) * 100 : 0;
 
         strategyRealizedData.push(parseFloat(realizedPct.toFixed(1)));
         strategyUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
