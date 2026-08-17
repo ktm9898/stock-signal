@@ -436,19 +436,19 @@
 
       <!-- Buy Rules -->
       <div class="quant-card">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <div class="card-title">매수 조건 설정</div>
-            <div class="header-btn-group">
+        <div class="card-header" style="display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 12px;">
+          <div class="card-title">매수 조건 설정</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+            <div class="header-btn-group" style="display: flex; gap: 6px; align-items: center;">
               <button class="btn-sm-action" onclick="openLoadModal()">불러오기</button>
               <button class="btn-sm-action" onclick="loadDefaultBuyRules()">기본값</button>
               <button class="btn-sm-action" onclick="resetBuyRules()">초기화</button>
             </div>
+            <select id="buy-operator" class="operator-select-sm" title="조건 결합 연산자">
+              <option value="AND" selected>AND</option>
+              <option value="OR">OR</option>
+            </select>
           </div>
-          <select id="buy-operator" class="operator-select-sm" title="조건 결합 연산자">
-            <option value="AND" selected>AND</option>
-            <option value="OR">OR</option>
-          </select>
         </div>
 
         <div id="buy-rules-container"></div>
@@ -460,19 +460,19 @@
 
       <!-- Sell Rules -->
       <div class="quant-card">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <div class="card-title">매도 조건 설정</div>
-            <div class="header-btn-group">
+        <div class="card-header" style="display: flex; flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 12px;">
+          <div class="card-title">매도 조건 설정</div>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+            <div class="header-btn-group" style="display: flex; gap: 6px; align-items: center;">
               <button class="btn-sm-action" onclick="openLoadModal()">불러오기</button>
               <button class="btn-sm-action" onclick="loadDefaultSellRules()">기본값</button>
               <button class="btn-sm-action" onclick="resetSellRules()">초기화</button>
             </div>
+            <select id="sell-operator" class="operator-select-sm" title="조건 결합 연산자">
+              <option value="OR" selected>OR</option>
+              <option value="AND">AND</option>
+            </select>
           </div>
-          <select id="sell-operator" class="operator-select-sm" title="조건 결합 연산자">
-            <option value="OR" selected>OR</option>
-            <option value="AND">AND</option>
-          </select>
         </div>
 
         <div id="sell-rules-container"></div>
@@ -486,7 +486,7 @@
       <div class="quant-card">
         <div class="card-header">
           <div class="card-title">
-            손절/익절, 매매 금액 & 백테스트 기간 설정
+            백테스트 설정
           </div>
         </div>
 
@@ -678,23 +678,23 @@
         </div>
 
         <!-- Stock Selector & Search Filter -->
-        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-sub);">시장:</span>
-            <select id="viewer-market-filter" class="form-select" onchange="filterViewerStockList()">
-              <option value="ALL">전체 (KOSPI200 + KOSDAQ150)</option>
-              <option value="KOSPI200">KOSPI 200</option>
-              <option value="KOSDAQ150">KOSDAQ 150</option>
+        <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-sub); white-space: nowrap;">시장:</span>
+            <select id="viewer-market-filter" class="form-select" style="padding: 4px 6px; font-size: 0.78rem;" onchange="filterViewerStockList()">
+              <option value="ALL">전체</option>
+              <option value="KOSPI200">코스피200</option>
+              <option value="KOSDAQ150">코스닥150</option>
             </select>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 200px;">
-            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-sub);">종목:</span>
-            <select id="viewer-stock-select" class="form-select" style="flex: 1;" onchange="loadViewerStockData(this.value)">
+          <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 140px;">
+            <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-sub); white-space: nowrap;">종목:</span>
+            <select id="viewer-stock-select" class="form-select" style="flex: 1; padding: 4px 6px; font-size: 0.78rem;" onchange="loadViewerStockData(this.value)">
             </select>
           </div>
 
-          <input type="text" id="viewer-quick-search" placeholder="종목명/코드 검색..." class="form-input" style="width: 170px;" oninput="searchViewerStock(this.value)">
+          <input type="text" id="viewer-quick-search" placeholder="종목/코드 검색..." class="form-input" style="width: 120px; font-size: 0.78rem; padding: 4px 6px;" oninput="searchViewerStock(this.value)">
         </div>
 
         <!-- Data Info Summary -->
@@ -748,27 +748,27 @@
         </div>
 
         <!-- Search & Filter Controls -->
-        <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-sub);">시장:</span>
-            <select id="log-filter-market" class="form-select" onchange="filterTradeLogs()">
-              <option value="ALL">전체 (KOSPI200 + KOSDAQ150)</option>
-              <option value="KOSPI200">KOSPI 200</option>
-              <option value="KOSDAQ150">KOSDAQ 150</option>
+        <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-sub); white-space: nowrap;">시장:</span>
+            <select id="log-filter-market" class="form-select" style="padding: 4px 6px; font-size: 0.78rem;" onchange="filterTradeLogs()">
+              <option value="ALL">전체</option>
+              <option value="KOSPI200">코스피200</option>
+              <option value="KOSDAQ150">코스닥150</option>
             </select>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-sub);">체결 결과:</span>
-            <select id="log-filter-result" class="form-select" onchange="filterTradeLogs()">
-              <option value="ALL">전체 체결 결과</option>
-              <option value="WIN">익절 / 승리 거래만</option>
-              <option value="LOSS">손절 / 패배 거래만</option>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-sub); white-space: nowrap;">체결:</span>
+            <select id="log-filter-result" class="form-select" style="padding: 4px 6px; font-size: 0.78rem;" onchange="filterTradeLogs()">
+              <option value="ALL">전체</option>
+              <option value="WIN">승 (익절)</option>
+              <option value="LOSS">패 (손절)</option>
             </select>
           </div>
 
-          <div style="display: flex; align-items: center; gap: 6px; flex: 1; min-width: 180px;">
-            <input type="text" id="log-filter-search" placeholder="종목명/코드 검색..." class="form-input" style="flex: 1;" oninput="filterTradeLogs()">
+          <div style="display: flex; align-items: center; gap: 4px; flex: 1; min-width: 120px;">
+            <input type="text" id="log-filter-search" placeholder="종목/코드 검색..." class="form-input" style="width: 100%; font-size: 0.78rem; padding: 4px 6px;" oninput="filterTradeLogs()">
           </div>
         </div>
 
