@@ -365,8 +365,8 @@
         <button class="btn-header-refresh" onclick="refreshDataUI(this)" title="데이터 새로고침">
           <i class="fa-solid fa-rotate"></i>
         </button>
-        <button class="btn-manual-exec" id="manual-trigger-btn" onclick="triggerManualScreening()">
-          수동 실행
+        <button class="btn-manual-exec" id="manual-trigger-btn" onclick="triggerManualScreening()" title="수동 스크리닝 분석 실행">
+          <i class="fa-solid fa-play"></i> <span class="label-desktop">수동 실행</span>
         </button>
         <a href="admin.html" class="btn-admin-nav" title="퀀트 전략 커스텀 & 5년 백테스터">
           <i class="fa-solid fa-sliders"></i> 퀀트 랩
@@ -1636,7 +1636,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       const btn = document.getElementById('manual-trigger-btn');
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 분석 중...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span class="label-desktop">분석 중...</span>';
       }
 
       try {
@@ -1658,14 +1658,14 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           showInfoModal('실패', result.message || "권한 또는 설정 오류가 발생했습니다.");
           if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '수동 실행';
+            btn.innerHTML = '<i class="fa-solid fa-play"></i> <span class="label-desktop">수동 실행</span>';
           }
         }
       } catch (err) {
         showInfoModal('오류', "스크리닝 요청 실패: " + err);
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '수동 실행';
+          btn.innerHTML = '<i class="fa-solid fa-play"></i> <span class="label-desktop">수동 실행</span>';
         }
       }
     }
