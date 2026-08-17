@@ -1158,6 +1158,8 @@
             if (dd > maxDrawdown) maxDrawdown = dd;
           });
 
+          const avgHold = totalTrades > 0 ? (allExecutedTrades.reduce((a, b) => a + b.holdingDays, 0) / totalTrades).toFixed(1) : 0;
+
           // Render REAL Executed Trade Logs
           renderRecentTradesTable(allExecutedTrades.slice(0, 50));
           renderFullTradeLogs(allExecutedTrades);
