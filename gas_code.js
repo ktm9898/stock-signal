@@ -42,12 +42,55 @@ function setupSheets() {
   let kosdaqSheet = ss.getSheetByName("KOSDAQ150_All_Metrics") || ss.insertSheet("KOSDAQ150_All_Metrics");
   kosdaqSheet.getRange("A1:Q1").setValues([["Date", "Ticker", "Name", "ADX", "Minus_DI", "Plus_DI", "RSI", "BB_Pct", "MACD", "MACD_Signal", "MACD_Osc", "Stoch_K", "Stoch_D", "Disparity20", "VolumeRatio", "ClosePrice", "Status"]]);
   kosdaqSheet.getRange("A1:Q1").setFontWeight("bold").setBackground("#e0e7ff");
+
+  // 8. Strategy Slots Sheet Header Enforce
+  let slotsSheet = ss.getSheetByName("Strategy_Slots") || ss.insertSheet("Strategy_Slots");
+  if (slotsSheet.getLastRow() === 0) {
+    slotsSheet.getRange("A1:M1").setValues([["SlotID", "Name", "Memo", "Market", "Period", "StartDate", "EndDate", "StopLoss", "TakeProfit", "TradeAmount", "BuyRules", "SellRules", "UpdatedAt"]]);
+    slotsSheet.getRange("A1:M1").setFontWeight("bold").setBackground("#dbeafe");
+  }
 }
 
 function doGet(e) {
   const inputPin = e.parameter.pin ? String(e.parameter.pin).trim() : "";
   const authPin = getAuthPin();
   const action = e.parameter.action || "all";
+
+  if (action === "get_strategy_slots") {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    setupSheets();
+    let slotsSheet = ss.getSheetByName("Strategy_Slots");
+    let slots = [];
+    if (slotsSheet && slotsSheet.getLastRow() > 1) {
+      const rows = slotsSheet.getRange(2, 1, slotsSheet.getLastRow() - 1, 13).getValues();
+      slots = rows.map((r, idx) => ({
+        id: r[0] || (idx + 1),
+        name: r[1] || `전략 ${idx + 1}`,
+        memo: r[2] || '',
+        isEmpty: (r[1] && String(r[1]).includes('비어있음')) || !r[10],
+        market: r[3] || 'ALL',
+        period: r[4] || '5Y',
+        startDate: r[5] || '',
+        endDate: r[6] || '',
+        stopLoss: r[7] !== '' ? Number(r[7]) : null,
+        takeProfit: r[8] !== '' ? Number(r[8]) : null,
+        tradeAmount: r[9] ? Number(r[9]) : 10000000,
+        buyRules: r[10] ? JSON.parse(r[10]) : [],
+        sellRules: r[11] ? JSON.parse(r[11]) : [],
+        updatedAt: r[12] || '-'
+      }));
+    }
+    
+    if (slots.length < 10) {
+      const jsonStr = PropertiesService.getScriptProperties().getProperty("STRATEGY_SLOTS_JSON");
+      if (jsonStr) {
+        try { slots = JSON.parse(jsonStr); } catch(err){}
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({ success: true, slots: slots }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 
   if (authPin && inputPin !== authPin && action !== "holdings") {
     return ContentService.createTextOutput(JSON.stringify({ success: false, status: "error", message: "Unauthorized: Invalid PIN" }))
@@ -74,6 +117,35 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const authPin = getAuthPin();
+
+    if (data.action === "save_strategy_slots") {
+      setupSheets();
+      const sheet = ss.getSheetByName("Strategy_Slots");
+      if (data.slots && Array.isArray(data.slots) && sheet) {
+        if (sheet.getLastRow() > 1) {
+          sheet.getRange(2, 1, sheet.getLastRow() - 1, 13).clearContent();
+        }
+        const rows = data.slots.map(s => [
+          s.id,
+          s.name || `전략 ${s.id}`,
+          s.memo || '',
+          s.market || 'ALL',
+          s.period || '5Y',
+          s.startDate || '',
+          s.endDate || '',
+          s.stopLoss !== null && s.stopLoss !== undefined ? s.stopLoss : '',
+          s.takeProfit !== null && s.takeProfit !== undefined ? s.takeProfit : '',
+          s.tradeAmount || 10000000,
+          JSON.stringify(s.buyRules || []),
+          JSON.stringify(s.sellRules || []),
+          s.updatedAt || '-'
+        ]);
+        sheet.getRange(2, 1, rows.length, 13).setValues(rows);
+        PropertiesService.getScriptProperties().setProperty("STRATEGY_SLOTS_JSON", JSON.stringify(data.slots));
+      }
+      return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
 
     const inputPin = data.pin ? String(data.pin).trim() : "";
     const isBackendAction = (
