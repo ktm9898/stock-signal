@@ -537,7 +537,7 @@ if __name__ == "__main__":
                 buy_res['prev_minus_di'] = round(prev_mdi, 2)
                 buy_item = buy_res
                 status_text = buy_res['priority']
-            elif curr_adx >= 25 and curr_mdi > curr_adx:
+            elif curr_adx >= 30 and curr_mdi > curr_adx:
                 status_text = "관심종목"
 
             stock_item = {
