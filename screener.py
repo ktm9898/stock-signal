@@ -8,13 +8,9 @@ import datetime
 import os
 import re
 import json
-import socket
 import pandas as pd
 import numpy as np
 import requests
-
-# Set global socket default timeout to 4 seconds to prevent socket hanging on PyKRX/KRX or Naver network requests
-socket.setdefaulttimeout(4)
 
 # Helper to safely import pykrx without failing on invalid KRX credentials
 def import_pykrx_safely():
@@ -451,13 +447,15 @@ def check_and_trim_incomplete_candle(df):
 
     if is_weekday and is_market_hours:
         today_compact = kst_now.strftime("%Y%m%d")
-        last_date_val = df['Date'].iloc[-1] if 'Date' in df.columns else df.index[-1]
-        last_date_str = str(last_date_val)
-        
-        # Strip all non-digit characters to get YYYYMMDD
-        digits_only = re.sub(r'[^0-9]', '', last_date_str)
-        last_date_compact = digits_only[:8] if len(digits_only) >= 8 else ""
+        last_date_str = ""
+        if 'Date' in df.columns:
+            last_date_str = str(df['Date'].iloc[-1])
+        elif isinstance(df.index, pd.DatetimeIndex):
+            last_date_str = df.index[-1].strftime("%Y%m%d")
+        else:
+            last_date_str = str(df.index[-1])
 
+        last_date_compact = re.sub(r'[^0-9]', '', last_date_str)[:8]
         if last_date_compact == today_compact and len(df) > 30:
             return df.iloc[:-1]
 
@@ -468,7 +466,7 @@ def post_to_google_sheets(url, action, data):
     pin = os.environ.get("AUTH_PIN", "")
     payload = {"action": action, "pin": pin, **data}
     try:
-        res = requests.post(url, json=payload, timeout=45)
+        res = requests.post(url, json=payload, timeout=15)
         print(f" -> GAS Response [{action}]: Status {res.status_code} | {res.text[:200]}")
     except Exception as e:
         print(f"[ERROR] Failed to post to Google Sheets ({action}): {e}")
@@ -539,7 +537,7 @@ if __name__ == "__main__":
                 buy_res['prev_minus_di'] = round(prev_mdi, 2)
                 buy_item = buy_res
                 status_text = buy_res['priority']
-            elif curr_adx >= 30 and curr_mdi > curr_adx:
+            elif curr_adx >= 25 and curr_mdi > curr_adx:
                 status_text = "관심종목"
 
             stock_item = {
