@@ -195,20 +195,12 @@ function doPost(e) {
         logSheet.appendRow([today, "SUCCESS", 350, data.candidates ? data.candidates.length : 0, "정상 완료"]);
       }
 
-      // Record KOSPI 200 Metrics
+      // Record KOSPI 200 Metrics (Always Overwrite with Fresh Data)
       const kospiData = data.kospi_stocks || data.all_stocks;
       if (kospiData && kospiData.length > 0) {
         let allSheet = ss.getSheetByName("KOSPI200_All_Metrics");
-        const todayYMD = extractYMD(new Date());
-
         if (allSheet.getLastRow() > 1) {
-          const existingData = allSheet.getRange(2, 1, allSheet.getLastRow() - 1, 1).getValues();
-          for (let i = existingData.length - 1; i >= 0; i--) {
-            const rowYMD = extractYMD(existingData[i][0]);
-            if (rowYMD === todayYMD) {
-              allSheet.deleteRow(i + 2);
-            }
-          }
+          allSheet.getRange(2, 1, allSheet.getLastRow() - 1, 17).clearContent();
         }
 
         const rows = kospiData.map(s => [
@@ -224,30 +216,14 @@ function doPost(e) {
           s.close, s.status
         ]);
         
-        const startRow = Math.max(allSheet.getLastRow() + 1, 2);
-        allSheet.getRange(startRow, 1, rows.length, 17).setValues(rows);
-
-        const MAX_DATA_ROWS = 12000;
-        const totalRows = allSheet.getLastRow();
-        if (totalRows > MAX_DATA_ROWS + 1) {
-          const deleteCount = totalRows - (MAX_DATA_ROWS + 1);
-          allSheet.deleteRows(2, deleteCount);
-        }
+        allSheet.getRange(2, 1, rows.length, 17).setValues(rows);
       }
 
-      // Record KOSDAQ 150 Metrics
+      // Record KOSDAQ 150 Metrics (Always Overwrite with Fresh Data)
       if (data.kosdaq_stocks && data.kosdaq_stocks.length > 0) {
         let kosdaqSheet = ss.getSheetByName("KOSDAQ150_All_Metrics");
-        const todayYMD = extractYMD(new Date());
-
         if (kosdaqSheet.getLastRow() > 1) {
-          const existingData = kosdaqSheet.getRange(2, 1, kosdaqSheet.getLastRow() - 1, 1).getValues();
-          for (let i = existingData.length - 1; i >= 0; i--) {
-            const rowYMD = extractYMD(existingData[i][0]);
-            if (rowYMD === todayYMD) {
-              kosdaqSheet.deleteRow(i + 2);
-            }
-          }
+          kosdaqSheet.getRange(2, 1, kosdaqSheet.getLastRow() - 1, 17).clearContent();
         }
 
         const rows = data.kosdaq_stocks.map(s => [
@@ -263,9 +239,6 @@ function doPost(e) {
           s.close, s.status
         ]);
         
-        const startRow = Math.max(kosdaqSheet.getLastRow() + 1, 2);
-        kosdaqSheet.getRange(startRow, 1, rows.length, 17).setValues(rows);
-
         const MAX_DATA_ROWS = 9000; // 60 trading days * 150
         const totalRows = kosdaqSheet.getLastRow();
         if (totalRows > MAX_DATA_ROWS + 1) {

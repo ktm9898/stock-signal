@@ -465,8 +465,21 @@ def post_to_google_sheets(url, action, data):
     """Post screening results to Google Apps Script Web App."""
     pin = os.environ.get("AUTH_PIN", "")
     payload = {"action": action, "pin": pin, **data}
+    
+    def clean_obj(obj):
+        if isinstance(obj, float):
+            if np.isnan(obj) or np.isinf(obj):
+                return None
+            return round(obj, 2)
+        elif isinstance(obj, dict):
+            return {k: clean_obj(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [clean_obj(v) for v in obj]
+        return obj
+
+    sanitized_payload = clean_obj(payload)
     try:
-        res = requests.post(url, json=payload, timeout=15)
+        res = requests.post(url, json=sanitized_payload, timeout=30)
         print(f" -> GAS Response [{action}]: Status {res.status_code} | {res.text[:200]}")
     except Exception as e:
         print(f"[ERROR] Failed to post to Google Sheets ({action}): {e}")
