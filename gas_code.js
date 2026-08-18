@@ -195,82 +195,54 @@ function doPost(e) {
         logSheet.appendRow([today, "SUCCESS", 350, data.candidates ? data.candidates.length : 0, "정상 완료"]);
       }
 
-      // Record KOSPI 200 Metrics
+      // Record KOSPI 200 Metrics (Always Overwrite with Fresh Data)
       const kospiData = data.kospi_stocks || data.all_stocks;
       if (kospiData && kospiData.length > 0) {
         let allSheet = ss.getSheetByName("KOSPI200_All_Metrics");
-        const todayYMD = extractYMD(new Date());
-
-        if (allSheet.getLastRow() > 1) {
-          const existingData = allSheet.getRange(2, 1, allSheet.getLastRow() - 1, 1).getValues();
-          for (let i = existingData.length - 1; i >= 0; i--) {
-            const rowYMD = extractYMD(existingData[i][0]);
-            if (rowYMD === todayYMD) {
-              allSheet.deleteRow(i + 2);
-            }
+        if (allSheet) {
+          if (allSheet.getLastRow() > 1) {
+            allSheet.getRange(2, 1, allSheet.getLastRow() - 1, 17).clearContent();
           }
-        }
 
-        const rows = kospiData.map(s => [
-          today, s.ticker, s.name, s.adx, s.minus_di, s.plus_di, s.rsi, 
-          (s.b_band_pct !== undefined ? s.b_band_pct : '-'),
-          (s.macd !== undefined ? s.macd : '-'),
-          (s.macd_signal !== undefined ? s.macd_signal : '-'),
-          (s.macd_osc !== undefined ? s.macd_osc : '-'),
-          (s.stoch_k !== undefined ? s.stoch_k : '-'),
-          (s.stoch_d !== undefined ? s.stoch_d : '-'),
-          (s.disparity20 !== undefined ? s.disparity20 : '-'),
-          (s.volume_ratio !== undefined ? s.volume_ratio : '-'),
-          s.close, s.status
-        ]);
-        
-        const startRow = Math.max(allSheet.getLastRow() + 1, 2);
-        allSheet.getRange(startRow, 1, rows.length, 17).setValues(rows);
-
-        const MAX_DATA_ROWS = 12000;
-        const totalRows = allSheet.getLastRow();
-        if (totalRows > MAX_DATA_ROWS + 1) {
-          const deleteCount = totalRows - (MAX_DATA_ROWS + 1);
-          allSheet.deleteRows(2, deleteCount);
+          const rows = kospiData.map(s => [
+            today, s.ticker, s.name, s.adx, s.minus_di, s.plus_di, s.rsi, 
+            (s.b_band_pct !== undefined && s.b_band_pct !== null ? s.b_band_pct : '-'),
+            (s.macd !== undefined && s.macd !== null ? s.macd : '-'),
+            (s.macd_signal !== undefined && s.macd_signal !== null ? s.macd_signal : '-'),
+            (s.macd_osc !== undefined && s.macd_osc !== null ? s.macd_osc : '-'),
+            (s.stoch_k !== undefined && s.stoch_k !== null ? s.stoch_k : '-'),
+            (s.stoch_d !== undefined && s.stoch_d !== null ? s.stoch_d : '-'),
+            (s.disparity20 !== undefined && s.disparity20 !== null ? s.disparity20 : '-'),
+            (s.volume_ratio !== undefined && s.volume_ratio !== null ? s.volume_ratio : '-'),
+            s.close, s.status
+          ]);
+          
+          allSheet.getRange(2, 1, rows.length, 17).setValues(rows);
         }
       }
 
-      // Record KOSDAQ 150 Metrics
+      // Record KOSDAQ 150 Metrics (Always Overwrite with Fresh Data)
       if (data.kosdaq_stocks && data.kosdaq_stocks.length > 0) {
         let kosdaqSheet = ss.getSheetByName("KOSDAQ150_All_Metrics");
-        const todayYMD = extractYMD(new Date());
-
-        if (kosdaqSheet.getLastRow() > 1) {
-          const existingData = kosdaqSheet.getRange(2, 1, kosdaqSheet.getLastRow() - 1, 1).getValues();
-          for (let i = existingData.length - 1; i >= 0; i--) {
-            const rowYMD = extractYMD(existingData[i][0]);
-            if (rowYMD === todayYMD) {
-              kosdaqSheet.deleteRow(i + 2);
-            }
+        if (kosdaqSheet) {
+          if (kosdaqSheet.getLastRow() > 1) {
+            kosdaqSheet.getRange(2, 1, kosdaqSheet.getLastRow() - 1, 17).clearContent();
           }
-        }
 
-        const rows = data.kosdaq_stocks.map(s => [
-          today, s.ticker, s.name, s.adx, s.minus_di, s.plus_di, s.rsi, 
-          (s.b_band_pct !== undefined ? s.b_band_pct : '-'),
-          (s.macd !== undefined ? s.macd : '-'),
-          (s.macd_signal !== undefined ? s.macd_signal : '-'),
-          (s.macd_osc !== undefined ? s.macd_osc : '-'),
-          (s.stoch_k !== undefined ? s.stoch_k : '-'),
-          (s.stoch_d !== undefined ? s.stoch_d : '-'),
-          (s.disparity20 !== undefined ? s.disparity20 : '-'),
-          (s.volume_ratio !== undefined ? s.volume_ratio : '-'),
-          s.close, s.status
-        ]);
-        
-        const startRow = Math.max(kosdaqSheet.getLastRow() + 1, 2);
-        kosdaqSheet.getRange(startRow, 1, rows.length, 17).setValues(rows);
-
-        const MAX_DATA_ROWS = 9000; // 60 trading days * 150
-        const totalRows = kosdaqSheet.getLastRow();
-        if (totalRows > MAX_DATA_ROWS + 1) {
-          const deleteCount = totalRows - (MAX_DATA_ROWS + 1);
-          kosdaqSheet.deleteRows(2, deleteCount);
+          const rows = data.kosdaq_stocks.map(s => [
+            today, s.ticker, s.name, s.adx, s.minus_di, s.plus_di, s.rsi, 
+            (s.b_band_pct !== undefined && s.b_band_pct !== null ? s.b_band_pct : '-'),
+            (s.macd !== undefined && s.macd !== null ? s.macd : '-'),
+            (s.macd_signal !== undefined && s.macd_signal !== null ? s.macd_signal : '-'),
+            (s.macd_osc !== undefined && s.macd_osc !== null ? s.macd_osc : '-'),
+            (s.stoch_k !== undefined && s.stoch_k !== null ? s.stoch_k : '-'),
+            (s.stoch_d !== undefined && s.stoch_d !== null ? s.stoch_d : '-'),
+            (s.disparity20 !== undefined && s.disparity20 !== null ? s.disparity20 : '-'),
+            (s.volume_ratio !== undefined && s.volume_ratio !== null ? s.volume_ratio : '-'),
+            s.close, s.status
+          ]);
+          
+          kosdaqSheet.getRange(2, 1, rows.length, 17).setValues(rows);
         }
       }
 

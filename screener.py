@@ -481,7 +481,7 @@ def post_to_google_sheets(url, action, data):
 
     sanitized_payload = clean_obj(payload)
     try:
-        res = requests.post(url, json=sanitized_payload, timeout=30)
+        res = requests.post(url, json=sanitized_payload, timeout=45)
         print(f" -> GAS Response [{action}]: Status {res.status_code} | {res.text[:200]}")
     except Exception as e:
         print(f"[ERROR] Failed to post to Google Sheets ({action}): {e}")
