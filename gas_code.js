@@ -239,12 +239,7 @@ function doPost(e) {
           s.close, s.status
         ]);
         
-        const MAX_DATA_ROWS = 9000; // 60 trading days * 150
-        const totalRows = kosdaqSheet.getLastRow();
-        if (totalRows > MAX_DATA_ROWS + 1) {
-          const deleteCount = totalRows - (MAX_DATA_ROWS + 1);
-          kosdaqSheet.deleteRows(2, deleteCount);
-        }
+        kosdaqSheet.getRange(2, 1, rows.length, 17).setValues(rows);
       }
 
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success", count: data.candidates ? data.candidates.length : 0 }))
