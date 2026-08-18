@@ -468,7 +468,7 @@ def post_to_google_sheets(url, action, data):
     pin = os.environ.get("AUTH_PIN", "")
     payload = {"action": action, "pin": pin, **data}
     try:
-        res = requests.post(url, json=payload, timeout=15)
+        res = requests.post(url, json=payload, timeout=45)
         print(f" -> GAS Response [{action}]: Status {res.status_code} | {res.text[:200]}")
     except Exception as e:
         print(f"[ERROR] Failed to post to Google Sheets ({action}): {e}")
