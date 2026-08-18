@@ -202,12 +202,11 @@ function doPost(e) {
         const todayYMD = extractYMD(new Date());
 
         if (allSheet.getLastRow() > 1) {
-          const existingData = allSheet.getRange(2, 1, allSheet.getLastRow() - 1, 1).getValues();
-          for (let i = existingData.length - 1; i >= 0; i--) {
-            const rowYMD = extractYMD(existingData[i][0]);
-            if (rowYMD === todayYMD) {
-              allSheet.deleteRow(i + 2);
-            }
+          const existingData = allSheet.getRange(2, 1, allSheet.getLastRow() - 1, 17).getValues();
+          const filteredRows = existingData.filter(r => extractYMD(r[0]) !== todayYMD);
+          allSheet.getRange(2, 1, allSheet.getLastRow() - 1, 17).clearContent();
+          if (filteredRows.length > 0) {
+            allSheet.getRange(2, 1, filteredRows.length, 17).setValues(filteredRows);
           }
         }
 
@@ -224,7 +223,7 @@ function doPost(e) {
           s.close, s.status
         ]);
         
-        const startRow = Math.max(allSheet.getLastRow() + 1, 2);
+        const startRow = allSheet.getLastRow() > 1 ? allSheet.getLastRow() + 1 : 2;
         allSheet.getRange(startRow, 1, rows.length, 17).setValues(rows);
 
         const MAX_DATA_ROWS = 12000;
@@ -241,12 +240,11 @@ function doPost(e) {
         const todayYMD = extractYMD(new Date());
 
         if (kosdaqSheet.getLastRow() > 1) {
-          const existingData = kosdaqSheet.getRange(2, 1, kosdaqSheet.getLastRow() - 1, 1).getValues();
-          for (let i = existingData.length - 1; i >= 0; i--) {
-            const rowYMD = extractYMD(existingData[i][0]);
-            if (rowYMD === todayYMD) {
-              kosdaqSheet.deleteRow(i + 2);
-            }
+          const existingData = kosdaqSheet.getRange(2, 1, kosdaqSheet.getLastRow() - 1, 17).getValues();
+          const filteredRows = existingData.filter(r => extractYMD(r[0]) !== todayYMD);
+          kosdaqSheet.getRange(2, 1, kosdaqSheet.getLastRow() - 1, 17).clearContent();
+          if (filteredRows.length > 0) {
+            kosdaqSheet.getRange(2, 1, filteredRows.length, 17).setValues(filteredRows);
           }
         }
 
