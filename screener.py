@@ -220,17 +220,10 @@ def get_kosdaq150_tickers():
     return items
 
 def get_ohlcv_data(ticker, start_date, end_date):
-    """Retrieve OHLCV DataFrame for a ticker (PyKRX with Naver FChart XML fallback)."""
-    # 1. Try PyKRX
-    try:
-        df = stock.get_market_ohlcv_by_date(start_date, end_date, ticker)
-        if df is not None and len(df) >= 30 and '고가' in df.columns:
-            return df
-    except Exception:
-        pass
-
-    # 2. Fallback A: Naver FChart XML (Adjusted Prices - 300 candles)
+    """Retrieve OHLCV DataFrame for a ticker (Naver FChart XML 1st, Naver siseJson 2nd, PyKRX 3rd)."""
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+
+    # 1. Primary (Ultra-Fast): Naver FChart XML (Adjusted Prices - 300 daily candles)
     try:
         import xml.etree.ElementTree as ET
         url = f"https://fchart.stock.naver.com/sise.nhn?symbol={ticker}&timeframe=day&count=300&requestType=0"
@@ -252,10 +245,10 @@ def get_ohlcv_data(ticker, start_date, end_date):
                 })
         if len(rows) >= 30:
             return pd.DataFrame(rows)
-    except Exception as e:
+    except Exception:
         pass
 
-    # 3. Fallback B: Naver siseJson API
+    # 2. Fallback A: Naver siseJson API
     try:
         url = f"https://api.finance.naver.com/siseJson.naver?symbol={ticker}&requestType=1&startTime={start_date}&endTime={end_date}&timeframe=day"
         res = requests.get(url, headers=headers, timeout=5)
@@ -268,7 +261,17 @@ def get_ohlcv_data(ticker, start_date, end_date):
             for col in ['시가', '고가', '저가', '종가', '거래량']:
                 if col in df.columns:
                     df[col] = pd.to_numeric(df[col], errors='coerce')
-            return df
+            if len(df) >= 30:
+                return df
+    except Exception:
+        pass
+
+    # 3. Fallback B: PyKRX (Official KRX)
+    try:
+        if stock:
+            df = stock.get_market_ohlcv_by_date(start_date, end_date, ticker)
+            if df is not None and len(df) >= 30 and '고가' in df.columns:
+                return df
     except Exception:
         pass
 
