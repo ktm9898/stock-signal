@@ -98,6 +98,27 @@
     }
     .btn-header-refresh:hover { background: #f1f5f9; color: #2563eb; }
 
+    .btn-admin-nav {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #ffffff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-admin-nav:hover {
+      background: linear-gradient(135deg, #4338ca, #6d28d9);
+      box-shadow: 0 4px 10px rgba(79, 70, 229, 0.35);
+      transform: translateY(-1px);
+    }
+
     /* Layout Containers */
     .container { max-width: 1280px; margin: 16px auto; padding: 0 20px; }
 
@@ -137,15 +158,15 @@
     /* Tables */
     .table-container {
       background: var(--card-bg); border: 1px solid var(--card-border);
-      border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      border-radius: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
     table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
     th {
       background: #f8fafc; color: #475569;
-      font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
-      padding: 12px 16px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;
+      font-size: 0.78rem; font-weight: 600; text-transform: uppercase;
+      padding: 10px 8px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;
     }
-    td { padding: 12px 16px; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; color: #0f172a; white-space: nowrap; }
+    td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; color: #0f172a; white-space: nowrap; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: #f8fafc; }
 
@@ -248,6 +269,24 @@
       }
       .time-badge { display: none; }
 
+      .btn-header-refresh, .btn-manual-exec, .btn-admin-nav {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+        padding: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 8px !important;
+        font-size: 0.95rem !important;
+        box-sizing: border-box !important;
+      }
+      .btn-header-refresh i, .btn-manual-exec i, .btn-admin-nav i {
+        margin: 0 !important;
+        font-size: 0.95rem !important;
+      }
+
       .container { padding: 0 10px; margin: 10px auto; }
       
       .metrics-grid {
@@ -333,7 +372,7 @@
         <div class="brand-icon"><i class="fa-solid fa-chart-line"></i></div>
         <div style="display: flex; flex-direction: column;">
           <span style="font-size: 1.1rem; font-weight: 700; color: #0f172a; line-height: 1.1;">StockSignal</span>
-          <span style="font-size: 0.7rem; color: #2563eb; font-weight: 600; margin-top: 1px;">KOSPI 200</span>
+          <span style="font-size: 0.7rem; color: #2563eb; font-weight: 600; margin-top: 1px;">KOSPI 200 & KOSDAQ 150</span>
         </div>
       </div>
       <div class="header-right-group">
@@ -344,9 +383,12 @@
         <button class="btn-header-refresh" onclick="refreshDataUI(this)" title="데이터 새로고침">
           <i class="fa-solid fa-rotate"></i>
         </button>
-        <button class="btn-manual-exec" id="manual-trigger-btn" onclick="triggerManualScreening()">
-          수동 실행
+        <button class="btn-manual-exec" id="manual-trigger-btn" onclick="triggerManualScreening()" title="수동 스크리닝 분석 실행">
+          <i class="fa-solid fa-play"></i> <span class="label-desktop">수동 실행</span>
         </button>
+        <a href="admin.html" class="btn-admin-nav" title="퀀트 전략 커스텀 & 5년 백테스터">
+          <i class="fa-solid fa-sliders"></i> <span class="label-desktop">퀀트 랩</span>
+        </a>
       </div>
     </div>
   </header>
@@ -384,7 +426,7 @@
       </div>
     </div>
 
-    <!-- Tab Navigation (4 Standalone Tabs: 매수 신호, 매도 신호, 보유 종목, 전체 종목) -->
+    <!-- Tab Navigation (5 Standalone Tabs: 매수 신호, 매도 신호, 보유 종목, 코스피200, 코스닥150) -->
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('buy-tab')">
         <i class="fa-solid fa-cart-shopping"></i>
@@ -400,7 +442,11 @@
       </button>
       <button class="tab-btn" onclick="switchTab('all-stocks-tab')">
         <i class="fa-solid fa-list-ul"></i>
-        <span>전체 종목</span>
+        <span>코스피200</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('kosdaq-stocks-tab')">
+        <i class="fa-solid fa-chart-simple"></i>
+        <span>코스닥150</span>
       </button>
     </div>
 
@@ -412,14 +458,14 @@
             <tr>
               <th>포착 일시</th>
               <th>종목</th>
-              <th>우선순위</th>
-              <th>ADX</th>
-              <th>-DI</th>
-              <th>+DI</th>
-              <th>RSI</th>
-              <th>볼린저%b</th>
-              <th>현재가</th>
-              <th>액션</th>
+              <th style="text-align:center;">우선순위</th>
+              <th style="text-align:center;">ADX</th>
+              <th style="text-align:center;">-DI</th>
+              <th style="text-align:center;">+DI</th>
+              <th style="text-align:center;">RSI</th>
+              <th style="text-align:center;">BB</th>
+              <th style="text-align:center;">현재가</th>
+              <th style="text-align:center;">액션</th>
             </tr>
           </thead>
           <tbody id="buy-candidates-body">
@@ -437,15 +483,15 @@
             <tr>
               <th>포착 일시</th>
               <th>종목</th>
-              <th>매수가</th>
-              <th>현재가</th>
-              <th>수익률</th>
-              <th>ADX</th>
-              <th>-DI</th>
-              <th>+DI</th>
-              <th>RSI</th>
-              <th>볼린저%b</th>
-              <th>신호</th>
+              <th style="text-align:center;">매수가</th>
+              <th style="text-align:center;">현재가</th>
+              <th style="text-align:center;">수익률</th>
+              <th style="text-align:center;">ADX</th>
+              <th style="text-align:center;">-DI</th>
+              <th style="text-align:center;">+DI</th>
+              <th style="text-align:center;">RSI</th>
+              <th style="text-align:center;">BB</th>
+              <th style="text-align:center;">신호</th>
             </tr>
           </thead>
           <tbody id="sell-signals-body">
@@ -463,16 +509,16 @@
             <tr>
               <th>등록일</th>
               <th>종목</th>
-              <th>매수가</th>
-              <th>현재가</th>
-              <th>수익률</th>
-              <th>ADX</th>
-              <th>-DI</th>
-              <th>+DI</th>
-              <th>RSI</th>
-              <th>볼린저%b</th>
-              <th>상태</th>
-              <th>삭제</th>
+              <th style="text-align:center;">매수가</th>
+              <th style="text-align:center;">현재가</th>
+              <th style="text-align:center;">수익률</th>
+              <th style="text-align:center;">ADX</th>
+              <th style="text-align:center;">-DI</th>
+              <th style="text-align:center;">+DI</th>
+              <th style="text-align:center;">RSI</th>
+              <th style="text-align:center;">BB</th>
+              <th style="text-align:center;">상태</th>
+              <th style="text-align:center;">삭제</th>
             </tr>
           </thead>
           <tbody id="holdings-body">
@@ -485,7 +531,7 @@
       </div>
     </div>
 
-    <!-- Tab 4: All 200 Stocks Metrics -->
+    <!-- Tab 4: KOSPI 200 Stocks Metrics -->
     <div id="all-stocks-tab" class="tab-content" style="display: none;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
         <h3 style="font-weight: 600; font-size: 1rem;">KOSPI 200 지표</h3>
@@ -493,22 +539,82 @@
       </div>
       <div class="table-container">
         <table>
+          <colgroup>
+            <col style="width: 14%;">
+            <col style="width: 7.5%;">
+            <col style="width: 7.5%;">
+            <col style="width: 7.5%;">
+            <col style="width: 7.5%;">
+            <col style="width: 7.5%;">
+            <col style="width: 9.5%;">
+            <col style="width: 11.5%;">
+            <col style="width: 8.5%;">
+            <col style="width: 7.5%;">
+            <col style="width: 11.5%;">
+            <col style="width: 8%;">
+          </colgroup>
           <thead>
             <tr>
               <th>종목</th>
-              <th>ADX</th>
-              <th>전일ADX</th>
-              <th>-DI</th>
-              <th>전일-DI</th>
-              <th>+DI</th>
-              <th>전일+DI</th>
-              <th>RSI</th>
-              <th>볼린저%b</th>
-              <th>현재가</th>
-              <th>상태</th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('ADX')" title="클릭 시 ADX 지표 설명 보기">ADX <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('-DI')" title="클릭 시 -DI 지표 설명 보기">-DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('+DI')" title="클릭 시 +DI 지표 설명 보기">+DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('RSI')" title="클릭 시 RSI 지표 설명 보기">RSI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('BB_Pct')" title="클릭 시 BB 지표 설명 보기">BB <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('MACD')" title="클릭 시 MACD 지표 설명 보기">MACD <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('STOCH')" title="클릭 시 STOCH 지표 설명 보기">STOCH <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('DISPARITY')" title="클릭 시 이격도 지표 설명 보기">이격도 <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:right; padding-right: 28px;">현재가</th>
+              <th style="text-align:center;">상태</th>
             </tr>
           </thead>
           <tbody id="all-stocks-body">
+            <!-- Dynamic Content -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Tab 5: KOSDAQ 150 Stocks Metrics -->
+    <div id="kosdaq-stocks-tab" class="tab-content" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
+        <h3 style="font-weight: 600; font-size: 1rem;">KOSDAQ 150 지표</h3>
+        <input type="text" id="kosdaq-stocks-search" placeholder="🔍 종목 검색..." class="form-input" style="max-width: 180px; padding: 5px 10px; font-size: 0.82rem;" oninput="filterKosdaqStocksTable()">
+      </div>
+      <div class="table-container">
+        <table>
+          <colgroup>
+            <col style="width: 14%;">
+            <col style="width: 7.5%;">
+            <col style="width: 7.5%;">
+            <col style="width: 7.5%;">
+            <col style="width: 7.5%;">
+            <col style="width: 7.5%;">
+            <col style="width: 9.5%;">
+            <col style="width: 11.5%;">
+            <col style="width: 8.5%;">
+            <col style="width: 7.5%;">
+            <col style="width: 11.5%;">
+            <col style="width: 8%;">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>종목</th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('ADX')" title="클릭 시 ADX 지표 설명 보기">ADX <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('-DI')" title="클릭 시 -DI 지표 설명 보기">-DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('+DI')" title="클릭 시 +DI 지표 설명 보기">+DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('RSI')" title="클릭 시 RSI 지표 설명 보기">RSI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('BB_Pct')" title="클릭 시 BB 지표 설명 보기">BB <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('MACD')" title="클릭 시 MACD 지표 설명 보기">MACD <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('STOCH')" title="클릭 시 STOCH 지표 설명 보기">STOCH <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('DISPARITY')" title="클릭 시 이격도 지표 설명 보기">이격도 <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:center;" onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th style="text-align:right; padding-right: 28px;">현재가</th>
+              <th style="text-align:center;">상태</th>
+            </tr>
+          </thead>
+          <tbody id="kosdaq-stocks-body">
             <!-- Dynamic Content -->
           </tbody>
         </table>
@@ -518,16 +624,18 @@
 
   <!-- Info/Details Modal -->
   <div class="modal-overlay" id="info-modal">
-    <div class="modal-content" style="max-width: 440px;">
-      <div class="modal-header" style="margin-bottom: 12px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <div class="modal-title" id="info-modal-title">종목 상세 사유</div>
-          <span id="info-modal-badge" class="badge"></span>
+    <div class="modal-content" style="max-width: 460px; padding: 20px;">
+      <div class="modal-header" style="margin-bottom: 14px; align-items: flex-start;">
+        <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; padding-right: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span id="info-modal-badge" class="badge"></span>
+          </div>
+          <div class="modal-title" id="info-modal-title" style="font-size: 1.1rem; line-height: 1.35; font-weight: 700; color: #0f172a; word-break: keep-all;">종목 상세 사유</div>
         </div>
-        <button class="close-btn" onclick="closeInfoModal()">&times;</button>
+        <button class="close-btn" onclick="closeInfoModal()" style="line-height: 1;">&times;</button>
       </div>
-      <div id="info-modal-body" style="font-size: 0.92rem; color: #334155; line-height: 1.6; background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 16px; white-space: pre-wrap;"></div>
-      <button class="btn-buy-reg" style="width: 100%; padding: 10px;" onclick="closeInfoModal()">확인</button>
+      <div id="info-modal-body" style="font-size: 0.9rem; color: #334155; line-height: 1.6; background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 16px; white-space: pre-wrap; max-height: 60vh; overflow-y: auto;"></div>
+      <button class="btn-buy-reg" style="width: 100%; padding: 10px; font-size: 0.9rem;" onclick="closeInfoModal()">확인</button>
     </div>
   </div>
 
@@ -589,6 +697,7 @@
     let holdingsData = [];
     let executionLogsData = [];
     let allMetricsData = [];
+    let kosdaqMetricsData = [];
 
     async function verifyPin() {
       const pinVal = document.getElementById('input-pin').value.trim();
@@ -603,15 +712,16 @@
       errorEl.style.display = 'none';
 
       try {
-        const success = await loadDataFromGAS(pinVal);
-        if (success) {
+        const res = await loadDataFromGAS(pinVal);
+        if (res.success) {
           userPin = pinVal;
           document.getElementById('pin-modal').style.display = 'none';
         } else {
+          errorEl.textContent = res.message || '비밀번호가 올바르지 않습니다.';
           errorEl.style.display = 'block';
         }
       } catch (err) {
-        errorEl.textContent = '확인 중 오류가 발생했습니다.';
+        errorEl.textContent = '확인 중 오류가 발생했습니다: ' + err.message;
         errorEl.style.display = 'block';
       } finally {
         if (pinBtn) {
@@ -634,6 +744,15 @@
       }
     }
 
+    function parseYMD(val) {
+      if (!val) return '';
+      const str = String(val).trim();
+      if (str.length >= 10) {
+        return str.substring(0, 10).replace(/[^0-9]/g, '');
+      }
+      return str.replace(/[^0-9]/g, '');
+    }
+
     async function loadDataFromGAS(pin = userPin) {
       const cleanPin = String(pin || '').trim();
       try {
@@ -643,7 +762,7 @@
         
         if (data.status === "error" || data.success === false) {
           console.warn("GAS Auth/Fetch Error:", data.message);
-          return false;
+          return { success: false, message: data.message };
         }
 
         buyCandidatesData = data.buyCandidates || [];
@@ -651,20 +770,77 @@
         const holdingsStatusData = data.holdingsStatus || [];
         executionLogsData = data.executionLogs || [];
         allMetricsData = data.allMetrics || [];
+        kosdaqMetricsData = data.kosdaqMetrics || [];
         const sellSignalsData = data.sellSignals || [];
 
-        renderBuyCandidates(buyCandidatesData, executionLogsData);
-        renderHoldings(holdingsData, allMetricsData, holdingsStatusData);
+        // Extract latest date metrics for display in renderAllStocks (from 60-day rolling DB)
+        let latestMetricsData = allMetricsData;
+        if (allMetricsData.length > 200) {
+          const latestDate = allMetricsData[allMetricsData.length - 1].Date || allMetricsData[allMetricsData.length - 1].date;
+          if (latestDate) {
+            const latestYMD = parseYMD(latestDate);
+            latestMetricsData = allMetricsData.filter(item => parseYMD(item.Date || item.date) === latestYMD);
+          }
+          if (latestMetricsData.length === 0) {
+            latestMetricsData = allMetricsData.slice(-200);
+          }
+        }
+
+        let latestKosdaqMetricsData = kosdaqMetricsData;
+        if (kosdaqMetricsData.length > 150) {
+          const latestDate = kosdaqMetricsData[kosdaqMetricsData.length - 1].Date || kosdaqMetricsData[kosdaqMetricsData.length - 1].date;
+          if (latestDate) {
+            const latestYMD = parseYMD(latestDate);
+            latestKosdaqMetricsData = kosdaqMetricsData.filter(item => parseYMD(item.Date || item.date) === latestYMD);
+          }
+          if (latestKosdaqMetricsData.length === 0) {
+            latestKosdaqMetricsData = kosdaqMetricsData.slice(-150);
+          }
+        }
+
+        // Dynamically add today's '관심종목' from latestMetricsData & latestKosdaqMetricsData
+        const todayWatchlistMap = new Map();
+        [...latestMetricsData, ...latestKosdaqMetricsData]
+          .filter(item => String(item.Status || item.status || '').includes('관심종목'))
+          .forEach(item => {
+            const tk = formatTicker(item.Ticker || item.ticker || item.code);
+            if (!todayWatchlistMap.has(tk)) {
+              todayWatchlistMap.set(tk, {
+                date: item.Date || item.date || item.Timestamp || (executionLogsData.length > 0 ? executionLogsData[executionLogsData.length - 1].Timestamp : new Date().toISOString()),
+                name: item.Name || item.name,
+                ticker: tk,
+                stage: '관심종목',
+                adx: item.ADX || item.adx,
+                minus_di: item.Minus_DI || item.minus_di,
+                plus_di: item.Plus_DI || item.plus_di,
+                rsi: item.RSI || item.rsi,
+                b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
+                price: item.ClosePrice || item.price || item.close,
+                reason: `ADX: ${item.ADX || item.adx}, -DI: ${item.Minus_DI || item.minus_di} (추세 강함 + -DI 상단 위치로 매수 신호 임박 대기)`
+              });
+            }
+          });
+        const todayWatchlist = Array.from(todayWatchlistMap.values());
+
+        const combinedBuyList = [...buyCandidatesData, ...todayWatchlist];
+
+        window.latestMetricsCacheData = latestMetricsData;
+        window.latestKosdaqMetricsCacheData = latestKosdaqMetricsData;
+
+        renderBuyCandidates(combinedBuyList, executionLogsData);
+        renderHoldings(holdingsData, [...allMetricsData, ...kosdaqMetricsData], holdingsStatusData);
         renderSellSignals(sellSignalsData);
-        renderAllStocks(allMetricsData);
+        renderAllStocks(latestMetricsData);
+        renderKosdaqStocks(latestKosdaqMetricsData);
         
         document.getElementById('count-buy').textContent = buyCandidatesData.length;
         document.getElementById('count-sell').textContent = sellSignalsData.length;
         document.getElementById('count-holdings').textContent = holdingsData.length;
 
-        // Calculate profit & loss counts from holdingsData & allMetricsData
+        // Calculate profit & loss counts from holdingsData & metricsData
         let profitCount = 0;
         let lossCount = 0;
+        const combinedAllMetrics = [...allMetricsData, ...kosdaqMetricsData];
         holdingsData.forEach(item => {
           const rawTicker = formatTicker(item.Ticker || item.ticker || item.code || '');
           const rawName = String(item.Name || item.name || '').trim();
@@ -674,7 +850,7 @@
             const sTicker = formatTicker(s.Ticker || s.ticker || '');
             const sName = String(s.Name || s.name || '').trim();
             return (rawTicker && rawTicker !== '-' && sTicker === rawTicker) || (rawName && sName === rawName);
-          }) || allMetricsData.find(m => {
+          }) || combinedAllMetrics.find(m => {
             const mTicker = formatTicker(m.Ticker || m.ticker || '');
             const mName = String(m.Name || m.name || '').trim();
             return (rawTicker && rawTicker !== '-' && mTicker === rawTicker) || (rawName && mName === rawName);
@@ -696,11 +872,175 @@
           document.getElementById('sync-time').textContent = `최근 갱신: ${formatShortDate(lastLog.Timestamp || lastLog.date)}`;
         }
 
-        return true;
+        return { success: true };
       } catch (err) {
         console.error("Failed to load data from GAS:", err);
-        return false;
+        return { success: false, message: err.message };
       }
+    }
+
+    function showIndicatorHelp(type) {
+      const helpData = {
+        'ADX': {
+          title: 'ADX (Average Directional Index)',
+          badge: '추세 강도',
+          badgeClass: 'badge-t2',
+          content: `[개념]
+ADX는 주가의 상승/하락 방향과 관계없이 현재 형성된 추세의 강도만을 0~100 수치로 측정하는 지표입니다.
+
+[수치별 의미]
+• 0 ~ 20 : 추세 없음 (관망 및 횡보 구간)
+• 25 이상 : 강한 추세 형성 (매매 고려 가능 구간)
+• 40 이상 : 매우 강력한 추세 진행 중
+
+[실전 활용 팁]
+ADX가 25 이상으로 올라설 때 -DI가 ADX 밑으로 하향 돌파하면 매수 신호, 반대로 상승 추세 후 ADX가 꺾이기 시작하면 익절 및 매도 준비 타점이 됩니다.`
+        },
+        '-DI': {
+          title: '-DI (Minus Directional Indicator)',
+          badge: '하락 방향성',
+          badgeClass: 'badge-sell-exit',
+          content: `[개념]
+최근 N일간 주가의 하락 변동 폭과 압력을 수치화한 지표입니다.
+
+[수치별 의미]
+• -DI > ADX : 하락 압력이 우세하여 주가가 눌려있는 상태
+• -DI가 ADX 밑으로 하향 돌파 : 하락 압력이 사라지며 상승 반전 가능성 급증
+
+[실전 활용 팁]
+ADX가 25 이상일 때 -DI가 ADX 아래로 떨어지는 순간이 본 스크리너의 핵심 매수 신호 타점입니다.`
+        },
+        '+DI': {
+          title: '+DI (Plus Directional Indicator)',
+          badge: '상승 방향성',
+          badgeClass: 'badge-t1',
+          content: `[개념]
+최근 N일간 주가의 상승 변동 폭과 매수 압력을 수치화한 지표입니다.
+
+[수치별 의미]
+• +DI > -DI : 매수세가 매도세보다 우세한 상승 국면
+• +DI 상승 + ADX 상승 : 상승 추세가 본격적으로 탄력을 받는 구간
+
+[실전 활용 팁]
++DI가 -DI보다 위에 있으면서 ADX가 함께 상승할 때 가장 안정적인 우상향 파동이 연출됩니다.`
+        },
+        'RSI': {
+          title: 'RSI (Relative Strength Index)',
+          badge: '상대강도지수',
+          badgeClass: 'badge-t1',
+          content: `[개념]
+최근 14일간 주가 상승폭과 하락폭의 비율을 0~100%로 나타내어 매수/매도 세력의 상대적 강도를 측정합니다.
+
+[수치별 의미]
+• 30 이하 : 과매도 (주가가 지나치게 떨어져 반등 가능성 높음)
+• 40 이하 : 과매도 접근 (본 시스템 3단계 강력매수 우선순위 조건)
+• 70 이상 : 과매수 (과열 구간, 매도 및 익절 고려)
+
+[실전 활용 팁]
+매수 신호가 떴을 때 RSI가 40 이하로 낮다면 바닥권 강력 매수(3단계) 타점이 됩니다.`
+        },
+        'BB_Pct': {
+          title: '볼린저 밴드 %b (Bollinger %b)',
+          badge: '밴드위치 비율',
+          badgeClass: 'badge-t2',
+          content: `[개념]
+주가가 볼린저 밴드(20일, 2표준편차)의 상단과 하단 사이에서 어디에 위치하는지 0~1 비율로 나타냅니다.
+
+[수치별 의미]
+• 0.0 이하 : 밴드 하단 이탈/터치 (주가 극단적 바닥권)
+• 0.5 : 밴드 중앙선 (20일 이동평균선 위치)
+• 1.0 이상 : 밴드 상단 이탈/터치 (주가 단기 과열 상단)
+
+[실전 활용 팁]
+%b가 0.0 근처에 도달해 있으면서 매수 신호가 발생하면 아주 이상적인 눌림목 및 바닥 매수 기회가 됩니다.`
+        },
+        'MACD': {
+          title: 'MACD 오실레이터 (MACD Oscillator)',
+          badge: '추세 모멘텀',
+          badgeClass: 'badge-t2',
+          content: `[개념]
+MACD(12일-26일 이평선 차이)와 Signal(9일 이평선)의 차이를 나타내는 오실레이터 수치입니다.
+
+[수치별 의미]
+• 양수 (+) : 상승 모멘텀 우세 (MACD가 Signal 위에 위치)
+• 음수 (-) : 하락 모멘텀 우세 (MACD가 Signal 아래에 위치)
+• 음수(-)에서 양수(+)로 전환 : MACD 골든크로스 발생
+
+[실전 활용 팁]
+MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상승 에너지가 강력하게 실립니다.`
+        },
+        'STOCH': {
+          title: '스토캐스틱 슬로우 (Stochastic Slow)',
+          badge: '단기 반전 지표',
+          badgeClass: 'badge-t3',
+          content: `[개념]
+최근 14일간의 최고가-최저가 범위 내에서 현재 주가의 상대적 위치(%K)와 그 이동평균(%D)을 나타냅니다.
+
+[수치별 의미]
+• 20 이하 : 단기 과매도 (바닥권 반등 임박)
+• 80 이상 : 단기 과매수 (단기 고점 과열)
+• %K가 %D를 상향 돌파 : 스토캐스틱 골든크로스
+
+[실전 활용 팁]
+%K 수치가 20 이하 바닥권에서 %D를 뚫고 올라갈 때 RSI 및 ADX 신호와 함께 활용하면 승률이 높아집니다.`
+        },
+        'DISPARITY': {
+          title: '20일 이격도 (Disparity 20)',
+          badge: '이동평균 이격률',
+          badgeClass: 'badge-t2',
+          content: `[개념]
+현재 주가가 20일 이동평균선과 얼마나 떨어져 있는지를 백분율(%)로 나타냅니다.
+
+[수치별 의미]
+• 95% 이하 : 20일선 대비 5% 이상 하락 (단기 과매도/눌림목)
+• 100% : 현재 주가가 20일 이동평균선과 일치
+• 105% 이상 : 20일선 대비 5% 이상 급등 (단기 이격 과열)
+
+[실전 활용 팁]
+이격도가 95% 이하인 상태에서 매수 신호가 발생하면 20일선 복귀에 따른 단기 반등 수익을 노리기 좋습니다.`
+        },
+        'VR': {
+          title: '거래량 비율 (Volume Ratio, VR5)',
+          badge: '수급 폭발 지표',
+          badgeClass: 'badge-t1',
+          content: `[개념]
+최근 5일간의 평균 거래량 대비 당일 거래량이 얼마나 터졌는지를 백분율(%)로 나타냅니다.
+
+[수치별 의미]
+• 100% : 최근 5일 평균과 동일한 거래량
+• 120% 이상 : 거래량 급증 (본 시스템 2단계 적극매수 조건)
+• 200% 이상 : 수급 대폭발 (세력/기관 강한 매수 유입)
+
+[실전 활용 팁]
+주가가 반전할 때 거래량 비율이 120%~200% 이상 터져줘야 신호의 신뢰도가 크게 상승합니다.`
+        },
+        'VOLUME': {
+          title: '거래량 비율 (Volume Ratio, VR5)',
+          badge: '수급 폭발 지표',
+          badgeClass: 'badge-t1',
+          content: `[개념]
+최근 5일간의 평균 거래량 대비 당일 거래량이 얼마나 터졌는지를 백분율(%)로 나타냅니다.
+
+[수치별 의미]
+• 100% : 최근 5일 평균과 동일한 거래량
+• 120% 이상 : 거래량 급증 (본 시스템 2단계 적극매수 조건)
+• 200% 이상 : 수급 대폭발 (세력/기관 강한 매수 유입)
+
+[실전 활용 팁]
+주가가 반전할 때 거래량 비율이 120%~200% 이상 터져줘야 신호의 신뢰도가 크게 상승합니다.`
+        }
+      };
+
+      const item = helpData[type] || helpData['VR'] || helpData['VOLUME'];
+      if (!item) return;
+
+      document.getElementById('info-modal-title').textContent = item.title;
+      const badgeEl = document.getElementById('info-modal-badge');
+      badgeEl.textContent = item.badge;
+      badgeEl.className = 'badge ' + item.badgeClass;
+      
+      document.getElementById('info-modal-body').textContent = item.content;
+      document.getElementById('info-modal').style.display = 'flex';
     }
 
     function showDetailsModal(stockName, statusText, detailsText, badgeClass = 'badge-t1') {
@@ -816,13 +1156,13 @@
 
       const reversedList = [...list].reverse();
       tbody.innerHTML = reversedList.map(item => {
-        const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || item.priority || '전략매수');
+        const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || '전략매수');
         let stageText = '전략매수';
         let tierClass = 'badge-t1';
-        if (rawStage.includes('관심')) {
+        if (rawStage.includes('관심종목') || rawStage.includes('추세강함')) {
           stageText = '관심종목';
-          tierClass = 'badge-t3';
-        } else if (rawStage.includes('전략') || rawStage.includes('매수')) {
+          tierClass = 'badge-sell-warn';
+        } else {
           stageText = '전략매수';
           tierClass = 'badge-t1';
         }
@@ -845,14 +1185,14 @@
           <tr>
             <td><span style="color:var(--text-sub); font-size:0.85rem; font-weight:500;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
             <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
-            <td><span class="badge ${tierClass}" onclick="showDetailsModal('${name}', '${stageText}', '${reason}', '${tierClass}')" title="클릭 시 포착 사유 확인">${stageText}</span></td>
-            <td><strong style="color:var(--accent-cyan);">${formatDec(item.ADX || item.adx)}</strong></td>
-            <td>${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}</td>
-            <td>${formatDec(item.Plus_DI || item.plus_di || item.plusDi)}</td>
-            <td><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${formatDec(item.RSI || item.rsi)}</span></td>
-            <td><span style="color: ${bbColor}">${bBandPctStr}</span></td>
-            <td>${(item.ClosePrice || item.price) ? Number(item.ClosePrice || item.price).toLocaleString() + ' 원' : '-'}</td>
-            <td><button class="btn-buy-reg" style="padding: 4px 10px; font-size: 0.8rem;" onclick="quickRegister('${name}', '${ticker}', ${item.ClosePrice || item.price || 0})"><i class="fa-solid fa-plus"></i> 매수</button></td>
+            <td style="text-align:center;"><span class="badge ${tierClass}" onclick="showDetailsModal('${name}', '${stageText}', '${reason}', '${tierClass}')" title="클릭 시 포착 사유 확인">${stageText}</span></td>
+            <td style="text-align:center;"><strong style="color:var(--accent-cyan);">${formatDec(item.ADX || item.adx)}</strong></td>
+            <td style="text-align:center;">${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}</td>
+            <td style="text-align:center;">${formatDec(item.Plus_DI || item.plus_di || item.plusDi)}</td>
+            <td style="text-align:center;"><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${formatDec(item.RSI || item.rsi)}</span></td>
+            <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
+            <td style="text-align:right; padding-right: 28px;">${(item.ClosePrice || item.price) ? Number(item.ClosePrice || item.price).toLocaleString() + ' 원' : '-'}</td>
+            <td style="text-align:center;"><button class="btn-buy-reg" style="padding: 4px 10px; font-size: 0.8rem;" onclick="quickRegister('${name}', '${ticker}', ${item.ClosePrice || item.price || 0})"><i class="fa-solid fa-plus"></i> 매수</button></td>
           </tr>
         `;
       }).join('');
@@ -860,28 +1200,24 @@
 
     function renderAllStocks(list) {
       const tbody = document.getElementById('all-stocks-body');
+      if (!tbody) return;
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; color:var(--text-sub); padding:24px;">저장된 KOSPI 200 전체 종목 지표 데이터가 없습니다.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; color:var(--text-sub); padding:24px;">저장된 KOSPI 200 전체 종목 지표 데이터가 없습니다.</td></tr>`;
         return;
       }
       tbody.innerHTML = list.map(item => {
         const rawStatus = String(item.Status || item.status || '관망');
         let statusText = rawStatus;
         let badgeClass = 'badge-neutral';
-        if (rawStatus.includes('3단계') || rawStatus.includes('Tier 1')) { badgeClass = 'badge-t1'; statusText = '3단계'; }
-        else if (rawStatus.includes('2단계') || rawStatus.includes('Tier 2')) { badgeClass = 'badge-t2'; statusText = '2단계'; }
-        else if (rawStatus.includes('1단계') || rawStatus.includes('Tier 3')) { badgeClass = 'badge-t3'; statusText = '1단계'; }
-        else if (rawStatus.includes('추세강함')) { badgeClass = 'badge-sell-warn'; statusText = '추세 강함'; }
+        if (rawStatus.includes('전략매수') || rawStatus.includes('매수') || rawStatus.includes('3단계') || rawStatus.includes('Tier 1')) { badgeClass = 'badge-t1'; statusText = '전략매수'; }
+        else if (rawStatus.includes('관심종목') || rawStatus.includes('추세강함')) { badgeClass = 'badge-sell-warn'; statusText = '관심종목'; }
         else { statusText = '관망'; }
 
         const name = (item.Name || item.name || '').replace(/'/g, "\\'");
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
         const currAdx = formatDec(item.ADX || item.adx);
-        const prevAdx = formatDec(item.Prev_ADX || item.prev_adx);
         const currMdi = formatDec(item.Minus_DI || item.minus_di);
-        const prevMdi = formatDec(item.Prev_Minus_DI || item.prev_minus_di);
         const currPdi = formatDec(item.Plus_DI || item.plus_di);
-        const prevPdi = formatDec(item.Prev_Plus_DI || item.prev_plus_di);
         const rsi = formatDec(item.RSI || item.rsi);
 
         const rawBB = (item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']));
@@ -893,21 +1229,35 @@
           else if (bBandPctVal >= 1.0) bbColor = '#f87171';
         }
 
-        const reason = `ADX: ${currAdx} (전일: ${prevAdx}), -DI: ${currMdi} (전일: ${prevMdi}), +DI: ${currPdi} (전일: ${prevPdi}), RSI: ${rsi}, 볼린저%b: ${bBandPctStr}`;
+        const macdOsc = formatDec(item.MACD_Osc !== undefined ? item.MACD_Osc : item.macd_osc);
+        const stochK = formatDec(item.Stoch_K !== undefined ? item.Stoch_K : item.stoch_k);
+        const stochD = formatDec(item.Stoch_D !== undefined ? item.Stoch_D : item.stoch_d);
+        const disparity = formatDec(item.Disparity20 !== undefined ? item.Disparity20 : item.disparity20);
+        const vr = formatDec(item.VolumeRatio !== undefined ? item.VolumeRatio : item.volume_ratio, 0);
+
+        const macdOscNum = Number(macdOsc);
+        let macdColor = 'inherit';
+        if (!isNaN(macdOscNum)) {
+          if (macdOscNum > 0) macdColor = '#f87171';
+          else if (macdOscNum < 0) macdColor = 'var(--accent-cyan)';
+        }
+
+        const reason = `ADX: ${currAdx}, -DI: ${currMdi}, +DI: ${currPdi}, RSI: ${rsi}, 볼린저%b: ${bBandPctStr}, MACD Oscill: ${macdOsc}, Stoch K/D: ${stochK}/${stochD}, 20일 이격도: ${disparity}%, 5일평균 대비 거래량: ${vr}%`;
 
         return `
           <tr>
             <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
-            <td><strong style="color: ${Number(item.ADX || item.adx) >= 25 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
-            <td style="color:var(--text-sub);">${prevAdx}</td>
-            <td>${currMdi}</td>
-            <td style="color:var(--text-sub);">${prevMdi}</td>
-            <td>${currPdi}</td>
-            <td style="color:var(--text-sub);">${prevPdi}</td>
-            <td><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
-            <td><span style="color: ${bbColor}">${bBandPctStr}</span></td>
-            <td>${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
-            <td><span class="badge ${badgeClass}" onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 세부 지표 확인">${statusText}</span></td>
+            <td style="text-align:center;"><strong style="color: ${Number(item.ADX || item.adx) >= 30 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
+            <td style="text-align:center;">${currMdi}</td>
+            <td style="text-align:center;">${currPdi}</td>
+            <td style="text-align:center;"><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : (Number(item.RSI || item.rsi) >= 65 ? '#f87171' : 'inherit')}">${rsi}</span></td>
+            <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
+            <td style="text-align:center;"><span style="color: ${macdColor}">${macdOsc}</span></td>
+            <td style="text-align:center;">${stochK} / ${stochD}</td>
+            <td style="text-align:center;"><span style="color: ${Number(disparity) <= 95 ? 'var(--accent-green)' : (Number(disparity) >= 105 ? '#f87171' : 'inherit')}">${disparity}%</span></td>
+            <td style="text-align:center;"><strong style="color: ${Number(vr) >= 150 ? 'var(--accent-warning)' : 'inherit'}">${vr}%</strong></td>
+            <td style="text-align:right; padding-right: 28px;">${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
+            <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 세부 지표 확인">${statusText}</span></td>
           </tr>
         `;
       }).join('');
@@ -915,17 +1265,101 @@
 
     function filterAllStocksTable() {
       const query = document.getElementById('all-stocks-search').value.toLowerCase().trim().replace(/\s+/g, '');
+      const sourceList = (window.latestMetricsCacheData && window.latestMetricsCacheData.length > 0) ? window.latestMetricsCacheData : allMetricsData;
       if (!query) {
-        renderAllStocks(allMetricsData);
+        renderAllStocks(sourceList);
         return;
       }
-      const filtered = allMetricsData.filter(item => {
+      const filtered = sourceList.filter(item => {
         const name = String(item.Name || item.name || '').toLowerCase().replace(/\s+/g, '');
         const rawTicker = String(item.Ticker || item.ticker || item.code || '').toLowerCase().replace(/\s+/g, '');
         const formattedTicker = formatTicker(item.Ticker || item.ticker || item.code).toLowerCase();
         return name.includes(query) || rawTicker.includes(query) || formattedTicker.includes(query);
       });
       renderAllStocks(filtered);
+    }
+
+    function renderKosdaqStocks(list) {
+      const tbody = document.getElementById('kosdaq-stocks-body');
+      if (!tbody) return;
+      if (!list || list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; color:var(--text-sub); padding:24px;">저장된 KOSDAQ 150 전체 종목 지표 데이터가 없습니다.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = list.map(item => {
+        const rawStatus = String(item.Status || item.status || '관망');
+        let statusText = rawStatus;
+        let badgeClass = 'badge-neutral';
+        if (rawStatus.includes('전략매수') || rawStatus.includes('매수') || rawStatus.includes('3단계') || rawStatus.includes('Tier 1')) { badgeClass = 'badge-t1'; statusText = '전략매수'; }
+        else if (rawStatus.includes('관심종목') || rawStatus.includes('추세강함')) { badgeClass = 'badge-sell-warn'; statusText = '관심종목'; }
+        else { statusText = '관망'; }
+
+        const name = (item.Name || item.name || '').replace(/'/g, "\\'");
+        const ticker = formatTicker(item.Ticker || item.ticker || item.code);
+        const currAdx = formatDec(item.ADX || item.adx);
+        const currMdi = formatDec(item.Minus_DI || item.minus_di);
+        const currPdi = formatDec(item.Plus_DI || item.plus_di);
+        const rsi = formatDec(item.RSI || item.rsi);
+
+        const rawBB = (item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']));
+        const bBandPctVal = (rawBB !== undefined && rawBB !== null && rawBB !== '') ? Number(rawBB) : NaN;
+        const bBandPctStr = formatDec(rawBB);
+        let bbColor = 'inherit';
+        if (!isNaN(bBandPctVal)) {
+          if (bBandPctVal <= 0.0) bbColor = 'var(--accent-green)';
+          else if (bBandPctVal >= 1.0) bbColor = '#f87171';
+        }
+
+        const macdOsc = formatDec(item.MACD_Osc !== undefined ? item.MACD_Osc : item.macd_osc);
+        const stochK = formatDec(item.Stoch_K !== undefined ? item.Stoch_K : item.stoch_k);
+        const stochD = formatDec(item.Stoch_D !== undefined ? item.Stoch_D : item.stoch_d);
+        const disparity = formatDec(item.Disparity20 !== undefined ? item.Disparity20 : item.disparity20);
+        const vr = formatDec(item.VolumeRatio !== undefined ? item.VolumeRatio : item.volume_ratio, 0);
+
+        const macdOscNum = Number(macdOsc);
+        let macdColor = 'inherit';
+        if (!isNaN(macdOscNum)) {
+          if (macdOscNum > 0) macdColor = '#f87171';
+          else if (macdOscNum < 0) macdColor = 'var(--accent-cyan)';
+        }
+
+        const reason = `ADX: ${currAdx}, -DI: ${currMdi}, +DI: ${currPdi}, RSI: ${rsi}, 볼린저%b: ${bBandPctStr}, MACD Oscill: ${macdOsc}, Stoch K/D: ${stochK}/${stochD}, 20일 이격도: ${disparity}%, 5일평균 대비 거래량: ${vr}%`;
+
+        return `
+          <tr>
+            <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
+            <td style="text-align:center;"><strong style="color: ${Number(item.ADX || item.adx) >= 30 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
+            <td style="text-align:center;">${currMdi}</td>
+            <td style="text-align:center;">${currPdi}</td>
+            <td style="text-align:center;"><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : (Number(item.RSI || item.rsi) >= 65 ? '#f87171' : 'inherit')}">${rsi}</span></td>
+            <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
+            <td style="text-align:center;"><span style="color: ${macdColor}">${macdOsc}</span></td>
+            <td style="text-align:center;">${stochK} / ${stochD}</td>
+            <td style="text-align:center;"><span style="color: ${Number(disparity) <= 95 ? 'var(--accent-green)' : (Number(disparity) >= 105 ? '#f87171' : 'inherit')}">${disparity}%</span></td>
+            <td style="text-align:center;"><strong style="color: ${Number(vr) >= 150 ? 'var(--accent-warning)' : 'inherit'}">${vr}%</strong></td>
+            <td style="text-align:right; padding-right: 28px;">${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
+            <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 세부 지표 확인">${statusText}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function filterKosdaqStocksTable() {
+      const inputEl = document.getElementById('kosdaq-stocks-search');
+      if (!inputEl) return;
+      const query = inputEl.value.toLowerCase().trim().replace(/\s+/g, '');
+      const sourceList = (window.latestKosdaqMetricsCacheData && window.latestKosdaqMetricsCacheData.length > 0) ? window.latestKosdaqMetricsCacheData : kosdaqMetricsData;
+      if (!query) {
+        renderKosdaqStocks(sourceList);
+        return;
+      }
+      const filtered = sourceList.filter(item => {
+        const name = String(item.Name || item.name || '').toLowerCase().replace(/\s+/g, '');
+        const rawTicker = String(item.Ticker || item.ticker || item.code || '').toLowerCase().replace(/\s+/g, '');
+        const formattedTicker = formatTicker(item.Ticker || item.ticker || item.code).toLowerCase();
+        return name.includes(query) || rawTicker.includes(query) || formattedTicker.includes(query);
+      });
+      renderKosdaqStocks(filtered);
     }
 
     function renderHoldings(list, metricsList = [], statusList = []) {
@@ -974,9 +1408,9 @@
         
         const statusText = statusItem ? (statusItem.Status || statusItem.signalLevel || '관망') : '관망';
         let badgeClass = 'badge-neutral';
-        if (statusText.includes('3단계') || statusText.includes('강력 매도') || statusText.includes('하락 재발동')) badgeClass = 'badge-sell-danger';
-        else if (statusText.includes('2단계') || statusText.includes('적극 매도') || statusText.includes('상승 둔화')) badgeClass = 'badge-sell-warn';
-        else if (statusText.includes('1단계') || statusText.includes('매도 추천') || statusText.includes('익절')) badgeClass = 'badge-t2';
+        if (statusText.includes('손절매도') || statusText.includes('손절') || statusText.includes('3단계')) badgeClass = 'badge-sell-danger';
+        else if (statusText.includes('전략매도') || statusText.includes('매도') || statusText.includes('2단계')) badgeClass = 'badge-sell-warn';
+        else if (statusText.includes('전략매수') || statusText.includes('매수') || statusText.includes('1단계')) badgeClass = 'badge-t1';
 
         let returnRateStr = '-';
         let returnRateColor = 'inherit';
@@ -993,16 +1427,16 @@
           <tr>
             <td><span style="color:var(--text-sub); font-size:0.85rem;">${formatDateOnly(item.DateAdded || item.date)}</span></td>
             <td><strong>${displayName}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${displayTicker})</span></td>
-            <td>${buyPrice > 0 ? buyPrice.toLocaleString() + ' 원' : '-'}</td>
-            <td>${currPrice > 0 ? currPrice.toLocaleString() + ' 원' : '-'}</td>
-            <td><strong style="color:${returnRateColor}">${returnRateStr}</strong></td>
-            <td><strong style="color:var(--accent-cyan);">${adx}</strong></td>
-            <td>${mdi}</td>
-            <td>${pdi}</td>
-            <td><span style="color: ${Number(rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
-            <td><span style="color: ${bbColor}">${bBandPctStr}</span></td>
-            <td><span class="badge ${badgeClass}" onclick="showDetailsModal('${displayName}', '${statusText}', '${escapedDetails}', '${badgeClass}')" title="클릭 시 감시 사유 확인">${statusText}</span></td>
-            <td><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${rawTicker !== '-' ? rawTicker : rawName}')" title="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
+            <td style="text-align:right; padding-right: 28px;">${buyPrice > 0 ? buyPrice.toLocaleString() + ' 원' : '-'}</td>
+            <td style="text-align:right; padding-right: 28px;">${currPrice > 0 ? currPrice.toLocaleString() + ' 원' : '-'}</td>
+            <td style="text-align:center;"><strong style="color:${returnRateColor}">${returnRateStr}</strong></td>
+            <td style="text-align:center;"><strong style="color:var(--accent-cyan);">${adx}</strong></td>
+            <td style="text-align:center;">${mdi}</td>
+            <td style="text-align:center;">${pdi}</td>
+            <td style="text-align:center;"><span style="color: ${Number(rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
+            <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
+            <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${displayName}', '${statusText}', '${escapedDetails}', '${badgeClass}')" title="클릭 시 감시 사유 확인">${statusText}</span></td>
+            <td style="text-align:center;"><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${rawTicker !== '-' ? rawTicker : rawName}')" title="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
           </tr>
         `;
       }).join('');
@@ -1024,9 +1458,14 @@
         const rateSign = rate > 0 ? '+' : '';
         
         let level = String(item.Status || item.signalLevel || '관망').trim();
+        if (!level || !isNaN(Number(level)) || level === 'undefined') {
+          level = '전략매도';
+        }
+
         let badgeClass = 'badge-neutral';
-        if (level.includes('손절')) badgeClass = 'badge-sell-danger';
-        else if (level.includes('전략') || level.includes('익절')) badgeClass = 'badge-sell-warn';
+        if (level.includes('손절매도') || level.includes('손절') || level.includes('3단계')) badgeClass = 'badge-sell-danger';
+        else if (level.includes('전략매도') || level.includes('매도') || level.includes('2단계')) badgeClass = 'badge-sell-warn';
+        else if (level.includes('전략매수') || level.includes('매수') || level.includes('1단계')) badgeClass = 'badge-t1';
 
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
         const adx = formatDec(item.ADX || item.adx);
@@ -1053,15 +1492,15 @@
           <tr>
             <td><span style="color:var(--text-sub); font-size:0.85rem;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
             <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
-            <td>${Number(item.BuyPrice || item.buyPrice || 0).toLocaleString()} 원</td>
-            <td>${Number(item.CurrPrice || item.currPrice || 0).toLocaleString()} 원</td>
-            <td><strong style="color:${rateColor}">${rateSign}${rate.toFixed(2)}%</strong></td>
-            <td><strong style="color:var(--accent-cyan);">${adx}</strong></td>
-            <td>${mdi}</td>
-            <td>${pdi}</td>
-            <td><span style="color: ${Number(rsi) <= 35 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
-            <td><span style="color: ${bbColor}">${bBandPctStr}</span></td>
-            <td><span class="badge ${badgeClass}" onclick="showDetailsModal('${item.Name || item.name}', '${level}', '${escapedDetails}', '${badgeClass}')" title="클릭 시 감시 사유 확인">${level}</span></td>
+            <td style="text-align:right; padding-right: 28px;">${Number(item.BuyPrice || item.buyPrice || 0).toLocaleString()} 원</td>
+            <td style="text-align:right; padding-right: 28px;">${Number(item.CurrPrice || item.currPrice || 0).toLocaleString()} 원</td>
+            <td style="text-align:center;"><strong style="color:${rateColor}">${rateSign}${rate.toFixed(2)}%</strong></td>
+            <td style="text-align:center;"><strong style="color:var(--accent-cyan);">${adx}</strong></td>
+            <td style="text-align:center;">${mdi}</td>
+            <td style="text-align:center;">${pdi}</td>
+            <td style="text-align:center;"><span style="color: ${Number(rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
+            <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
+            <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${item.Name || item.name}', '${level}', '${escapedDetails}', '${badgeClass}')" title="클릭 시 감시 사유 확인">${level}</span></td>
           </tr>
         `;
       }).join('');
@@ -1230,7 +1669,7 @@
       const btn = document.getElementById('manual-trigger-btn');
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 분석 중...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span class="label-desktop">분석 중...</span>';
       }
 
       try {
@@ -1252,14 +1691,14 @@
           showInfoModal('실패', result.message || "권한 또는 설정 오류가 발생했습니다.");
           if (btn) {
             btn.disabled = false;
-            btn.innerHTML = '수동 실행';
+            btn.innerHTML = '<i class="fa-solid fa-play"></i> <span class="label-desktop">수동 실행</span>';
           }
         }
       } catch (err) {
         showInfoModal('오류', "스크리닝 요청 실패: " + err);
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '수동 실행';
+          btn.innerHTML = '<i class="fa-solid fa-play"></i> <span class="label-desktop">수동 실행</span>';
         }
       }
     }
@@ -1292,14 +1731,29 @@
     }
 
     // Startup check: authenticate PIN or attempt PIN-free load
-    loadDataFromGAS(userPin).then(success => {
-      if (success) {
-        document.getElementById('pin-modal').style.display = 'none';
-        document.getElementById('pin-error').style.display = 'none';
-      } else {
-        document.getElementById('pin-modal').style.display = 'flex';
+    loadDataFromGAS(userPin).then(res => {
+      if (res && res.success) {
+        const pEl = document.getElementById('pin-modal');
+        if (pEl) pEl.style.display = 'none';
       }
     });
   </script>
+
+  <!-- Indicator Help Modal -->
+  <div id="info-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div class="modal-content" style="background:#fff; border-radius:12px; width:92%; max-width:480px; padding:18px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); border:1px solid #e2e8f0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:6px;">
+        <h4 id="info-modal-title" style="font-size:0.90rem; font-weight:700; color:#0f172a; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;">지표 설명</h4>
+        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+          <span id="info-modal-badge" class="badge badge-t2" style="white-space:nowrap !important; flex-shrink:0; font-size:0.72rem; padding:3px 7px; font-weight:600; display:inline-block;">안내</span>
+          <button onclick="closeInfoModal()" style="background:none; border:none; font-size:1.15rem; color:#64748b; cursor:pointer; padding:0; flex-shrink:0; line-height:1; margin-left:2px;">✕</button>
+        </div>
+      </div>
+      <div id="info-modal-body" style="font-size:0.82rem; color:#334155; line-height:1.6; white-space:pre-line; max-height:60vh; overflow-y:auto; padding-right:4px;"></div>
+      <div style="margin-top:16px; text-align:right;">
+        <button class="btn-sm-action" onclick="closeInfoModal()" style="background:#2563eb; color:#fff; padding:6px 16px; border:none; border-radius:6px; font-weight:600; cursor:pointer;">확인</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

@@ -47,22 +47,43 @@ except ImportError:
     BeautifulSoup = None
 
 def get_kospi200_tickers():
-    """Retrieve KOSPI 200 list of tickers and names (PyKRX with Naver Finance fallback)."""
+    """Retrieve KOSPI 200 list of tickers and names (PyKRX index 1028, ETF 069500, Naver fallbacks)."""
     items = []
+    seen = set()
     
-    # 1. Try PyKRX
+    # 1. Try PyKRX Index 1028 (KOSPI 200)
     try:
-        tickers = stock.get_index_portfolio_deposit_file("1028")
-        if tickers and len(tickers) > 0:
-            for ticker in tickers:
-                name = stock.get_market_ticker_name(ticker)
-                items.append({"ticker": ticker, "name": name})
-            if len(items) >= 100:
-                return items
+        if stock:
+            tickers = stock.get_index_portfolio_deposit_file("1028")
+            if tickers and len(tickers) > 0:
+                for ticker in tickers:
+                    clean_t = str(ticker).zfill(6)
+                    name = stock.get_market_ticker_name(clean_t)
+                    if clean_t not in seen:
+                        seen.add(clean_t)
+                        items.append({"ticker": clean_t, "name": name, "market": "KOSPI200"})
+                if len(items) >= 100:
+                    return items
     except Exception as e:
-        print(f"[WARN] PyKRX get_index_portfolio_deposit_file failed: {e}")
+        print(f"[WARN] PyKRX get_index_portfolio_deposit_file(1028) failed: {e}")
 
-    # 2. Fallback: Naver Finance KOSPI 200 Scraping
+    # 2. Try PyKRX KODEX 200 ETF (069500) Portfolio
+    try:
+        if stock:
+            tickers = stock.get_etf_portfolio_deposit_file("069500")
+            if tickers and len(tickers) > 0:
+                for ticker in tickers:
+                    clean_t = str(ticker).zfill(6)
+                    name = stock.get_market_ticker_name(clean_t)
+                    if clean_t not in seen:
+                        seen.add(clean_t)
+                        items.append({"ticker": clean_t, "name": name, "market": "KOSPI200"})
+                if len(items) >= 100:
+                    return items
+    except Exception as e:
+        print(f"[WARN] PyKRX ETF 069500 portfolio failed: {e}")
+
+    # 3. Fallback: Naver Finance KOSPI 200 Scraping (entryJongmok)
     print("[INFO] Using Naver Finance fallback to fetch KOSPI 200 list...")
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     try:
@@ -78,13 +99,94 @@ def get_kospi200_tickers():
                     if a and 'code=' in a.get('href', ''):
                         match = re.search(r'code=(\d+)', a['href'])
                         if match:
-                            items.append({"ticker": match.group(1), "name": a.text.strip()})
+                            clean_t = match.group(1).zfill(6)
+                            if clean_t not in seen:
+                                seen.add(clean_t)
+                                items.append({"ticker": clean_t, "name": a.text.strip(), "market": "KOSPI200"})
             else:
                 matches = re.findall(r'href="/item/main\.naver\?code=(\d+)">(.*?)</a>', res.text)
                 for code, name in matches:
-                    items.append({"ticker": code, "name": name.strip()})
+                    clean_t = code.zfill(6)
+                    if clean_t not in seen:
+                        seen.add(clean_t)
+                        items.append({"ticker": clean_t, "name": name.strip(), "market": "KOSPI200"})
+        if len(items) >= 100:
+            return items
     except Exception as e:
         print(f"[ERROR] Naver Finance KOSPI 200 fallback failed: {e}")
+
+    # 4. Fallback: Naver Market Sum Top 200 (sosok=0 for KOSPI)
+    try:
+        print("[INFO] Using Naver Market Sum fallback to fetch KOSPI 200...")
+        for page in range(1, 5):
+            url = f"https://finance.naver.com/sise/sise_market_sum.naver?sosok=0&page={page}"
+            res = requests.get(url, headers=headers, timeout=5)
+            res.encoding = 'euc-kr'
+            matches = re.findall(r'href="/item/main\.naver\?code=(\d+)">(.*?)</a>', res.text)
+            for code, name in matches:
+                clean_t = code.zfill(6)
+                if clean_t not in seen:
+                    seen.add(clean_t)
+                    items.append({"ticker": clean_t, "name": name.strip(), "market": "KOSPI200"})
+    except Exception as e:
+        print(f"[ERROR] Naver Market Sum KOSPI fallback failed: {e}")
+
+    return items
+
+def get_kosdaq150_tickers():
+    """Retrieve KOSDAQ 150 list of tickers and names (PyKRX index/ETF, Naver market sum fallbacks)."""
+    items = []
+    seen = set()
+    
+    # 1. Try PyKRX Index 2203 / 2011 (KOSDAQ 150)
+    try:
+        if stock:
+            for idx_code in ["2203", "2011"]:
+                tickers = stock.get_index_portfolio_deposit_file(idx_code)
+                if tickers and len(tickers) > 0:
+                    for ticker in tickers:
+                        clean_t = str(ticker).zfill(6)
+                        name = stock.get_market_ticker_name(clean_t)
+                        if clean_t not in seen:
+                            seen.add(clean_t)
+                            items.append({"ticker": clean_t, "name": name, "market": "KOSDAQ150"})
+                    if len(items) >= 100:
+                        return items
+    except Exception as e:
+        print(f"[WARN] PyKRX KOSDAQ 150 index failed: {e}")
+
+    # 2. Try PyKRX KODEX KOSDAQ 150 ETF (229200) Portfolio
+    try:
+        if stock:
+            tickers = stock.get_etf_portfolio_deposit_file("229200")
+            if tickers and len(tickers) > 0:
+                for ticker in tickers:
+                    clean_t = str(ticker).zfill(6)
+                    name = stock.get_market_ticker_name(clean_t)
+                    if clean_t not in seen:
+                        seen.add(clean_t)
+                        items.append({"ticker": clean_t, "name": name, "market": "KOSDAQ150"})
+                if len(items) >= 100:
+                    return items
+    except Exception as e:
+        print(f"[WARN] PyKRX ETF 229200 portfolio failed: {e}")
+
+    # 3. Fallback: Naver Market Sum Top 150 (sosok=1 for KOSDAQ)
+    print("[INFO] Using Naver Market Sum fallback to fetch KOSDAQ 150 list...")
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    try:
+        for page in range(1, 4):
+            url = f"https://finance.naver.com/sise/sise_market_sum.naver?sosok=1&page={page}"
+            res = requests.get(url, headers=headers, timeout=5)
+            res.encoding = 'euc-kr'
+            matches = re.findall(r'href="/item/main\.naver\?code=(\d+)">(.*?)</a>', res.text)
+            for code, name in matches:
+                clean_t = code.zfill(6)
+                if clean_t not in seen:
+                    seen.add(clean_t)
+                    items.append({"ticker": clean_t, "name": name.strip(), "market": "KOSDAQ150"})
+    except Exception as e:
+        print(f"[ERROR] Naver Market Sum KOSDAQ 150 fallback failed: {e}")
 
     return items
 
@@ -172,6 +274,7 @@ def calculate_indicators(df, period=14):
         dm_p.append(dp)
         dm_m.append(dm)
         
+    # KIS HTS Exact Matching ADX Algorithm (EMA alpha = 2 / (period + 1))
     alpha = 2.0 / (period + 1)
     
     def calc_ema(arr):
@@ -213,14 +316,31 @@ def calculate_indicators(df, period=14):
     band_width = upper_b - lower_b
     df['b_band_pct'] = np.where(band_width != 0, (df['종가'] - lower_b) / band_width, 0.5)
 
+    # MACD (12, 26, 9)
+    macd_ind = ta.trend.MACD(close=df['종가'], window_slow=26, window_fast=12, window_sign=9)
+    df['macd'] = macd_ind.macd()
+    df['macd_signal'] = macd_ind.macd_signal()
+    df['macd_osc'] = macd_ind.macd_diff()
+
+    # Stochastic Slow (14, 3, 3)
+    stoch_ind = ta.momentum.StochasticOscillator(high=df['고가'], low=df['저가'], close=df['종가'], window=14, smooth_window=3)
+    df['stoch_k'] = stoch_ind.stoch()
+    df['stoch_d'] = stoch_ind.stoch_signal()
+
+    # Disparity (20-day 이격도: 종가 / 20MA * 100)
+    df['disparity20'] = np.where(df['ma20'] > 0, (df['종가'] / df['ma20']) * 100, 100.0)
+
+    # Volume Ratio (VR5: 5일 평균 거래량 대비 당일 거래량 비율 %)
+    avg_vol5 = df['거래량'].rolling(window=5).mean()
+    df['volume_ratio'] = np.where(avg_vol5 > 0, (df['거래량'] / avg_vol5) * 100, 100.0)
+
     return df
 
 def evaluate_buy_signal(df):
     """
-    Evaluate ADX Buy Signal & Watchlist Stocks.
-    - Base Threshold: ADX >= 30
-    - 전략매수 (Buy Signal): ADX >= 30 AND Prev(-DI) > Prev(ADX) AND Curr(-DI) <= Curr(ADX)
-    - 관심종목 (Watchlist): ADX >= 30 AND Curr(-DI) > Curr(ADX)
+    Evaluate ADX Reversal Buy Signal.
+    Condition: ADX >= 30 AND Prev(-DI) > Prev(ADX) AND Curr(-DI) <= Curr(ADX)
+    Signal Name: 전략매수
     """
     if len(df) < 2 or 'adx' not in df.columns:
         return None
@@ -228,29 +348,20 @@ def evaluate_buy_signal(df):
     prev_adx, curr_adx = df['adx'].iloc[-2], df['adx'].iloc[-1]
     prev_mdi, curr_mdi = df['minus_di'].iloc[-2], df['minus_di'].iloc[-1]
     curr_rsi = df['rsi'].iloc[-1]
-    curr_vol = df['거래량'].iloc[-1]
-    avg_vol5 = df['거래량'].iloc[-6:-1].mean() if len(df) >= 6 else curr_vol
 
-    if curr_adx < 30:
+    # Base Buy Signal: ADX >= 30 & -DI Cross Below ADX
+    is_buy = (curr_adx >= 30.0) and (prev_mdi > prev_adx) and (curr_mdi <= curr_adx)
+
+    if not is_buy:
         return None
 
-    # 1. 전략매수 (Buy Signal: -DI crossed below ADX)
-    is_buy_signal = (prev_mdi > prev_adx) and (curr_mdi <= curr_adx)
-
-    # 2. 관심종목 (Watchlist: -DI > ADX)
-    is_watchlist = (curr_mdi > curr_adx)
-
-    if not (is_buy_signal or is_watchlist):
-        return None
-
-    priority = "전략매수" if is_buy_signal else "관심종목"
-    score = 2 if is_buy_signal else 1
+    priority = "전략매수"
+    score = 1
 
     curr_bb_pct = df['b_band_pct'].iloc[-1] if 'b_band_pct' in df.columns else 0.5
 
     return {
-        "is_buy": is_buy_signal,
-        "is_watchlist": is_watchlist,
+        "is_buy": True,
         "priority": priority,
         "score": score,
         "adx": round(curr_adx, 2),
@@ -265,8 +376,8 @@ def evaluate_sell_signal(df, buy_price):
     """
     Evaluate Sell Signal for a held stock.
     Conditions:
-    - 전략매도: RSI > 65
-    - 손절매도: 수익률 <= -20.0%
+    - 손절매도: returnRate <= -20.0%
+    - 전략매도: RSI >= 65.0
     """
     if len(df) < 2 or 'adx' not in df.columns or 'plus_di' not in df.columns:
         return None
@@ -286,21 +397,20 @@ def evaluate_sell_signal(df, buy_price):
         return_rate = round(((curr_close - buy_price) / buy_price) * 100, 2)
 
     details = []
-    level = "관망"
 
-    # Check Conditions
-    is_take_profit = (curr_rsi > 65.0)
-    is_stop_loss = (buy_price > 0 and return_rate <= -20.0)
+    # Sell conditions
+    is_stop_loss = (buy_price and buy_price > 0 and return_rate <= -20.0)
+    is_strategy_sell = (curr_rsi >= 65.0)
 
     if is_stop_loss:
         level = "손절매도"
-        details.append(f"손절 기준 도달 (수익률: {return_rate:.2f}% <= -20.0%)")
-    elif is_take_profit:
+        details.append(f"손절선(-20%) 도달 이탈 (현재 수익률: {return_rate:.2f}%)")
+    elif is_strategy_sell:
         level = "전략매도"
-        details.append(f"익절 기준 도달 (RSI: {curr_rsi:.1f} > 65)")
+        details.append(f"RSI 과매수 도달 (RSI: {curr_rsi:.1f} >= 65)")
     else:
         level = "관망"
-        details.append(f"정상 관망 (RSI: {curr_rsi:.1f}, 수익률: {return_rate:.2f}%)")
+        details.append(f"정상 관망 (추세 유지 중 | ADX: {curr_adx:.1f})")
 
     return {
         "buyPrice": buy_price,
@@ -362,98 +472,131 @@ def post_to_google_sheets(url, action, data):
         print(f"[ERROR] Failed to post to Google Sheets ({action}): {e}")
 
 if __name__ == "__main__":
-    print("[INFO] KOSPI 200 Stock Signal Screener Engine Starting...")
+    print("[INFO] KOSPI 200 & KOSDAQ 150 Stock Signal Screener Engine Starting...")
     
     gas_url = os.environ.get("GAS_WEBAPP_URL", "")
 
-    # 1. Fetch KOSPI 200 Tickers
-    print("[1/4] Fetching KOSPI 200 component tickers...")
-    items = get_kospi200_tickers()
-    print(f" -> Found {len(items)} tickers.")
+    # 1. Fetch KOSPI 200 & KOSDAQ 150 Tickers
+    print("[1/4] Fetching KOSPI 200 and KOSDAQ 150 component tickers...")
+    kospi_items = get_kospi200_tickers()
+    kosdaq_items = get_kosdaq150_tickers()
+    print(f" -> Found KOSPI 200: {len(kospi_items)} tickers | KOSDAQ 150: {len(kosdaq_items)} tickers.")
+
+    all_target_items = kospi_items + kosdaq_items
 
     buy_candidates = []
-    all_stocks = []
+    kospi_stocks = []
+    kosdaq_stocks = []
     end_date = datetime.datetime.now().strftime("%Y%m%d")
     start_date = (datetime.datetime.now() - datetime.timedelta(days=365)).strftime("%Y%m%d")
 
     stock_df_map = {}
 
-    # 2. Screen Buy Signals across all KOSPI 200
-    print("[2/4] Calculating indicators and screening buy signals...")
-    for idx, item in enumerate(items):
+    # 2. Screen Buy Signals across all KOSPI 200 & KOSDAQ 150 (Parallel Execution)
+    print("[2/4] Calculating indicators and screening buy signals (Parallel Execution)...")
+    
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def process_single_stock(item):
         ticker = item['ticker']
         name = item['name']
+        market = item.get('market', 'KOSPI200')
         try:
             df = get_ohlcv_data(ticker, start_date, end_date)
             df = check_and_trim_incomplete_candle(df)
             if df is None or len(df) < 30:
-                continue
+                return None
             df = calculate_indicators(df)
             
             clean_ticker = str(ticker).zfill(6)
-            stock_df_map[clean_ticker] = (df, name)
-            stock_df_map[name.replace(' ', '')] = (df, name)
             
-            # Record current and previous indicators for all stocks
             curr_adx = float(df['adx'].iloc[-1]) if 'adx' in df.columns and not np.isnan(df['adx'].iloc[-1]) else 0.0
             prev_adx = float(df['adx'].iloc[-2]) if len(df) >= 2 and 'adx' in df.columns and not np.isnan(df['adx'].iloc[-2]) else 0.0
             curr_mdi = float(df['minus_di'].iloc[-1]) if 'minus_di' in df.columns and not np.isnan(df['minus_di'].iloc[-1]) else 0.0
             prev_mdi = float(df['minus_di'].iloc[-2]) if len(df) >= 2 and 'minus_di' in df.columns and not np.isnan(df['minus_di'].iloc[-2]) else 0.0
             curr_pdi = float(df['plus_di'].iloc[-1]) if 'plus_di' in df.columns and not np.isnan(df['plus_di'].iloc[-1]) else 0.0
-            prev_pdi = float(df['plus_di'].iloc[-2]) if len(df) >= 2 and 'plus_di' in df.columns and not np.isnan(df['plus_di'].iloc[-2]) else 0.0
             curr_rsi = float(df['rsi'].iloc[-1]) if 'rsi' in df.columns and not np.isnan(df['rsi'].iloc[-1]) else 0.0
             curr_bb_pct = float(df['b_band_pct'].iloc[-1]) if 'b_band_pct' in df.columns and not np.isnan(df['b_band_pct'].iloc[-1]) else 0.5
+            curr_macd = float(df['macd'].iloc[-1]) if 'macd' in df.columns and not np.isnan(df['macd'].iloc[-1]) else 0.0
+            curr_macd_sig = float(df['macd_signal'].iloc[-1]) if 'macd_signal' in df.columns and not np.isnan(df['macd_signal'].iloc[-1]) else 0.0
+            curr_macd_osc = float(df['macd_osc'].iloc[-1]) if 'macd_osc' in df.columns and not np.isnan(df['macd_osc'].iloc[-1]) else 0.0
+            curr_stoch_k = float(df['stoch_k'].iloc[-1]) if 'stoch_k' in df.columns and not np.isnan(df['stoch_k'].iloc[-1]) else 50.0
+            curr_stoch_d = float(df['stoch_d'].iloc[-1]) if 'stoch_d' in df.columns and not np.isnan(df['stoch_d'].iloc[-1]) else 50.0
+            curr_disparity = float(df['disparity20'].iloc[-1]) if 'disparity20' in df.columns and not np.isnan(df['disparity20'].iloc[-1]) else 100.0
+            curr_vr = float(df['volume_ratio'].iloc[-1]) if 'volume_ratio' in df.columns and not np.isnan(df['volume_ratio'].iloc[-1]) else 100.0
             curr_close = int(df['종가'].iloc[-1]) if '종가' in df.columns else 0
 
             buy_res = evaluate_buy_signal(df)
             status_text = "관망"
+            buy_item = None
             if buy_res:
                 buy_res['ticker'] = clean_ticker
                 buy_res['name'] = name
+                buy_res['market'] = market
                 buy_res['prev_adx'] = round(prev_adx, 2)
                 buy_res['prev_minus_di'] = round(prev_mdi, 2)
-                buy_candidates.append(buy_res)
+                buy_item = buy_res
                 status_text = buy_res['priority']
-                print(f"  🔥 [BUY SIGNAL] {name} ({clean_ticker}) - {buy_res['priority']} | ADX: {buy_res['adx']} | RSI: {buy_res['rsi']} | %b: {round(curr_bb_pct, 2)}")
-            elif curr_adx >= 30:
-                status_text = "추세강함 (조건미달)"
+            elif curr_adx >= 25 and curr_mdi > curr_adx:
+                status_text = "관심종목"
 
-            all_stocks.append({
+            stock_item = {
                 "ticker": clean_ticker,
                 "name": name,
+                "market": market,
                 "adx": round(curr_adx, 2),
-                "prev_adx": round(prev_adx, 2),
                 "minus_di": round(curr_mdi, 2),
-                "prev_minus_di": round(prev_mdi, 2),
                 "plus_di": round(curr_pdi, 2),
-                "prev_plus_di": round(prev_pdi, 2),
                 "rsi": round(curr_rsi, 2),
                 "b_band_pct": round(curr_bb_pct, 2),
+                "macd": round(curr_macd, 2),
+                "macd_signal": round(curr_macd_sig, 2),
+                "macd_osc": round(curr_macd_osc, 2),
+                "stoch_k": round(curr_stoch_k, 2),
+                "stoch_d": round(curr_stoch_d, 2),
+                "disparity20": round(curr_disparity, 2),
+                "volume_ratio": round(curr_vr, 2),
                 "close": curr_close,
                 "status": status_text
-            })
+            }
+            return (clean_ticker, name, market, df, buy_item, stock_item)
         except Exception as e:
-            if idx < 5:
-                print(f"[ERROR] Screening failed for {name} ({ticker}): {e}")
-            continue
+            return None
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        results = list(executor.map(process_single_stock, all_target_items))
+        for res in results:
+            if res:
+                clean_ticker, name, market, df, buy_item, stock_item = res
+                stock_df_map[clean_ticker] = (df, name)
+                stock_df_map[name.replace(' ', '')] = (df, name)
+                if market == "KOSDAQ150":
+                    kosdaq_stocks.append(stock_item)
+                else:
+                    kospi_stocks.append(stock_item)
+                if buy_item:
+                    buy_candidates.append(buy_item)
+                    print(f"  🔥 [BUY SIGNAL] [{market}] {buy_item['name']} ({buy_item['ticker']}) - {buy_item['priority']} | ADX: {buy_item['adx']} | RSI: {buy_item['rsi']}")
 
     # Sort buy candidates by priority score (3단계 -> 2단계 -> 1단계)
     buy_candidates.sort(key=lambda x: x['score'], reverse=True)
-    print(f" -> Found {len(buy_candidates)} buy candidate stocks.")
-    print(f" -> Calculated indicators for {len(all_stocks)} stocks.")
+    print(f" -> Found {len(buy_candidates)} buy candidate stocks across KOSPI 200 & KOSDAQ 150.")
+    print(f" -> Calculated indicators for KOSPI 200 ({len(kospi_stocks)}) and KOSDAQ 150 ({len(kosdaq_stocks)}).")
 
     # 3. Post to Google Sheets API
     if gas_url:
         print("[3/4] Posting screening results to Google Sheets...")
         log_payload = {
             "status": "SUCCESS",
-            "scanned": len(items),
+            "scanned": len(all_target_items),
             "count": len(buy_candidates),
-            "message": f"KOSPI 200 {len(items)}개 종목 검사 완료 (매수 신호: {len(buy_candidates)}개)"
+            "message": f"KOSPI 200 ({len(kospi_items)}개), KOSDAQ 150 ({len(kosdaq_items)}개) 종목 검사 완료 (매수 신호: {len(buy_candidates)}개)"
         }
         post_to_google_sheets(gas_url, "update_buy_candidates", {
             "candidates": buy_candidates,
-            "all_stocks": all_stocks,
+            "kospi_stocks": kospi_stocks,
+            "kosdaq_stocks": kosdaq_stocks,
+            "all_stocks": kospi_stocks,
             "log": log_payload
         })
 
@@ -510,11 +653,10 @@ if __name__ == "__main__":
                             if matched_ticker.isdigit():
                                 matched_ticker = matched_ticker.zfill(6)
                                 h_df = get_ohlcv_data(matched_ticker, start_date, end_date)
-                                if len(h_df) >= 30:
+                                h_df = check_and_trim_incomplete_candle(h_df)
+                                if h_df is not None and len(h_df) >= 30:
                                     h_df = calculate_indicators(h_df)
                         
-                        if h_df is not None:
-                            h_df = check_and_trim_incomplete_candle(h_df)
                         if h_df is None or len(h_df) < 30:
                             print(f"  [WARN] Insufficient candle data for holding: {h_name} ({h_ticker})")
                             continue

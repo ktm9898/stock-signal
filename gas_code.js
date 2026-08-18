@@ -30,19 +30,67 @@ function setupSheets() {
 
   // 5. KOSPI 200 All Metrics Sheet Header Enforce
   let allSheet = ss.getSheetByName("KOSPI200_All_Metrics") || ss.insertSheet("KOSPI200_All_Metrics");
-  allSheet.getRange("A1:M1").setValues([["Date", "Ticker", "Name", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "Prev_Plus_DI", "RSI", "BB_Pct", "ClosePrice", "Status"]]);
-  allSheet.getRange("A1:M1").setFontWeight("bold").setBackground("#f3e8ff");
+  allSheet.getRange("A1:Q1").setValues([["Date", "Ticker", "Name", "ADX", "Minus_DI", "Plus_DI", "RSI", "BB_Pct", "MACD", "MACD_Signal", "MACD_Osc", "Stoch_K", "Stoch_D", "Disparity20", "VolumeRatio", "ClosePrice", "Status"]]);
+  allSheet.getRange("A1:Q1").setFontWeight("bold").setBackground("#f3e8ff");
 
   // 6. User Holdings Status Sheet Header Enforce
   let hStatusSheet = ss.getSheetByName("User_Holdings_Status") || ss.insertSheet("User_Holdings_Status");
   hStatusSheet.getRange("A1:N1").setValues([["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Prev_ADX", "Minus_DI", "Plus_DI", "RSI", "BB_Pct", "Status", "Details"]]);
   hStatusSheet.getRange("A1:N1").setFontWeight("bold").setBackground("#e0f2fe");
+
+  // 7. KOSDAQ 150 All Metrics Sheet Header Enforce
+  let kosdaqSheet = ss.getSheetByName("KOSDAQ150_All_Metrics") || ss.insertSheet("KOSDAQ150_All_Metrics");
+  kosdaqSheet.getRange("A1:Q1").setValues([["Date", "Ticker", "Name", "ADX", "Minus_DI", "Plus_DI", "RSI", "BB_Pct", "MACD", "MACD_Signal", "MACD_Osc", "Stoch_K", "Stoch_D", "Disparity20", "VolumeRatio", "ClosePrice", "Status"]]);
+  kosdaqSheet.getRange("A1:Q1").setFontWeight("bold").setBackground("#e0e7ff");
+
+  // 8. Strategy Slots Sheet Header Enforce
+  let slotsSheet = ss.getSheetByName("Strategy_Slots") || ss.insertSheet("Strategy_Slots");
+  if (slotsSheet.getLastRow() === 0) {
+    slotsSheet.getRange("A1:M1").setValues([["SlotID", "Name", "Memo", "Market", "Period", "StartDate", "EndDate", "StopLoss", "TakeProfit", "TradeAmount", "BuyRules", "SellRules", "UpdatedAt"]]);
+    slotsSheet.getRange("A1:M1").setFontWeight("bold").setBackground("#dbeafe");
+  }
 }
 
 function doGet(e) {
   const inputPin = e.parameter.pin ? String(e.parameter.pin).trim() : "";
   const authPin = getAuthPin();
   const action = e.parameter.action || "all";
+
+  if (action === "get_strategy_slots") {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    setupSheets();
+    let slotsSheet = ss.getSheetByName("Strategy_Slots");
+    let slots = [];
+    if (slotsSheet && slotsSheet.getLastRow() > 1) {
+      const rows = slotsSheet.getRange(2, 1, slotsSheet.getLastRow() - 1, 13).getValues();
+      slots = rows.map((r, idx) => ({
+        id: r[0] || (idx + 1),
+        name: r[1] || `전략 ${idx + 1}`,
+        memo: r[2] || '',
+        isEmpty: (r[1] && String(r[1]).includes('비어있음')) || !r[10],
+        market: r[3] || 'ALL',
+        period: r[4] || '5Y',
+        startDate: r[5] || '',
+        endDate: r[6] || '',
+        stopLoss: r[7] !== '' ? Number(r[7]) : null,
+        takeProfit: r[8] !== '' ? Number(r[8]) : null,
+        tradeAmount: r[9] ? Number(r[9]) : 1000000,
+        buyRules: r[10] ? JSON.parse(r[10]) : [],
+        sellRules: r[11] ? JSON.parse(r[11]) : [],
+        updatedAt: r[12] || '-'
+      }));
+    }
+    
+    if (slots.length < 10) {
+      const jsonStr = PropertiesService.getScriptProperties().getProperty("STRATEGY_SLOTS_JSON");
+      if (jsonStr) {
+        try { slots = JSON.parse(jsonStr); } catch(err){}
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({ success: true, slots: slots }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 
   if (authPin && inputPin !== authPin && action !== "holdings") {
     return ContentService.createTextOutput(JSON.stringify({ success: false, status: "error", message: "Unauthorized: Invalid PIN" }))
@@ -58,7 +106,8 @@ function doGet(e) {
   if (action === "all" || action === "holdings_status") result.holdingsStatus = getSheetData(ss.getSheetByName("User_Holdings_Status"));
   if (action === "all" || action === "sell") result.sellSignals = getSheetData(ss.getSheetByName("Sell_Signals"));
   if (action === "all" || action === "logs") result.executionLogs = getSheetData(ss.getSheetByName("Execution_Logs"));
-  if (action === "all" || action === "all_metrics") result.allMetrics = getSheetData(ss.getSheetByName("KOSPI200_All_Metrics"));
+  if (action === "all" || action === "all_metrics" || action === "kospi_metrics") result.allMetrics = getSheetData(ss.getSheetByName("KOSPI200_All_Metrics"));
+  if (action === "all" || action === "kosdaq_metrics") result.kosdaqMetrics = getSheetData(ss.getSheetByName("KOSDAQ150_All_Metrics"));
 
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
@@ -68,6 +117,35 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const authPin = getAuthPin();
+
+    if (data.action === "save_strategy_slots") {
+      setupSheets();
+      const sheet = ss.getSheetByName("Strategy_Slots");
+      if (data.slots && Array.isArray(data.slots) && sheet) {
+        if (sheet.getLastRow() > 1) {
+          sheet.getRange(2, 1, sheet.getLastRow() - 1, 13).clearContent();
+        }
+        const rows = data.slots.map(s => [
+          s.id,
+          s.name || `전략 ${s.id}`,
+          s.memo || '',
+          s.market || 'ALL',
+          s.period || '5Y',
+          s.startDate || '',
+          s.endDate || '',
+          s.stopLoss !== null && s.stopLoss !== undefined ? s.stopLoss : '',
+          s.takeProfit !== null && s.takeProfit !== undefined ? s.takeProfit : '',
+          s.tradeAmount || 1000000,
+          JSON.stringify(s.buyRules || []),
+          JSON.stringify(s.sellRules || []),
+          s.updatedAt || '-'
+        ]);
+        sheet.getRange(2, 1, rows.length, 13).setValues(rows);
+        PropertiesService.getScriptProperties().setProperty("STRATEGY_SLOTS_JSON", JSON.stringify(data.slots));
+      }
+      return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
 
     const inputPin = data.pin ? String(data.pin).trim() : "";
     const isBackendAction = (
@@ -91,9 +169,6 @@ function doPost(e) {
         const existingRows = lastRow > 1 ? buySheet.getRange(2, 1, lastRow - 1, buySheet.getLastColumn()).getValues() : [];
         
         data.candidates.forEach(c => {
-          // Only store '전략매수' (Buy Signals) in the Google Sheet database (skip '관심종목')
-          if (c.priority !== "전략매수" && c.is_buy !== true) return;
-
           const tickerStr = normalizeTicker(c.ticker);
           let exists = false;
           for (let i = 0; i < existingRows.length; i++) {
@@ -105,7 +180,7 @@ function doPost(e) {
             }
           }
 
-          // Keep the FIRST buy signal timestamp & metrics of the day (do not duplicate)
+          // Keep the FIRST signal timestamp & metrics of the day (do not duplicate)
           if (!exists) {
             buySheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.prev_adx, c.minus_di, c.prev_minus_di, c.plus_di, c.rsi, (c.b_band_pct !== undefined ? c.b_band_pct : (c.BB_Pct !== undefined ? c.BB_Pct : '-')), c.close]);
           }
@@ -117,19 +192,86 @@ function doPost(e) {
       if (data.log) {
         logSheet.appendRow([today, data.log.status || "SUCCESS", data.log.scanned || 0, data.candidates ? data.candidates.length : 0, data.log.message || "정상 완료"]);
       } else {
-        logSheet.appendRow([today, "SUCCESS", 200, data.candidates ? data.candidates.length : 0, "정상 완료"]);
+        logSheet.appendRow([today, "SUCCESS", 350, data.candidates ? data.candidates.length : 0, "정상 완료"]);
       }
 
-      // Record All 200 Stocks Metrics
-      if (data.all_stocks && data.all_stocks.length > 0) {
+      // Record KOSPI 200 Metrics
+      const kospiData = data.kospi_stocks || data.all_stocks;
+      if (kospiData && kospiData.length > 0) {
         let allSheet = ss.getSheetByName("KOSPI200_All_Metrics");
+        const todayYMD = extractYMD(new Date());
+
         if (allSheet.getLastRow() > 1) {
-          allSheet.getRange(2, 1, allSheet.getLastRow() - 1, allSheet.getLastColumn()).clearContent();
+          const existingData = allSheet.getRange(2, 1, allSheet.getLastRow() - 1, 1).getValues();
+          for (let i = existingData.length - 1; i >= 0; i--) {
+            const rowYMD = extractYMD(existingData[i][0]);
+            if (rowYMD === todayYMD) {
+              allSheet.deleteRow(i + 2);
+            }
+          }
         }
-        const rows = data.all_stocks.map(s => [
-          today, s.ticker, s.name, s.adx, s.prev_adx, s.minus_di, s.prev_minus_di, s.plus_di, s.prev_plus_di, s.rsi, (s.b_band_pct !== undefined ? s.b_band_pct : (s.BB_Pct !== undefined ? s.BB_Pct : '-')), s.close, s.status
+
+        const rows = kospiData.map(s => [
+          today, s.ticker, s.name, s.adx, s.minus_di, s.plus_di, s.rsi, 
+          (s.b_band_pct !== undefined ? s.b_band_pct : '-'),
+          (s.macd !== undefined ? s.macd : '-'),
+          (s.macd_signal !== undefined ? s.macd_signal : '-'),
+          (s.macd_osc !== undefined ? s.macd_osc : '-'),
+          (s.stoch_k !== undefined ? s.stoch_k : '-'),
+          (s.stoch_d !== undefined ? s.stoch_d : '-'),
+          (s.disparity20 !== undefined ? s.disparity20 : '-'),
+          (s.volume_ratio !== undefined ? s.volume_ratio : '-'),
+          s.close, s.status
         ]);
-        allSheet.getRange(2, 1, rows.length, 13).setValues(rows);
+        
+        const startRow = Math.max(allSheet.getLastRow() + 1, 2);
+        allSheet.getRange(startRow, 1, rows.length, 17).setValues(rows);
+
+        const MAX_DATA_ROWS = 12000;
+        const totalRows = allSheet.getLastRow();
+        if (totalRows > MAX_DATA_ROWS + 1) {
+          const deleteCount = totalRows - (MAX_DATA_ROWS + 1);
+          allSheet.deleteRows(2, deleteCount);
+        }
+      }
+
+      // Record KOSDAQ 150 Metrics
+      if (data.kosdaq_stocks && data.kosdaq_stocks.length > 0) {
+        let kosdaqSheet = ss.getSheetByName("KOSDAQ150_All_Metrics");
+        const todayYMD = extractYMD(new Date());
+
+        if (kosdaqSheet.getLastRow() > 1) {
+          const existingData = kosdaqSheet.getRange(2, 1, kosdaqSheet.getLastRow() - 1, 1).getValues();
+          for (let i = existingData.length - 1; i >= 0; i--) {
+            const rowYMD = extractYMD(existingData[i][0]);
+            if (rowYMD === todayYMD) {
+              kosdaqSheet.deleteRow(i + 2);
+            }
+          }
+        }
+
+        const rows = data.kosdaq_stocks.map(s => [
+          today, s.ticker, s.name, s.adx, s.minus_di, s.plus_di, s.rsi, 
+          (s.b_band_pct !== undefined ? s.b_band_pct : '-'),
+          (s.macd !== undefined ? s.macd : '-'),
+          (s.macd_signal !== undefined ? s.macd_signal : '-'),
+          (s.macd_osc !== undefined ? s.macd_osc : '-'),
+          (s.stoch_k !== undefined ? s.stoch_k : '-'),
+          (s.stoch_d !== undefined ? s.stoch_d : '-'),
+          (s.disparity20 !== undefined ? s.disparity20 : '-'),
+          (s.volume_ratio !== undefined ? s.volume_ratio : '-'),
+          s.close, s.status
+        ]);
+        
+        const startRow = Math.max(kosdaqSheet.getLastRow() + 1, 2);
+        kosdaqSheet.getRange(startRow, 1, rows.length, 17).setValues(rows);
+
+        const MAX_DATA_ROWS = 9000; // 60 trading days * 150
+        const totalRows = kosdaqSheet.getLastRow();
+        if (totalRows > MAX_DATA_ROWS + 1) {
+          const deleteCount = totalRows - (MAX_DATA_ROWS + 1);
+          kosdaqSheet.deleteRows(2, deleteCount);
+        }
       }
 
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success", count: data.candidates ? data.candidates.length : 0 }))
