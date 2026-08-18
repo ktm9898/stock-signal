@@ -217,12 +217,10 @@ def calculate_indicators(df, period=14):
 
 def evaluate_buy_signal(df):
     """
-    Evaluate ADX Reversal Buy Signal.
-    Condition: ADX >= 25 AND Prev(-DI) > Prev(ADX) AND Curr(-DI) <= Curr(ADX)
-    Priority Rating:
-      - 3단계: Buy Signal + RSI <= 40 (최우선 과매도)
-      - 2단계: Buy Signal + Volume >= 1.2x 5-day avg volume (거래량 급증)
-      - 1단계: General Buy Signal (일반)
+    Evaluate ADX Buy Signal & Watchlist Stocks.
+    - Base Threshold: ADX >= 30
+    - 전략매수 (Buy Signal): ADX >= 30 AND Prev(-DI) > Prev(ADX) AND Curr(-DI) <= Curr(ADX)
+    - 관심종목 (Watchlist): ADX >= 30 AND Curr(-DI) > Curr(ADX)
     """
     if len(df) < 2 or 'adx' not in df.columns:
         return None
@@ -233,25 +231,26 @@ def evaluate_buy_signal(df):
     curr_vol = df['거래량'].iloc[-1]
     avg_vol5 = df['거래량'].iloc[-6:-1].mean() if len(df) >= 6 else curr_vol
 
-    # Base Buy Signal
-    is_buy = (curr_adx >= 25) and (prev_mdi > prev_adx) and (curr_mdi <= curr_adx)
-
-    if not is_buy:
+    if curr_adx < 30:
         return None
 
-    priority = "1단계: 매수 추천"
-    score = 1
-    if curr_rsi <= 40:
-        priority = "3단계: 강력 매수"
-        score = 3
-    elif avg_vol5 > 0 and (curr_vol >= avg_vol5 * 1.2):
-        priority = "2단계: 적극 매수"
-        score = 2
+    # 1. 전략매수 (Buy Signal: -DI crossed below ADX)
+    is_buy_signal = (prev_mdi > prev_adx) and (curr_mdi <= curr_adx)
+
+    # 2. 관심종목 (Watchlist: -DI > ADX)
+    is_watchlist = (curr_mdi > curr_adx)
+
+    if not (is_buy_signal or is_watchlist):
+        return None
+
+    priority = "전략매수" if is_buy_signal else "관심종목"
+    score = 2 if is_buy_signal else 1
 
     curr_bb_pct = df['b_band_pct'].iloc[-1] if 'b_band_pct' in df.columns else 0.5
 
     return {
-        "is_buy": True,
+        "is_buy": is_buy_signal,
+        "is_watchlist": is_watchlist,
         "priority": priority,
         "score": score,
         "adx": round(curr_adx, 2),
@@ -266,9 +265,8 @@ def evaluate_sell_signal(df, buy_price):
     """
     Evaluate Sell Signal for a held stock.
     Conditions:
-    1단계: RSI >= 60 (익절 준비 - 과매도 탈출 후 단기 목표 도달)
-    2단계: Prev(+DI) > Curr(+DI) (상승 둔화 - 반등 모멘텀 약화)
-    3단계: Curr(-DI) > Prev(-DI) AND Gap(-DI - +DI) 확대 OR 손절률 <= -5.0% (하락 재발동 / 손절)
+    - 전략매도: RSI > 65
+    - 손절매도: 수익률 <= -20.0%
     """
     if len(df) < 2 or 'adx' not in df.columns or 'plus_di' not in df.columns:
         return None
@@ -288,27 +286,21 @@ def evaluate_sell_signal(df, buy_price):
         return_rate = round(((curr_close - buy_price) / buy_price) * 100, 2)
 
     details = []
+    level = "관망"
 
     # Check Conditions
-    rsi_high = (curr_rsi >= 60.0)
-    pdi_drop = (prev_pdi >= 20.0) and (prev_pdi > curr_pdi)
-    curr_gap = curr_mdi - curr_pdi
-    prev_gap = prev_mdi - prev_pdi
-    mdi_rebound = (curr_mdi > prev_mdi) and (curr_gap > prev_gap)
+    is_take_profit = (curr_rsi > 65.0)
+    is_stop_loss = (buy_price > 0 and return_rate <= -20.0)
 
-    # Priority determination (3단계 -> 2단계 -> 1단계)
-    if mdi_rebound:
-        level = "3단계: 강력 매도"
-        details.append(f"하락 압력 재확대 (-DI: {prev_mdi:.1f} → {curr_mdi:.1f}, 격차: {prev_gap:.1f} → {curr_gap:.1f})")
-    elif pdi_drop:
-        level = "2단계: 적극 매도"
-        details.append(f"상승 동력(+DI) 꺾임 (+DI: {prev_pdi:.1f} → {curr_pdi:.1f} >= 20)")
-    elif rsi_high:
-        level = "1단계: 매도 추천"
-        details.append(f"RSI 단기 과매수 상단 도달 (RSI: {curr_rsi:.1f} >= 60)")
+    if is_stop_loss:
+        level = "손절매도"
+        details.append(f"손절 기준 도달 (수익률: {return_rate:.2f}% <= -20.0%)")
+    elif is_take_profit:
+        level = "전략매도"
+        details.append(f"익절 기준 도달 (RSI: {curr_rsi:.1f} > 65)")
     else:
         level = "관망"
-        details.append(f"정상 관망 (추세 유지 중 | ADX: {curr_adx:.1f})")
+        details.append(f"정상 관망 (RSI: {curr_rsi:.1f}, 수익률: {return_rate:.2f}%)")
 
     return {
         "buyPrice": buy_price,
@@ -423,7 +415,7 @@ if __name__ == "__main__":
                 buy_candidates.append(buy_res)
                 status_text = buy_res['priority']
                 print(f"  🔥 [BUY SIGNAL] {name} ({clean_ticker}) - {buy_res['priority']} | ADX: {buy_res['adx']} | RSI: {buy_res['rsi']} | %b: {round(curr_bb_pct, 2)}")
-            elif curr_adx >= 25:
+            elif curr_adx >= 30:
                 status_text = "추세강함 (조건미달)"
 
             all_stocks.append({

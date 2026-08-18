@@ -91,6 +91,9 @@ function doPost(e) {
         const existingRows = lastRow > 1 ? buySheet.getRange(2, 1, lastRow - 1, buySheet.getLastColumn()).getValues() : [];
         
         data.candidates.forEach(c => {
+          // Only store '전략매수' (Buy Signals) in the Google Sheet database (skip '관심종목')
+          if (c.priority !== "전략매수" && c.is_buy !== true) return;
+
           const tickerStr = normalizeTicker(c.ticker);
           let exists = false;
           for (let i = 0; i < existingRows.length; i++) {
@@ -102,7 +105,7 @@ function doPost(e) {
             }
           }
 
-          // Keep the FIRST signal timestamp & metrics of the day (do not duplicate)
+          // Keep the FIRST buy signal timestamp & metrics of the day (do not duplicate)
           if (!exists) {
             buySheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.prev_adx, c.minus_di, c.prev_minus_di, c.plus_di, c.rsi, (c.b_band_pct !== undefined ? c.b_band_pct : (c.BB_Pct !== undefined ? c.BB_Pct : '-')), c.close]);
           }

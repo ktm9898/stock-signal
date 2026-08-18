@@ -816,18 +816,15 @@
 
       const reversedList = [...list].reverse();
       tbody.innerHTML = reversedList.map(item => {
-        const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || '1단계');
-        let stageText = '1단계: 매수 추천';
-        let tierClass = 'badge-t3';
-        if (rawStage.includes('3단계') || rawStage.includes('강력') || rawStage.includes('Tier 1')) {
-          stageText = '3단계: 강력 매수';
-          tierClass = 'badge-t1';
-        } else if (rawStage.includes('2단계') || rawStage.includes('적극') || rawStage.includes('Tier 2')) {
-          stageText = '2단계: 적극 매수';
-          tierClass = 'badge-t2';
-        } else {
-          stageText = '1단계: 매수 추천';
+        const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || item.priority || '전략매수');
+        let stageText = '전략매수';
+        let tierClass = 'badge-t1';
+        if (rawStage.includes('관심')) {
+          stageText = '관심종목';
           tierClass = 'badge-t3';
+        } else if (rawStage.includes('전략') || rawStage.includes('매수')) {
+          stageText = '전략매수';
+          tierClass = 'badge-t1';
         }
 
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
@@ -1027,14 +1024,9 @@
         const rateSign = rate > 0 ? '+' : '';
         
         let level = String(item.Status || item.signalLevel || '관망').trim();
-        if (!level || !isNaN(Number(level)) || level === 'undefined') {
-          level = '1단계: 매도 추천';
-        }
-
         let badgeClass = 'badge-neutral';
-        if (level.includes('3단계') || level.includes('강력 매도') || level.includes('하락 재발동')) badgeClass = 'badge-sell-danger';
-        else if (level.includes('2단계') || level.includes('적극 매도') || level.includes('상승 둔화')) badgeClass = 'badge-sell-warn';
-        else if (level.includes('1단계') || level.includes('매도 추천') || level.includes('익절')) badgeClass = 'badge-t2';
+        if (level.includes('손절')) badgeClass = 'badge-sell-danger';
+        else if (level.includes('전략') || level.includes('익절')) badgeClass = 'badge-sell-warn';
 
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
         const adx = formatDec(item.ADX || item.adx);
