@@ -160,13 +160,13 @@
       background: var(--card-bg); border: 1px solid var(--card-border);
       border-radius: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
     }
-    table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
+    table { width: 100%; min-width: 980px; table-layout: fixed; border-collapse: collapse; text-align: left; white-space: nowrap; }
     th {
       background: #f8fafc; color: #475569;
       font-size: 0.78rem; font-weight: 600; text-transform: uppercase;
       padding: 10px 8px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;
     }
-    td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; color: #0f172a; white-space: nowrap; }
+    td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: #f8fafc; }
 
