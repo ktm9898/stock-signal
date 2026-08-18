@@ -104,12 +104,13 @@ def get_kospi200_tickers():
                                 seen.add(clean_t)
                                 items.append({"ticker": clean_t, "name": a.text.strip(), "market": "KOSPI200"})
             else:
-                matches = re.findall(r'href="/item/main\.naver\?code=(\d+)">(.*?)</a>', res.text)
+                matches = re.findall(r'href="/item/main\.naver\?code=(\d+)"[^>]*>(.*?)</a>', res.text)
                 for code, name in matches:
                     clean_t = code.zfill(6)
-                    if clean_t not in seen:
+                    name_clean = name.strip()
+                    if clean_t not in seen and name_clean:
                         seen.add(clean_t)
-                        items.append({"ticker": clean_t, "name": name.strip(), "market": "KOSPI200"})
+                        items.append({"ticker": clean_t, "name": name_clean, "market": "KOSPI200"})
         if len(items) >= 100:
             return items
     except Exception as e:
@@ -122,12 +123,26 @@ def get_kospi200_tickers():
             url = f"https://finance.naver.com/sise/sise_market_sum.naver?sosok=0&page={page}"
             res = requests.get(url, headers=headers, timeout=5)
             res.encoding = 'euc-kr'
-            matches = re.findall(r'href="/item/main\.naver\?code=(\d+)">(.*?)</a>', res.text)
-            for code, name in matches:
-                clean_t = code.zfill(6)
-                if clean_t not in seen:
-                    seen.add(clean_t)
-                    items.append({"ticker": clean_t, "name": name.strip(), "market": "KOSPI200"})
+            if BeautifulSoup:
+                soup = BeautifulSoup(res.text, "html.parser")
+                links = soup.find_all("a", class_="tltle")
+                for a in links:
+                    href = a.get("href", "")
+                    match = re.search(r'code=(\d+)', href)
+                    if match:
+                        clean_t = match.group(1).zfill(6)
+                        name = a.text.strip()
+                        if clean_t not in seen and name:
+                            seen.add(clean_t)
+                            items.append({"ticker": clean_t, "name": name, "market": "KOSPI200"})
+            else:
+                matches = re.findall(r'href="/item/main\.naver\?code=(\d+)"[^>]*>(.*?)</a>', res.text)
+                for code, name in matches:
+                    clean_t = code.zfill(6)
+                    name_clean = name.strip()
+                    if clean_t not in seen and name_clean:
+                        seen.add(clean_t)
+                        items.append({"ticker": clean_t, "name": name_clean, "market": "KOSPI200"})
     except Exception as e:
         print(f"[ERROR] Naver Market Sum KOSPI fallback failed: {e}")
 
@@ -179,12 +194,26 @@ def get_kosdaq150_tickers():
             url = f"https://finance.naver.com/sise/sise_market_sum.naver?sosok=1&page={page}"
             res = requests.get(url, headers=headers, timeout=5)
             res.encoding = 'euc-kr'
-            matches = re.findall(r'href="/item/main\.naver\?code=(\d+)">(.*?)</a>', res.text)
-            for code, name in matches:
-                clean_t = code.zfill(6)
-                if clean_t not in seen:
-                    seen.add(clean_t)
-                    items.append({"ticker": clean_t, "name": name.strip(), "market": "KOSDAQ150"})
+            if BeautifulSoup:
+                soup = BeautifulSoup(res.text, "html.parser")
+                links = soup.find_all("a", class_="tltle")
+                for a in links:
+                    href = a.get("href", "")
+                    match = re.search(r'code=(\d+)', href)
+                    if match:
+                        clean_t = match.group(1).zfill(6)
+                        name = a.text.strip()
+                        if clean_t not in seen and name:
+                            seen.add(clean_t)
+                            items.append({"ticker": clean_t, "name": name, "market": "KOSDAQ150"})
+            else:
+                matches = re.findall(r'href="/item/main\.naver\?code=(\d+)"[^>]*>(.*?)</a>', res.text)
+                for code, name in matches:
+                    clean_t = code.zfill(6)
+                    name_clean = name.strip()
+                    if clean_t not in seen and name_clean:
+                        seen.add(clean_t)
+                        items.append({"ticker": clean_t, "name": name_clean, "market": "KOSDAQ150"})
     except Exception as e:
         print(f"[ERROR] Naver Market Sum KOSDAQ 150 fallback failed: {e}")
 
