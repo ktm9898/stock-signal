@@ -239,9 +239,6 @@ function doPost(e) {
           s.close, s.status
         ]);
         
-        kosdaqSheet.getRange(2, 1, rows.length, 17).setValues(rows);
-      }
-
         const MAX_DATA_ROWS = 9000; // 60 trading days * 150
         const totalRows = kosdaqSheet.getLastRow();
         if (totalRows > MAX_DATA_ROWS + 1) {
