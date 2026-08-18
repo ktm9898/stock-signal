@@ -510,11 +510,6 @@ if __name__ == "__main__":
             
             clean_ticker = str(ticker).zfill(6)
             
-            def sanitize_val(val, decimals=2):
-                if val is None or np.isnan(val) or np.isinf(val):
-                    return None
-                return round(float(val), decimals)
-
             curr_adx = float(df['adx'].iloc[-1]) if 'adx' in df.columns and not np.isnan(df['adx'].iloc[-1]) else 0.0
             prev_adx = float(df['adx'].iloc[-2]) if len(df) >= 2 and 'adx' in df.columns and not np.isnan(df['adx'].iloc[-2]) else 0.0
             curr_mdi = float(df['minus_di'].iloc[-1]) if 'minus_di' in df.columns and not np.isnan(df['minus_di'].iloc[-1]) else 0.0
@@ -522,13 +517,13 @@ if __name__ == "__main__":
             curr_pdi = float(df['plus_di'].iloc[-1]) if 'plus_di' in df.columns and not np.isnan(df['plus_di'].iloc[-1]) else 0.0
             curr_rsi = float(df['rsi'].iloc[-1]) if 'rsi' in df.columns and not np.isnan(df['rsi'].iloc[-1]) else 0.0
             curr_bb_pct = float(df['b_band_pct'].iloc[-1]) if 'b_band_pct' in df.columns and not np.isnan(df['b_band_pct'].iloc[-1]) else 0.5
-            curr_macd = float(df['macd'].iloc[-1]) if 'macd' in df.columns and not np.isnan(df['macd'].iloc[-1]) else None
-            curr_macd_sig = float(df['macd_signal'].iloc[-1]) if 'macd_signal' in df.columns and not np.isnan(df['macd_signal'].iloc[-1]) else None
-            curr_macd_osc = float(df['macd_osc'].iloc[-1]) if 'macd_osc' in df.columns and not np.isnan(df['macd_osc'].iloc[-1]) else None
-            curr_stoch_k = float(df['stoch_k'].iloc[-1]) if 'stoch_k' in df.columns and not np.isnan(df['stoch_k'].iloc[-1]) else None
-            curr_stoch_d = float(df['stoch_d'].iloc[-1]) if 'stoch_d' in df.columns and not np.isnan(df['stoch_d'].iloc[-1]) else None
-            curr_disparity = float(df['disparity20'].iloc[-1]) if 'disparity20' in df.columns and not np.isnan(df['disparity20'].iloc[-1]) else None
-            curr_vr = float(df['volume_ratio'].iloc[-1]) if 'volume_ratio' in df.columns and not np.isnan(df['volume_ratio'].iloc[-1]) else None
+            curr_macd = float(df['macd'].iloc[-1]) if 'macd' in df.columns and not np.isnan(df['macd'].iloc[-1]) else 0.0
+            curr_macd_sig = float(df['macd_signal'].iloc[-1]) if 'macd_signal' in df.columns and not np.isnan(df['macd_signal'].iloc[-1]) else 0.0
+            curr_macd_osc = float(df['macd_osc'].iloc[-1]) if 'macd_osc' in df.columns and not np.isnan(df['macd_osc'].iloc[-1]) else 0.0
+            curr_stoch_k = float(df['stoch_k'].iloc[-1]) if 'stoch_k' in df.columns and not np.isnan(df['stoch_k'].iloc[-1]) else 50.0
+            curr_stoch_d = float(df['stoch_d'].iloc[-1]) if 'stoch_d' in df.columns and not np.isnan(df['stoch_d'].iloc[-1]) else 50.0
+            curr_disparity = float(df['disparity20'].iloc[-1]) if 'disparity20' in df.columns and not np.isnan(df['disparity20'].iloc[-1]) else 100.0
+            curr_vr = float(df['volume_ratio'].iloc[-1]) if 'volume_ratio' in df.columns and not np.isnan(df['volume_ratio'].iloc[-1]) else 100.0
             curr_close = int(df['종가'].iloc[-1]) if '종가' in df.columns else 0
 
             buy_res = evaluate_buy_signal(df)
@@ -538,8 +533,8 @@ if __name__ == "__main__":
                 buy_res['ticker'] = clean_ticker
                 buy_res['name'] = name
                 buy_res['market'] = market
-                buy_res['prev_adx'] = sanitize_val(prev_adx)
-                buy_res['prev_minus_di'] = sanitize_val(prev_mdi)
+                buy_res['prev_adx'] = round(prev_adx, 2)
+                buy_res['prev_minus_di'] = round(prev_mdi, 2)
                 buy_item = buy_res
                 status_text = buy_res['priority']
             elif curr_adx >= 30 and curr_mdi > curr_adx:
@@ -549,18 +544,18 @@ if __name__ == "__main__":
                 "ticker": clean_ticker,
                 "name": name,
                 "market": market,
-                "adx": sanitize_val(curr_adx),
-                "minus_di": sanitize_val(curr_mdi),
-                "plus_di": sanitize_val(curr_pdi),
-                "rsi": sanitize_val(curr_rsi),
-                "b_band_pct": sanitize_val(curr_bb_pct),
-                "macd": sanitize_val(curr_macd),
-                "macd_signal": sanitize_val(curr_macd_sig),
-                "macd_osc": sanitize_val(curr_macd_osc),
-                "stoch_k": sanitize_val(curr_stoch_k),
-                "stoch_d": sanitize_val(curr_stoch_d),
-                "disparity20": sanitize_val(curr_disparity),
-                "volume_ratio": sanitize_val(curr_vr),
+                "adx": round(curr_adx, 2),
+                "minus_di": round(curr_mdi, 2),
+                "plus_di": round(curr_pdi, 2),
+                "rsi": round(curr_rsi, 2),
+                "b_band_pct": round(curr_bb_pct, 2),
+                "macd": round(curr_macd, 2),
+                "macd_signal": round(curr_macd_sig, 2),
+                "macd_osc": round(curr_macd_osc, 2),
+                "stoch_k": round(curr_stoch_k, 2),
+                "stoch_d": round(curr_stoch_d, 2),
+                "disparity20": round(curr_disparity, 2),
+                "volume_ratio": round(curr_vr, 2),
                 "close": curr_close,
                 "status": status_text
             }
