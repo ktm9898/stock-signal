@@ -570,7 +570,7 @@
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
             <span id="dataset-last-date-badge" style="font-size: 0.75rem; color: var(--text-sub); background: #f1f5f9; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-subtle);">
-              <span class="label-desktop">최신 데이터: </span><strong id="dataset-last-date-text" style="color: #2563eb;">2026-08-18</strong>
+              <span class="label-desktop">최신 데이터: </span><strong id="dataset-last-date-text" style="color: #2563eb;">2026-08-20</strong>
             </span>
             <button id="btn-update-dataset" class="btn-sm-action" style="background: linear-gradient(135deg, #2563eb, #0284c7); color: #ffffff; border: none; font-weight: 700; padding: 5px 12px; border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 4px rgba(37,99,235,0.2);" onclick="openUpdateDatasetModal()">
               <i class="fa-solid fa-arrows-rotate"></i> 업데이트
@@ -925,15 +925,18 @@
       }
 
       if (REAL_PRELOADED_DATA) {
-        const sampleKey = Object.keys(REAL_PRELOADED_DATA)[0];
-        const sampleRows = REAL_PRELOADED_DATA[sampleKey];
+        const sampleRows = REAL_PRELOADED_DATA['005930'] || REAL_PRELOADED_DATA['KOSPI'] || Object.values(REAL_PRELOADED_DATA)[0];
         if (sampleRows && sampleRows.length > 0) {
-          const lastDate = sampleRows[sampleRows.length - 1][0] || sampleRows[sampleRows.length - 1].date;
+          const lastDate = Array.isArray(sampleRows[sampleRows.length - 1]) 
+            ? sampleRows[sampleRows.length - 1][0] 
+            : (sampleRows[sampleRows.length - 1].date || '');
           if (lastDate) {
             const endDateInput = document.getElementById('opt-end-date');
             if (endDateInput) endDateInput.value = lastDate;
             const badgeDateEl = document.getElementById('dataset-last-date-text');
             if (badgeDateEl) badgeDateEl.textContent = lastDate;
+            const modalDateEl = document.getElementById('modal-current-last-date');
+            if (modalDateEl) modalDateEl.textContent = lastDate;
           }
         }
       }
@@ -2873,7 +2876,7 @@
         <div style="font-size:0.84rem; color:#475569; line-height:1.6; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0;">
           <div style="display:flex; justify-content:space-between;">
             <span>현재 로드된 최신 거래일:</span>
-            <strong id="modal-current-last-date" style="color:#2563eb;">2026-08-18</strong>
+            <strong id="modal-current-last-date" style="color:#2563eb;">2026-08-20</strong>
           </div>
         </div>
 
@@ -2927,12 +2930,27 @@
       return localStorage.getItem('stock_signal_pin') || sessionStorage.getItem('stock_signal_pin') || '';
     }
 
+    function getLatestDatasetDate() {
+      if (REAL_PRELOADED_DATA) {
+        const sampleRows = REAL_PRELOADED_DATA['005930'] || REAL_PRELOADED_DATA['KOSPI'] || Object.values(REAL_PRELOADED_DATA)[0];
+        if (sampleRows && sampleRows.length > 0) {
+          const r = sampleRows[sampleRows.length - 1];
+          return Array.isArray(r) ? r[0] : (r.date || '');
+        }
+      }
+      const badgeText = document.getElementById('dataset-last-date-text')?.textContent?.trim();
+      return badgeText || '2026-08-20';
+    }
+
     function openUpdateDatasetModal() {
       const modal = document.getElementById('update-dataset-modal');
       if (!modal) return;
-      const lastDate = document.getElementById('dataset-last-date-text')?.textContent || '';
+      const lastDate = getLatestDatasetDate();
       const todayStr = getKSTTodayString();
       const isAlreadyUpToDate = (lastDate && lastDate === todayStr);
+
+      const badgeDateEl = document.getElementById('dataset-last-date-text');
+      if (badgeDateEl && lastDate) badgeDateEl.textContent = lastDate;
 
       const modalDate = document.getElementById('modal-current-last-date');
       if (modalDate) {
