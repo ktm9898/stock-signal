@@ -715,7 +715,7 @@
                 백테스트 수익률 곡선 (vs KOSPI / KOSDAQ 벤치마크)
               </h4>
               <button id="btn-toggle-chart-size" class="btn-sm-action" onclick="toggleChartSize()" style="font-size:0.75rem; background:#f1f5f9; color:#334155; border:1px solid var(--border-subtle); display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:5px; cursor:pointer;">
-                <i class="fa-solid fa-up-right-and-down-left-from-center" id="icon-chart-size"></i> <span id="text-chart-size">차트 확대 (높게 보기)</span>
+                <i class="fa-solid fa-up-right-and-down-left-from-center" id="icon-chart-size"></i> <span id="text-chart-size">확대</span>
               </button>
             </div>
             <div id="chart-wrapper" style="height: 340px; width: 100%; transition: height 0.25s ease;">
@@ -2748,11 +2748,11 @@
       if (isChartExpanded) {
         wrapper.style.height = '560px';
         if (icon) icon.className = 'fa-solid fa-down-left-and-up-right-to-center';
-        if (text) text.textContent = '차트 축소 (기본 보기)';
+        if (text) text.textContent = '축소';
       } else {
         wrapper.style.height = '340px';
         if (icon) icon.className = 'fa-solid fa-up-right-and-down-left-from-center';
-        if (text) text.textContent = '차트 확대 (높게 보기)';
+        if (text) text.textContent = '확대';
       }
       if (equityChartInstance) {
         setTimeout(() => { equityChartInstance.resize(); }, 280);
