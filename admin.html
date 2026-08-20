@@ -539,6 +539,27 @@
         <button class="btn-add-rule" onclick="addRule('sell')">
           + 매도 조건 추가
         </button>
+
+        <!-- Stop Loss / Take Profit Sub-section inside Sell Rules -->
+        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
+          <div style="font-size: 0.80rem; font-weight: 700; color: #334155; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-shield-halved" style="color: #64748b;"></i> 손절 / 익절 청산 조건 <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 400;">(가격 기준 강제 청산 규칙)</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label style="display: block; font-size: 0.76rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                손절선 (-%) <span style="font-size: 0.7rem; color: #94a3b8;">(공란 = 신호로만 매도)</span>
+              </label>
+              <input type="number" id="opt-stop-loss" class="form-input" placeholder="예: 5 (-5% 도달 시 청산)" style="width: 100%;">
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.76rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                익절선 (+%) <span style="font-size: 0.7rem; color: #94a3b8;">(공란 = 신호로만 매도)</span>
+              </label>
+              <input type="number" id="opt-take-profit" class="form-input" placeholder="예: 15 (+15% 도달 시 청산)" style="width: 100%;">
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Risk & Execution Settings -->
@@ -593,20 +614,6 @@
 
           <div>
             <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">
-              손절선 (-%) <span style="font-size: 0.7rem; color: #94a3b8;">(공란 시 미발동)</span>
-            </label>
-            <input type="number" id="opt-stop-loss" class="form-input" placeholder="공란 = 신호로만 매도" style="width: 100%;">
-          </div>
-
-          <div>
-            <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">
-              익절선 (+%) <span style="font-size: 0.7rem; color: #94a3b8;">(공란 시 미발동)</span>
-            </label>
-            <input type="number" id="opt-take-profit" class="form-input" placeholder="공란 = 신호로만 매도" style="width: 100%;">
-          </div>
-
-          <div>
-            <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">
               1회 매수 금액 (원)
             </label>
             <input type="number" id="opt-initial-capital" class="form-input" value="1000000" style="width: 100%;">
@@ -636,8 +643,8 @@
             </span>
           </div>
 
-          <!-- 6 KPI Cards In 1 Row -->
-          <div class="kpi-grid-6">
+          <!-- 6 KPI Cards In 1 Row (Single Strategy View) -->
+          <div id="kpi-single-grid" class="kpi-grid-6">
             <!-- Card 1: Total Net Profit & Return on Avg Capital -->
             <div class="kpi-card">
               <div class="kpi-title">총 순수익 금액</div>
@@ -681,7 +688,27 @@
             </div>
           </div>
 
-          <!-- Equity Curve Chart -->
+          <!-- Multi-Strategy Comparison Matrix Table (Compare View) -->
+          <div id="kpi-compare-grid" style="display: none; margin-bottom: 16px;">
+            <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 8px; background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.80rem;">
+                <thead>
+                  <tr style="background: #f8fafc; color: #475569; border-bottom: 1px solid var(--border-color); font-weight: 700;">
+                    <th style="padding: 10px 12px; text-align: left;">전략 구분</th>
+                    <th style="padding: 10px 12px; text-align: right;">총 순수익</th>
+                    <th style="padding: 10px 12px; text-align: right;">평잔 수익률</th>
+                    <th style="padding: 10px 12px; text-align: right;">투자금 평잔</th>
+                    <th style="padding: 10px 12px; text-align: center;">매매 승률 (승/패)</th>
+                    <th style="padding: 10px 12px; text-align: right;">손익비</th>
+                    <th style="padding: 10px 12px; text-align: right;">포트폴리오 MDD</th>
+                    <th style="padding: 10px 12px; text-align: center;">건당 평균수익 (거래수)</th>
+                  </tr>
+                </thead>
+                <tbody id="compare-matrix-tbody">
+                </tbody>
+              </table>
+            </div>
+          </div>
           <div style="margin-top: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <h4 style="font-size: 0.88rem; font-weight: 700; color: #1e293b;">
@@ -887,7 +914,7 @@
 
       if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length < 10) {
         try {
-          const res = await fetch('data/stocks_350_real.json');
+          const res = await fetch(`data/stocks_350_real.json?t=${Date.now()}`);
           if (res.ok) {
             const d = await res.json();
             REAL_PRELOADED_DATA = d.preloaded_data || {};
@@ -1799,6 +1826,14 @@
       const ctx = document.getElementById('equityChart').getContext('2d');
       if (equityChartInstance) equityChartInstance.destroy();
 
+      // Switch to single strategy KPI grid view
+      const singleGrid = document.getElementById('kpi-single-grid');
+      const compareGrid = document.getElementById('kpi-compare-grid');
+      if (singleGrid) singleGrid.style.display = 'grid';
+      if (compareGrid) compareGrid.style.display = 'none';
+      const reportTitle = document.getElementById('report-strat-name');
+      if (reportTitle) reportTitle.textContent = '단일 전략 성과 리포트';
+
       const targetMarketSelect = document.getElementById('opt-backtest-market');
       const targetMarket = targetMarketSelect ? targetMarketSelect.value : 'ALL';
       const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 1000000;
@@ -2336,9 +2371,9 @@
         const rawRows = REAL_PRELOADED_DATA[ticker];
         if (!rawRows || rawRows.length < 30) return;
         const stockInfo = ALL_350_STOCKS.find(s => s.ticker === ticker) || { name: ticker, market: "KOSPI200" };
-        if (market !== 'ALL' && stockInfo.market !== market) return;
+        if (market && market !== 'ALL' && stockInfo.market !== market) return;
 
-        const rows = rawRows.filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        const rows = rawRows.map(normalizeRow).filter(r => r.date >= startDateStr && r.date <= endDateStr);
         if (rows.length < 5) return;
 
         let inPosition = false;
@@ -2350,8 +2385,8 @@
           const curr = rows[i];
           const nextDay = rows[i + 1];
 
-          const buyResults = buyRules.map(r => checkSingleRule(r, curr, rows[i - 1]));
-          const isBuySignal = buyRules.length > 0 ? (buyOp === 'AND' ? buyResults.every(Boolean) : buyResults.some(Boolean)) : false;
+          const buyResults = (buyRules || []).map(r => checkSingleRule(r, curr, rows[i - 1]));
+          const isBuySignal = buyRules && buyRules.length > 0 ? (buyOp === 'OR' ? buyResults.some(Boolean) : buyResults.every(Boolean)) : false;
 
           if (!inPosition) {
             if (isBuySignal && nextDay.open > 0) {
@@ -2366,13 +2401,13 @@
             let isExit = false;
             let triggerType = "SIGNAL";
 
-            const sellResults = sellRules.map(r => checkSingleRule(r, curr, rows[i - 1]));
-            const isSellSignal = sellRules.length > 0 ? (sellOp === 'AND' ? sellResults.every(Boolean) : sellResults.some(Boolean)) : false;
+            const sellResults = (sellRules || []).map(r => checkSingleRule(r, curr, rows[i - 1]));
+            const isSellSignal = sellRules && sellRules.length > 0 ? (sellOp === 'AND' ? sellResults.every(Boolean) : sellResults.some(Boolean)) : false;
 
-            if (stopLoss !== null && paperReturnPct <= -Math.abs(stopLoss)) {
+            if (stopLoss !== null && stopLoss !== undefined && stopLoss !== "" && paperReturnPct <= -Math.abs(Number(stopLoss))) {
               isExit = true;
               triggerType = "STOP_LOSS";
-            } else if (takeProfit !== null && paperReturnPct >= Math.abs(takeProfit)) {
+            } else if (takeProfit !== null && takeProfit !== undefined && takeProfit !== "" && paperReturnPct >= Math.abs(Number(takeProfit))) {
               isExit = true;
               triggerType = "TAKE_PROFIT";
             } else if (isSellSignal) {
@@ -2462,27 +2497,47 @@
       const startDateStr = document.getElementById('opt-start-date').value;
       const endDateStr = document.getElementById('opt-end-date').value;
       const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 1000000;
+      const market = document.getElementById('opt-backtest-market').value || 'ALL';
 
       const colorPalette = ['#2563eb', '#7c3aed', '#059669', '#ea580c', '#db2777', '#0284c7', '#ca8a04', '#78716c', '#4f46e5', '#0d9488'];
       
       let fineDates = [];
       if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
-        const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        const rawK = (REAL_PRELOADED_DATA['KOSPI'] || []).map(normalizeRow);
+        const kRows = rawK.filter(r => r.date >= startDateStr && r.date <= endDateStr);
         if (kRows.length > 0) fineDates = kRows.map(r => r.date);
+      }
+
+      if (fineDates.length === 0) {
+        fineDates = [startDateStr, endDateStr];
       }
 
       const priceMap = {};
       if (REAL_PRELOADED_DATA) {
         Object.keys(REAL_PRELOADED_DATA).forEach(ticker => {
           const dateMap = {};
-          REAL_PRELOADED_DATA[ticker].forEach(r => { dateMap[r.date] = r.close; });
+          (REAL_PRELOADED_DATA[ticker] || []).map(normalizeRow).forEach(r => { dateMap[r.date] = r.close; });
           priceMap[ticker] = dateMap;
         });
       }
 
       const multiDatasets = [];
+      const summaryList = [];
+
       selectedSlots.forEach((slot, slotIdx) => {
-        const trades = simulateTradesForRules(slot.buyRules, slot.sellRules, slot.buyOperator, slot.sellOperator, slot.stopLoss, slot.takeProfit, slot.market, startDateStr, endDateStr, tradeAmount);
+        const slotMarket = market; // 백테스트 설정의 기준 적용
+        const trades = simulateTradesForRules(
+          slot.buyRules, 
+          slot.sellRules, 
+          slot.buyOperator || 'AND', 
+          slot.sellOperator || 'OR', 
+          slot.stopLoss, 
+          slot.takeProfit, 
+          slotMarket, 
+          startDateStr, 
+          endDateStr, 
+          tradeAmount
+        );
 
         let dailyEngagedCapitalSum = 0;
         fineDates.forEach(dbDate => {
@@ -2509,33 +2564,81 @@
           strategyUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
         });
 
+        // Compute Metrics
+        const totalTrades = trades.length;
+        const winTrades = trades.filter(t => t.win).length;
+        const lossTrades = totalTrades - winTrades;
+        const winRate = totalTrades > 0 ? (winTrades / totalTrades) * 100 : 0;
+
+        let totalProfitSum = 0;
+        let totalLossSum = 0;
+        let totalNetReturnAmount = 0;
+        trades.forEach(t => {
+          const netGain = Math.round(tradeAmount * (t.returnPct / 100));
+          totalNetReturnAmount += netGain;
+          if (netGain > 0) totalProfitSum += netGain;
+          else totalLossSum += Math.abs(netGain);
+        });
+
+        const profitFactor = totalLossSum > 0 ? (totalProfitSum / totalLossSum) : (totalProfitSum > 0 ? 9.99 : 1.0);
+        const returnOnAvgCapital = averageCapitalBalance > 0 ? ((totalNetReturnAmount / averageCapitalBalance) * 100) : 0;
+
+        let peakVal = -999999;
+        let maxDrawdownVal = 0;
+        strategyUnrealizedData.forEach(val => {
+          if (val > peakVal) peakVal = val;
+          const dd = peakVal - val;
+          if (dd > maxDrawdownVal) maxDrawdownVal = dd;
+        });
+        const portfolioMDD = maxDrawdownVal > 0 ? -parseFloat(maxDrawdownVal.toFixed(1)) : 0.0;
+        const avgTradeRet = totalTrades > 0 ? (trades.reduce((s, t) => s + t.returnPct, 0) / totalTrades) : 0;
+        const avgHold = totalTrades > 0 ? (trades.reduce((a, b) => a + b.holdingDays, 0) / totalTrades).toFixed(1) : 0;
+
         const color = colorPalette[slotIdx % colorPalette.length];
         multiDatasets.push({
-          label: `${slot.name} (평잔수익률)`,
+          label: `${slot.name} (평잔: ${returnOnAvgCapital >= 0 ? '+' : ''}${returnOnAvgCapital.toFixed(1)}%)`,
           data: strategyUnrealizedData,
           borderColor: color,
-          borderWidth: 2,
+          borderWidth: 2.2,
           fill: false,
           pointRadius: 0,
           pointHoverRadius: 5,
           tension: 0.1
         });
+
+        summaryList.push({
+          id: slot.id,
+          name: slot.name,
+          color: color,
+          totalNetReturnAmount: totalNetReturnAmount,
+          returnOnAvgCapital: returnOnAvgCapital,
+          averageCapitalBalance: averageCapitalBalance,
+          winRate: winRate,
+          winTrades: winTrades,
+          lossTrades: lossTrades,
+          profitFactor: profitFactor,
+          portfolioMDD: portfolioMDD,
+          avgTradeRet: avgTradeRet,
+          totalTrades: totalTrades,
+          avgHold: avgHold
+        });
       });
 
+      // Benchmark KOSPI
       let kospiBenchmarkData = fineDates.map(() => 0);
       if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
-        const kRows = REAL_PRELOADED_DATA['KOSPI'].filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        const kRows = (REAL_PRELOADED_DATA['KOSPI'] || []).map(normalizeRow).filter(r => r.date >= startDateStr && r.date <= endDateStr);
         if (kRows.length > 0) {
           const baseClose = kRows[0].close;
           kospiBenchmarkData = fineDates.map(dbDate => {
             const rowAtDate = kRows.filter(r => r.date <= dbDate).pop() || kRows[0];
-            const pctChange = ((rowAtDate.close - baseClose) / baseClose) * 100;
+            const pctChange = baseClose > 0 ? (((rowAtDate.close - baseClose) / baseClose) * 100) : 0;
             return parseFloat(pctChange.toFixed(1));
           });
         }
       }
       multiDatasets.push({
-        label: 'KOSPI',
+        label: 'KOSPI 벤치마크',
         data: kospiBenchmarkData,
         borderColor: '#dc2626',
         borderDash: [4, 4],
@@ -2545,6 +2648,7 @@
         tension: 0.1
       });
 
+      // Render Chart
       const ctx = document.getElementById('equityChart').getContext('2d');
       if (equityChartInstance) equityChartInstance.destroy();
 
@@ -2567,8 +2671,95 @@
         }
       });
 
+      // Render KPI Comparison Matrix Table
+      renderMultiStrategyCompareMatrix(summaryList);
+
+      // Switch UI views
+      document.getElementById('kpi-single-grid').style.display = 'none';
+      document.getElementById('kpi-compare-grid').style.display = 'block';
+      const reportTitle = document.getElementById('report-strat-name');
+      if (reportTitle) {
+        reportTitle.innerHTML = `<i class="fa-solid fa-code-compare" style="margin-right:4px; color:#2563eb;"></i> <strong>다중 전략 비교 성과 리포트 (${selectedSlots.length}개 전략)</strong>`;
+      }
+
+      // Empty trade log table with info message
+      const tbody = document.getElementById('trade-log-body');
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" style="text-align:center; padding:32px 16px; color:#64748b; font-size:0.85rem;">
+              <i class="fa-solid fa-code-compare" style="font-size:1.8rem; color:#3b82f6; margin-bottom:8px; display:block;"></i>
+              <strong>전략 비교 모드 활성화됨</strong>
+              <div style="font-size:0.78rem; color:#94a3b8; margin-top:4px;">
+                다중 전략 비교 시에는 상단 성과 비교표와 차트에서 종합 성과를 비교합니다.<br>
+                (개별 종목 체결 일지는 단일 전략 백테스트 실행 시 표시됩니다)
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+      document.getElementById('trade-log-count').textContent = `비교 중 (${selectedSlots.length}개)`;
+
       document.getElementById('results-section').style.display = 'block';
       document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function renderMultiStrategyCompareMatrix(list) {
+      const tbody = document.getElementById('compare-matrix-tbody');
+      if (!tbody || !list || list.length === 0) return;
+
+      // Find Best Values for each metric
+      const maxNetProfit = Math.max(...list.map(s => s.totalNetReturnAmount));
+      const maxReturnOnCapital = Math.max(...list.map(s => s.returnOnAvgCapital));
+      const maxWinRate = Math.max(...list.map(s => s.winRate));
+      const maxProfitFactor = Math.max(...list.map(s => s.profitFactor));
+      const minMDD = Math.max(...list.map(s => s.portfolioMDD)); // MDD is negative or 0, so max is least negative
+      const maxAvgTradeRet = Math.max(...list.map(s => s.avgTradeRet));
+
+      const crownBadge = `<span style="background:#22c55e; color:#ffffff; font-size:0.65rem; padding:1px 5px; border-radius:3px; margin-left:4px; font-weight:700; display:inline-block; vertical-align:middle;">👑 우세</span>`;
+
+      tbody.innerHTML = list.map(s => {
+        const isBestNetProfit = s.totalNetReturnAmount === maxNetProfit && list.length > 1;
+        const isBestReturnOnCapital = s.returnOnAvgCapital === maxReturnOnCapital && list.length > 1;
+        const isBestWinRate = s.winRate === maxWinRate && list.length > 1;
+        const isBestProfitFactor = s.profitFactor === maxProfitFactor && list.length > 1;
+        const isBestMDD = s.portfolioMDD === minMDD && list.length > 1;
+        const isBestAvgTradeRet = s.avgTradeRet === maxAvgTradeRet && list.length > 1;
+
+        return `
+          <tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:10px 12px; font-weight:700; color:#1e293b;">
+              <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${s.color}; margin-right:6px; vertical-align:middle;"></span>
+              ${s.name}
+            </td>
+            <td style="padding:10px 12px; text-align:right; font-weight:600; color:${s.totalNetReturnAmount >= 0 ? 'var(--accent-red)' : 'var(--primary)'}; ${isBestNetProfit ? 'background:#f0fdf4;' : ''}">
+              ${s.totalNetReturnAmount >= 0 ? '+' : ''}${s.totalNetReturnAmount.toLocaleString()}원${isBestNetProfit ? crownBadge : ''}
+            </td>
+            <td style="padding:10px 12px; text-align:right; font-weight:700; color:${s.returnOnAvgCapital >= 0 ? 'var(--accent-red)' : 'var(--primary)'}; ${isBestReturnOnCapital ? 'background:#f0fdf4;' : ''}">
+              ${s.returnOnAvgCapital >= 0 ? '+' : ''}${s.returnOnAvgCapital.toFixed(1)}%${isBestReturnOnCapital ? crownBadge : ''}
+            </td>
+            <td style="padding:10px 12px; text-align:right; color:#2563eb; font-weight:600;">
+              ${Math.round(s.averageCapitalBalance).toLocaleString()}원
+            </td>
+            <td style="padding:10px 12px; text-align:center; font-weight:600; ${isBestWinRate ? 'background:#f0fdf4;' : ''}">
+              <span style="color:var(--accent-green); font-weight:700;">${s.winRate.toFixed(1)}%</span>
+              <span style="font-size:0.72rem; color:#64748b; margin-left:2px;">(${s.winTrades}승/${s.lossTrades}패)</span>
+              ${isBestWinRate ? crownBadge : ''}
+            </td>
+            <td style="padding:10px 12px; text-align:right; font-weight:700; color:#0284c7; ${isBestProfitFactor ? 'background:#f0fdf4;' : ''}">
+              ${s.profitFactor.toFixed(2)}${isBestProfitFactor ? crownBadge : ''}
+            </td>
+            <td style="padding:10px 12px; text-align:right; font-weight:700; color:var(--accent-red); ${isBestMDD ? 'background:#f0fdf4;' : ''}">
+              ${s.portfolioMDD.toFixed(1)}%${isBestMDD ? crownBadge : ''}
+            </td>
+            <td style="padding:10px 12px; text-align:center; font-size:0.78rem; ${isBestAvgTradeRet ? 'background:#f0fdf4;' : ''}">
+              <strong style="color:var(--accent-purple);">${s.avgTradeRet >= 0 ? '+' : ''}${s.avgTradeRet.toFixed(2)}%</strong>
+              <span style="color:#64748b;">(${s.avgHold}일 / ${s.totalTrades}회)</span>
+              ${isBestAvgTradeRet ? crownBadge : ''}
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
     window.addEventListener('DOMContentLoaded', () => {
