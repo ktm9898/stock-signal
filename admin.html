@@ -2318,6 +2318,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'save_strategy_slots',
+            pin: getStoredPin(),
             slots: strategySlots
           })
         });
@@ -2688,6 +2689,14 @@
           </p>
         </div>
 
+        <div id="modal-pin-group" style="display:flex; flex-direction:column; gap:6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <label for="modal-update-pin" style="font-size:0.80rem; font-weight:600; color:#334155;">보안 비밀번호 (PIN)</label>
+            <span id="modal-pin-hint" style="font-size:0.72rem; color:#16a34a; font-weight:600; display:none;"><i class="fa-solid fa-circle-check"></i> 자동 연동됨</span>
+          </div>
+          <input type="password" id="modal-update-pin" placeholder="대시보드 비밀번호(PIN) 입력" style="padding:8px 12px; border-radius:6px; border:1px solid #cbd5e1; font-size:0.9rem; letter-spacing:2px; font-weight:600; width:100%; box-sizing:border-box;">
+        </div>
+
         <div id="update-progress-box" style="display:none; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:12px; text-align:center;">
           <div style="display:flex; align-items:center; justify-content:center; gap:8px; font-size:0.88rem; font-weight:600; color:#1e40af; margin-bottom:8px;">
             <i class="fa-solid fa-circle-notch fa-spin"></i>
@@ -2716,12 +2725,28 @@
   <script>
     const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
 
+    function getStoredPin() {
+      return localStorage.getItem('stock_signal_pin') || sessionStorage.getItem('stock_signal_pin') || '';
+    }
+
     function openUpdateDatasetModal() {
       const modal = document.getElementById('update-dataset-modal');
       if (!modal) return;
       const lastDate = document.getElementById('dataset-last-date-text')?.textContent || '2026-08-18';
       const modalDate = document.getElementById('modal-current-last-date');
       if (modalDate) modalDate.textContent = lastDate;
+
+      const storedPin = getStoredPin();
+      const pinInput = document.getElementById('modal-update-pin');
+      const pinHint = document.getElementById('modal-pin-hint');
+      if (pinInput) {
+        pinInput.value = storedPin;
+        if (storedPin && pinHint) {
+          pinHint.style.display = 'inline';
+        } else if (pinHint) {
+          pinHint.style.display = 'none';
+        }
+      }
 
       document.getElementById('update-progress-box').style.display = 'none';
       document.getElementById('update-result-box').style.display = 'none';
@@ -2735,7 +2760,12 @@
 
     function closeUpdateDatasetModal() {
       const modal = document.getElementById('update-dataset-modal');
-      if (modal) modal.style.display = 'none';
+      if (!modal) return;
+      modal.style.display = 'none';
+      if (updateTimerInterval) {
+        clearInterval(updateTimerInterval);
+        updateTimerInterval = null;
+      }
     }
 
     let updateTimerInterval = null;
@@ -2746,6 +2776,18 @@
       const statusText = document.getElementById('update-progress-status');
       const timerText = document.getElementById('update-timer-text');
       const submitBtn = document.getElementById('btn-submit-cloud-update');
+      const pinInput = document.getElementById('modal-update-pin');
+      const pinVal = (pinInput ? pinInput.value.trim() : '') || getStoredPin();
+
+      if (!pinVal) {
+        resultBox.style.display = 'block';
+        resultBox.style.background = '#fee2e2';
+        resultBox.style.color = '#b91c1c';
+        resultBox.style.border = '1px solid #fca5a5';
+        resultBox.innerHTML = `<strong>오류:</strong> 보안 비밀번호(PIN)를 입력해주세요.`;
+        if (pinInput) pinInput.focus();
+        return;
+      }
 
       progressBox.style.display = 'block';
       resultBox.style.display = 'none';
@@ -2757,13 +2799,28 @@
         const res = await fetch(GAS_WEBAPP_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
-          body: JSON.stringify({ action: "trigger_backtest_update" })
+          body: JSON.stringify({ 
+            action: "trigger_backtest_update",
+            pin: pinVal
+          })
         });
 
         const data = await res.json();
         if (!data.success) {
+          if (data.message && data.message.includes("PIN")) {
+            localStorage.removeItem('stock_signal_pin');
+            sessionStorage.removeItem('stock_signal_pin');
+            const pinHint = document.getElementById('modal-pin-hint');
+            if (pinHint) pinHint.style.display = 'none';
+          }
           throw new Error(data.message || "클라우드 갱신 트리거 실패");
         }
+
+        // Save valid PIN to storage
+        localStorage.setItem('stock_signal_pin', pinVal);
+        sessionStorage.setItem('stock_signal_pin', pinVal);
+        const pinHint = document.getElementById('modal-pin-hint');
+        if (pinHint) pinHint.style.display = 'inline';
 
         statusText.textContent = "353개 종목 5년치 데이터 수집 및 연산 진행 중...";
         let secondsLeft = 45;
