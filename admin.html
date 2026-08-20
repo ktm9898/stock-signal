@@ -1340,12 +1340,30 @@
       }
     }
 
+    function formatToDateOnly(val, fallback = '') {
+      if (!val) return fallback;
+      if (typeof val === 'string') {
+        const match = val.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (match) return match[1];
+      }
+      try {
+        const d = new Date(val);
+        if (!isNaN(d.getTime())) {
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        }
+      } catch(e) {}
+      return fallback;
+    }
+
     function toggleCustomDateInputs(val) {
       const startInput = document.getElementById('opt-start-date');
       const endInput = document.getElementById('opt-end-date');
       if (!startInput || !endInput) return;
 
-      const endStr = "2026-08-14";
+      const endStr = typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : "2026-08-20";
       endInput.value = endStr;
 
       if (val === '5Y') {
@@ -1353,11 +1371,15 @@
         startInput.disabled = true;
         endInput.disabled = true;
       } else if (val === '3Y') {
-        startInput.value = "2023-08-14";
+        const d = new Date(endStr);
+        d.setFullYear(d.getFullYear() - 3);
+        startInput.value = formatToDateOnly(d, "2023-08-20");
         startInput.disabled = true;
         endInput.disabled = true;
       } else if (val === '1Y') {
-        startInput.value = "2025-08-14";
+        const d = new Date(endStr);
+        d.setFullYear(d.getFullYear() - 1);
+        startInput.value = formatToDateOnly(d, "2025-08-20");
         startInput.disabled = true;
         endInput.disabled = true;
       } else if (val === 'CUSTOM') {
@@ -1376,8 +1398,8 @@
         const targetMarketSelect = document.getElementById('opt-backtest-market');
         const targetMarket = targetMarketSelect ? targetMarketSelect.value : 'ALL';
 
-        let startDateStr = document.getElementById('opt-start-date').value;
-        let endDateStr = document.getElementById('opt-end-date').value;
+        let startDateStr = formatToDateOnly(document.getElementById('opt-start-date')?.value, '2021-01-04');
+        let endDateStr = formatToDateOnly(document.getElementById('opt-end-date')?.value, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-20');
 
         const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 1000000;
         const stopLossVal = parseFloat(document.getElementById('opt-stop-loss').value) || null;
@@ -2225,8 +2247,8 @@
         isEmpty: false,
         market: document.getElementById('opt-backtest-market').value,
         period: document.getElementById('opt-backtest-period').value,
-        startDate: document.getElementById('opt-start-date').value,
-        endDate: document.getElementById('opt-end-date').value,
+        startDate: formatToDateOnly(document.getElementById('opt-start-date')?.value, '2021-01-04'),
+        endDate: formatToDateOnly(document.getElementById('opt-end-date')?.value, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-20'),
         stopLoss: stopLossVal,
         takeProfit: takeProfitVal,
         tradeAmount: tradeAmount,
@@ -2305,8 +2327,12 @@
         document.getElementById('opt-backtest-period').value = slot.period;
         toggleCustomDateInputs(slot.period);
       }
-      if (slot.startDate) document.getElementById('opt-start-date').value = slot.startDate;
-      if (slot.endDate) document.getElementById('opt-end-date').value = slot.endDate;
+      if (slot.startDate) {
+        document.getElementById('opt-start-date').value = formatToDateOnly(slot.startDate, '2021-01-04');
+      }
+      if (slot.endDate) {
+        document.getElementById('opt-end-date').value = formatToDateOnly(slot.endDate, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-20');
+      }
       if (slot.stopLoss !== undefined) document.getElementById('opt-stop-loss').value = slot.stopLoss !== null ? slot.stopLoss : "";
       if (slot.takeProfit !== undefined) document.getElementById('opt-take-profit').value = slot.takeProfit !== null ? slot.takeProfit : "";
       if (slot.tradeAmount) document.getElementById('opt-initial-capital').value = slot.tradeAmount;
@@ -2532,8 +2558,8 @@
         } catch(e) {}
       }
 
-      let startDateStr = document.getElementById('opt-start-date')?.value || '2021-01-04';
-      let endDateStr = document.getElementById('opt-end-date')?.value || '2026-08-20';
+      let startDateStr = formatToDateOnly(document.getElementById('opt-start-date')?.value, '2021-01-04');
+      let endDateStr = formatToDateOnly(document.getElementById('opt-end-date')?.value, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-20');
       const tradeAmount = parseFloat(document.getElementById('opt-initial-capital')?.value) || 1000000;
       const market = document.getElementById('opt-backtest-market')?.value || 'ALL';
 
