@@ -2724,11 +2724,42 @@
           maintainAspectRatio: false,
           interaction: { intersect: false, mode: 'index' },
           plugins: {
-            legend: { position: 'top', labels: { font: { weight: '600', size: 11 } } },
+            legend: { 
+              position: 'top', 
+              labels: { 
+                usePointStyle: true, 
+                pointStyle: 'circle',
+                boxWidth: 8,
+                padding: 10,
+                font: { weight: '600', size: 11 } 
+              } 
+            },
             tooltip: {
               callbacks: {
                 title: (items) => items.length > 0 ? `날짜: ${items[0].label}` : '',
-                label: (context) => ` ${context.dataset.label}: ${context.parsed.y >= 0 ? '+' : ''}${context.parsed.y.toFixed(1)}%`
+                label: (context) => {
+                  const val = context.parsed.y;
+                  const sign = val >= 0 ? '+' : '';
+                  return ` ${context.dataset.label}: ${sign}${val.toFixed(1)}%`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              grid: { color: '#f1f5f9' },
+              ticks: { callback: (val) => `${val > 0 ? '+' : ''}${val}%` }
+            },
+            x: {
+              grid: { display: false },
+              ticks: {
+                maxTicksLimit: 12,
+                autoSkip: true,
+                font: { size: 10 },
+                callback: function(val) {
+                  const rawDate = this.getLabelForValue(val);
+                  return rawDate ? rawDate.slice(0, 7).replace('-', '.') : '';
+                }
               }
             }
           }
