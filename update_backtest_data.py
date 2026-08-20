@@ -145,11 +145,19 @@ def update_backtest_database():
 
     print(f"[INFO] Found {len(all_symbols)} symbols (350 stocks + benchmarks) in backtest database.")
 
-    # Check baseline date
+    # Quick pre-check on benchmark/leading ticker to avoid 353 unnecessary network requests
     sample_ticker = "005930" if "005930" in preloaded_data else all_symbols[0]
     sample_history = preloaded_data.get(sample_ticker, [])
     last_known_date = sample_history[-1][0] if sample_history else "2021-01-01"
     print(f"[INFO] Current dataset last trading date: {last_known_date}")
+
+    print(f"[INFO] Pre-checking latest market candles for {sample_ticker}...")
+    sample_df = fetch_candles_and_indicators(sample_ticker, candle_count=30)
+    if sample_df is not None and len(sample_df) > 0:
+        latest_market_date = sample_df['Date'].iloc[-1]
+        if latest_market_date <= last_known_date:
+            print(f"[INFO] Fast-Exit: Market data is already up-to-date ({last_known_date}). Skipping full symbol sync.")
+            return True
 
     updated_count = 0
     new_dates_added = set()

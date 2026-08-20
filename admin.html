@@ -543,18 +543,18 @@
         <!-- Stop Loss / Take Profit Sub-section inside Sell Rules -->
         <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
           <div style="font-size: 0.80rem; font-weight: 700; color: #334155; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-shield-halved" style="color: #64748b;"></i> 손절 / 익절 청산 조건 <span style="font-size: 0.72rem; color: #94a3b8; font-weight: 400;">(가격 기준 강제 청산 규칙)</span>
+            <i class="fa-solid fa-shield-halved" style="color: #64748b;"></i> 손절 / 익절 청산 조건
           </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
             <div>
               <label style="display: block; font-size: 0.76rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
-                손절선 (-%) <span style="font-size: 0.7rem; color: #94a3b8;">(공란 = 신호로만 매도)</span>
+                손절선 (-%)
               </label>
               <input type="number" id="opt-stop-loss" class="form-input" placeholder="예: 5 (-5% 도달 시 청산)" style="width: 100%;">
             </div>
             <div>
               <label style="display: block; font-size: 0.76rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
-                익절선 (+%) <span style="font-size: 0.7rem; color: #94a3b8;">(공란 = 신호로만 매도)</span>
+                익절선 (+%)
               </label>
               <input type="number" id="opt-take-profit" class="form-input" placeholder="예: 15 (+15% 도달 시 청산)" style="width: 100%;">
             </div>
@@ -2871,13 +2871,10 @@
 
       <div style="padding:18px; display:flex; flex-direction:column; gap:14px;">
         <div style="font-size:0.84rem; color:#475569; line-height:1.6; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0;">
-          <div style="display:flex; justify-content:space-between; margin-bottom:6px;">
+          <div style="display:flex; justify-content:space-between;">
             <span>현재 로드된 최신 거래일:</span>
             <strong id="modal-current-last-date" style="color:#2563eb;">2026-08-18</strong>
           </div>
-          <p style="margin:0; font-size:0.78rem; color:#64748b;">
-            <strong>[갱신 시작]</strong> 버튼을 누르면 구글 앱스 스크립트(GAS)를 통해 <strong>GitHub Actions 클라우드 서버</strong>에서 353개 종목의 오늘자 최신 주가와 보조지표를 갱신하고 커밋합니다. (소요시간 약 40초)
-          </p>
         </div>
 
         <div id="modal-pin-group" style="display:flex; flex-direction:column; gap:6px;">
@@ -2916,6 +2913,16 @@
   <script>
     const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
 
+    function getKSTTodayString() {
+      const now = new Date();
+      const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+      const kstNow = new Date(utc + (9 * 3600000));
+      const yyyy = kstNow.getFullYear();
+      const mm = String(kstNow.getMonth() + 1).padStart(2, '0');
+      const dd = String(kstNow.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
     function getStoredPin() {
       return localStorage.getItem('stock_signal_pin') || sessionStorage.getItem('stock_signal_pin') || '';
     }
@@ -2923,9 +2930,14 @@
     function openUpdateDatasetModal() {
       const modal = document.getElementById('update-dataset-modal');
       if (!modal) return;
-      const lastDate = document.getElementById('dataset-last-date-text')?.textContent || '2026-08-18';
+      const lastDate = document.getElementById('dataset-last-date-text')?.textContent || '';
+      const todayStr = getKSTTodayString();
+      const isAlreadyUpToDate = (lastDate && lastDate === todayStr);
+
       const modalDate = document.getElementById('modal-current-last-date');
-      if (modalDate) modalDate.textContent = lastDate;
+      if (modalDate) {
+        modalDate.innerHTML = `${lastDate || '조회 중'} ${isAlreadyUpToDate ? '<span style="background:#dcfce7; color:#15803d; font-size:0.72rem; padding:2px 6px; border-radius:4px; font-weight:700; margin-left:6px;"><i class="fa-solid fa-circle-check"></i> 최신 상태</span>' : ''}`;
+      }
 
       const storedPin = getStoredPin();
       const pinInput = document.getElementById('modal-update-pin');
@@ -2944,7 +2956,13 @@
       const submitBtn = document.getElementById('btn-submit-cloud-update');
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = `갱신 시작`;
+        if (isAlreadyUpToDate) {
+          submitBtn.innerHTML = `<i class="fa-solid fa-check"></i> 이미 최신 상태입니다`;
+          submitBtn.style.background = "#64748b";
+        } else {
+          submitBtn.innerHTML = `갱신 시작`;
+          submitBtn.style.background = "linear-gradient(135deg, #2563eb, #0284c7)";
+        }
       }
       modal.style.display = 'flex';
     }
@@ -2962,6 +2980,15 @@
     let updateTimerInterval = null;
 
     async function executeCloudDatasetUpdate() {
+      const lastDate = document.getElementById('dataset-last-date-text')?.textContent || '';
+      const todayStr = getKSTTodayString();
+      const isAlreadyUpToDate = (lastDate && lastDate === todayStr);
+
+      if (isAlreadyUpToDate) {
+        const proceed = confirm(`오늘(${todayStr}) 주가 데이터가 이미 최신 상태로 반영되어 있습니다.\n그래도 클라우드 갱신을 다시 실행하시겠습니까?`);
+        if (!proceed) return;
+      }
+
       const progressBox = document.getElementById('update-progress-box');
       const resultBox = document.getElementById('update-result-box');
       const statusText = document.getElementById('update-progress-status');
