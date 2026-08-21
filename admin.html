@@ -2967,16 +2967,63 @@
           if (totalPoints === 0) return;
 
           const isPortrait = (window.innerWidth <= 768 && window.innerHeight > window.innerWidth);
-          let ratio;
+          let canvasX, canvasY;
 
           if (isPortrait) {
-            // In 90-degree rotated portrait mode:
+            const relY = Math.max(0, Math.min(window.innerHeight, touch.clientY));
+            canvasX = (relY / (window.innerHeight || 1)) * fullCanvas.width;
+
+            const relX = Math.max(0, Math.min(window.innerWidth, window.innerWidth - touch.clientX));
+            canvasY = (relX / (window.innerWidth || 1)) * fullCanvas.height;
+          } else {
+            const relX = Math.max(0, Math.min(window.innerWidth, touch.clientX));
+            canvasX = (relX / (window.innerWidth || 1)) * fullCanvas.width;
+
+            const relY = Math.max(0, Math.min(window.innerHeight, touch.clientY));
+            canvasY = (relY / (window.innerHeight || 1)) * fullCanvas.height;
+          }
+
+          // Check if touch/click was on the Legend items bar (top 38px of chart in local canvas Y)
+          if (canvasY <= 38 && (e.type === 'click' || e.type === 'touchstart' || e.type === 'pointerdown')) {
+            const legend = fullscreenChartInstance.legend;
+            if (legend && legend.legendItems && legend.legendItems.length > 0) {
+              const hitBoxes = legend.legendHitBoxes || [];
+              let toggled = false;
+              for (let i = 0; i < hitBoxes.length; i++) {
+                const box = hitBoxes[i];
+                if (canvasX >= box.left - 8 && canvasX <= box.left + box.width + 8 &&
+                    canvasY >= box.top - 8 && canvasY <= box.top + box.height + 8) {
+                  const datasetIndex = legend.legendItems[i].datasetIndex;
+                  const isVis = fullscreenChartInstance.isDatasetVisible(datasetIndex);
+                  fullscreenChartInstance.setDatasetVisibility(datasetIndex, !isVis);
+                  fullscreenChartInstance.update();
+                  toggled = true;
+                  break;
+                }
+              }
+              if (!toggled) {
+                const totalLegend = legend.legendItems.length;
+                const slotWidth = fullCanvas.width / totalLegend;
+                const itemIdx = Math.floor(canvasX / slotWidth);
+                if (itemIdx >= 0 && itemIdx < totalLegend) {
+                  const datasetIndex = legend.legendItems[itemIdx].datasetIndex;
+                  const isVis = fullscreenChartInstance.isDatasetVisible(datasetIndex);
+                  fullscreenChartInstance.setDatasetVisibility(datasetIndex, !isVis);
+                  fullscreenChartInstance.update();
+                  toggled = true;
+                }
+              }
+              if (toggled) return;
+            }
+          }
+
+          let ratio;
+          if (isPortrait) {
             // Top of smartphone (touch.clientY = 30px) -> Date 0 (2021)
             // Bottom of smartphone (touch.clientY = window.innerHeight - 30px) -> Date Max (2026)
             const screenH = window.innerHeight || 800;
             ratio = (touch.clientY - 30) / Math.max(1, screenH - 60);
           } else {
-            // In landscape or desktop mode:
             // Left of screen (touch.clientX = 30px) -> Date 0 (2021)
             // Right of screen (touch.clientX = window.innerWidth - 30px) -> Date Max (2026)
             const screenW = window.innerWidth || 800;
