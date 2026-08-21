@@ -374,15 +374,6 @@
       #chart-wrapper { height: 230px !important; margin-bottom: 0 !important; }
       #equityChart { height: 230px !important; }
 
-      @media (orientation: portrait) {
-        #chart-landscape-modal {
-          width: 100vh !important;
-          height: 100vw !important;
-          transform-origin: top left !important;
-          transform: rotate(90deg) translateY(-100vw) !important;
-        }
-      }
-
       .filter-bar-responsive {
         flex-direction: column !important;
         align-items: stretch !important;
@@ -740,9 +731,12 @@
             <div class="card-title" id="recent-trades-title">
               최근 매매 체결 일지
             </div>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <button id="btn-full-trades" class="btn-sm-action" onclick="resetRecentTradesTableFilter()" style="font-size:0.75rem; background:#f1f5f9; color:#334155; border:1px solid var(--border-subtle);">
-                <i class="fa-solid fa-rotate" style="margin-right:3px;"></i> 전체 내역 보기
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              <button id="btn-full-trades" class="btn-sm-action" onclick="resetRecentTradesTableFilter()" style="font-size:0.75rem; background:#f1f5f9; color:#334155; border:1px solid var(--border-subtle);" title="차트 날짜 필터를 해제하고 최근 50건으로 초기화">
+                <i class="fa-solid fa-rotate-left" style="margin-right:3px;"></i> 필터 초기화
+              </button>
+              <button class="btn-sm-action" onclick="switchAdminTab('tab-tradelog')" style="font-size:0.75rem; background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; font-weight:600;" title="백테스트 전체 체결 일지 탭으로 이동">
+                <i class="fa-solid fa-list-ul" style="margin-right:3px;"></i> 전체 일지 탭 ↗
               </button>
               <div id="trade-log-count-box" style="font-size: 0.75rem; color: var(--text-sub);">
                 표시 <span id="trade-log-count" style="font-weight: 700; color: #2563eb;">0</span>건
@@ -1161,7 +1155,12 @@
       
       const target = document.getElementById(tabId);
       if (target) target.classList.add('active');
-      if (btn) btn.classList.add('active');
+      if (btn) {
+        btn.classList.add('active');
+      } else {
+        const matchingBtn = document.querySelector(`.nav-tab-btn[onclick*="${tabId}"]`);
+        if (matchingBtn) matchingBtn.classList.add('active');
+      }
 
       if (tabId === 'tab-dataviewer') {
         initDataViewer();
