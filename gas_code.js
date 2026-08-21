@@ -171,16 +171,37 @@ function doPost(e) {
         data.candidates.forEach(c => {
           const tickerStr = normalizeTicker(c.ticker);
           let exists = false;
-          for (let i = 0; i < existingRows.length; i++) {
-            const rowYMD = extractYMD(existingRows[i][0]);
+          for (let i = existingRows.length - 1; i >= 0; i--) {
             const rowTickerStr = normalizeTicker(existingRows[i][1]);
-            if (rowYMD === todayYMD && rowTickerStr === tickerStr) {
-              exists = true;
-              break;
+            if (rowTickerStr === tickerStr) {
+              const rowYMD = extractYMD(existingRows[i][0]);
+              // 1) Same-day duplication check
+              if (rowYMD === todayYMD) {
+                exists = true;
+                break;
+              }
+              // 2) Cross-day identical indicators/price check (same unupdated candle state)
+              const rowAdx = Number(existingRows[i][4]);
+              const rowMdi = Number(existingRows[i][6]);
+              const rowRsi = Number(existingRows[i][9]);
+              const rowClose = Number(existingRows[i][11]);
+              const candAdx = Number(c.adx);
+              const candMdi = Number(c.minus_di);
+              const candRsi = Number(c.rsi);
+              const candClose = Number(c.close);
+
+              if (!isNaN(rowAdx) && !isNaN(candAdx) &&
+                  Math.abs(rowAdx - candAdx) < 0.01 &&
+                  Math.abs(rowMdi - candMdi) < 0.01 &&
+                  Math.abs(rowRsi - candRsi) < 0.01 &&
+                  rowClose === candClose) {
+                exists = true;
+                break;
+              }
             }
           }
 
-          // Keep the FIRST signal timestamp & metrics of the day (do not duplicate)
+          // Keep the FIRST signal timestamp & metrics (do not duplicate)
           if (!exists) {
             buySheet.appendRow([today, c.ticker, c.name, c.priority, c.adx, c.prev_adx, c.minus_di, c.prev_minus_di, c.plus_di, c.rsi, (c.b_band_pct !== undefined ? c.b_band_pct : (c.BB_Pct !== undefined ? c.BB_Pct : '-')), c.close]);
           }
@@ -263,16 +284,26 @@ function doPost(e) {
         data.signals.forEach(s => {
           const tickerStr = normalizeTicker(s.ticker);
           let exists = false;
-          for (let i = 0; i < existingData.length; i++) {
-            const rowYMD = extractYMD(existingData[i][0]);
+          for (let i = existingData.length - 1; i >= 0; i--) {
             const rowTickerStr = normalizeTicker(existingData[i][1]);
-            if (rowYMD === todayYMD && rowTickerStr === tickerStr) {
-              exists = true;
-              break;
+            if (rowTickerStr === tickerStr) {
+              const rowYMD = extractYMD(existingData[i][0]);
+              if (rowYMD === todayYMD) {
+                exists = true;
+                break;
+              }
+              const rowPrice = Number(existingData[i][4]);
+              const rowAdx = Number(existingData[i][6]);
+              const sPrice = Number(s.currPrice);
+              const sAdx = Number(s.adx);
+              if (!isNaN(rowPrice) && rowPrice === sPrice && !isNaN(rowAdx) && Math.abs(rowAdx - sAdx) < 0.01) {
+                exists = true;
+                break;
+              }
             }
           }
 
-          // Keep the FIRST sell alert timestamp of the day
+          // Keep the FIRST sell alert timestamp
           if (!exists) {
             const detailsText = Array.isArray(s.details) ? s.details.join(", ") : String(s.details || "");
             sheet.appendRow([

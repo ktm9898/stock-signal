@@ -168,7 +168,6 @@
       text-align: center;
     }
     td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    td:first-child { padding-left: 20px; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: #f8fafc; }
 
@@ -1186,18 +1185,43 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       return num.toFixed(decimals);
     }
 
-    function renderBuyCandidates(list, logs = []) {
+    function renderBuyCandidates(list, lastTime = "") {
       const tbody = document.getElementById('buy-candidates-body');
+      if (!tbody) return;
       if (!list || list.length === 0) {
-        const lastLog = logs.length > 0 ? logs[logs.length - 1] : null;
-        const lastTime = lastLog ? formatShortDate(lastLog.Timestamp || lastLog.date) : '최근';
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--text-sub); padding:24px;">
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-sub); padding:24px;">
           [${lastTime}] 스크리너 정상 완료 (KOSPI 200개 종목 검사). 포착된 매수 신호 종목이 없습니다.
         </td></tr>`;
         return;
       }
 
-      const reversedList = [...list].reverse();
+      const uniqueList = [];
+      list.forEach(item => {
+        const ticker = formatTicker(item.Ticker || item.ticker || item.code);
+        const adx = Number(item.ADX || item.adx);
+        const mdi = Number(item.Minus_DI || item.minus_di || item.minusDi);
+        const rsi = Number(item.RSI || item.rsi);
+        const price = Number(item.ClosePrice || item.price || 0);
+
+        const alreadyExists = uniqueList.some(prev => {
+          const prevTicker = formatTicker(prev.Ticker || prev.ticker || prev.code);
+          if (prevTicker !== ticker) return false;
+          const prevAdx = Number(prev.ADX || prev.adx);
+          const prevMdi = Number(prev.Minus_DI || prev.minus_di || prev.minusDi);
+          const prevRsi = Number(prev.RSI || prev.rsi);
+          const prevPrice = Number(prev.ClosePrice || prev.price || 0);
+          return Math.abs(prevAdx - adx) < 0.01 &&
+                 Math.abs(prevMdi - mdi) < 0.01 &&
+                 Math.abs(prevRsi - rsi) < 0.01 &&
+                 prevPrice === price;
+        });
+
+        if (!alreadyExists) {
+          uniqueList.push(item);
+        }
+      });
+
+      const reversedList = [...uniqueList].reverse();
       tbody.innerHTML = reversedList.map(item => {
         const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || '전략매수');
         let stageText = '전략매수';
@@ -1226,7 +1250,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
         return `
           <tr>
-            <td><span style="color:var(--text-sub); font-size:0.85rem; font-weight:500;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
+            <td style="text-align:center;"><span style="color:var(--text-sub); font-size:0.85rem; font-weight:500;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
             <td style="padding-left: 16px;"><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
             <td style="text-align:center;"><span class="badge ${tierClass}" onclick="showDetailsModal('${name}', '${stageText}', '${reason}', '${tierClass}')" title="클릭 시 포착 사유 확인">${stageText}</span></td>
             <td style="text-align:center;"><strong style="color:var(--accent-cyan);">${formatDec(item.ADX || item.adx)}</strong></td>
@@ -1289,7 +1313,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
         return `
           <tr>
-            <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
+            <td style="padding-left: 20px;"><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
             <td style="text-align:center;"><strong style="color: ${Number(item.ADX || item.adx) >= 30 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
             <td style="text-align:center;">${currMdi}</td>
             <td style="text-align:center;">${currPdi}</td>
@@ -1370,7 +1394,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
         return `
           <tr>
-            <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
+            <td style="padding-left: 20px;"><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
             <td style="text-align:center;"><strong style="color: ${Number(item.ADX || item.adx) >= 30 ? 'var(--accent-cyan)' : 'inherit'}">${currAdx}</strong></td>
             <td style="text-align:center;">${currMdi}</td>
             <td style="text-align:center;">${currPdi}</td>
@@ -1468,7 +1492,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
         return `
           <tr>
-            <td><span style="color:var(--text-sub); font-size:0.85rem;">${formatDateOnly(item.DateAdded || item.date)}</span></td>
+            <td style="text-align:center;"><span style="color:var(--text-sub); font-size:0.85rem;">${formatDateOnly(item.DateAdded || item.date)}</span></td>
             <td style="padding-left: 16px;"><strong>${displayName}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${displayTicker})</span></td>
             <td style="text-align:right; padding-right: 24px;">${buyPrice > 0 ? buyPrice.toLocaleString() + ' 원' : '-'}</td>
             <td style="text-align:right; padding-right: 24px;">${currPrice > 0 ? currPrice.toLocaleString() + ' 원' : '-'}</td>
@@ -1494,7 +1518,29 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         </td></tr>`;
         return;
       }
-      const reversedList = [...list].reverse();
+
+      const uniqueList = [];
+      list.forEach(item => {
+        const ticker = formatTicker(item.Ticker || item.ticker || item.code);
+        const price = Number(item.CurrPrice || item.currPrice || 0);
+        const adx = Number(item.ADX || item.adx);
+        const level = String(item.Status || item.signalLevel || '');
+
+        const alreadyExists = uniqueList.some(prev => {
+          const prevTicker = formatTicker(prev.Ticker || prev.ticker || prev.code);
+          if (prevTicker !== ticker) return false;
+          const prevPrice = Number(prev.CurrPrice || prev.currPrice || 0);
+          const prevAdx = Number(prev.ADX || prev.adx);
+          const prevLevel = String(prev.Status || prev.signalLevel || '');
+          return prevPrice === price && Math.abs(prevAdx - adx) < 0.01 && prevLevel === level;
+        });
+
+        if (!alreadyExists) {
+          uniqueList.push(item);
+        }
+      });
+
+      const reversedList = [...uniqueList].reverse();
       tbody.innerHTML = reversedList.map(item => {
         const rate = Number(item.ReturnRate || item.returnRate || 0);
         const rateColor = rate > 0 ? 'var(--accent-red)' : rate < 0 ? 'var(--accent-blue)' : 'inherit';
