@@ -165,8 +165,10 @@
       background: #f8fafc; color: #475569;
       font-size: 0.78rem; font-weight: 600; text-transform: uppercase;
       padding: 10px 8px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;
+      text-align: center;
     }
     td { padding: 10px 8px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    td:first-child { padding-left: 20px; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: #f8fafc; }
 
@@ -471,14 +473,14 @@
             <tr>
               <th>포착 일시</th>
               <th>종목</th>
-              <th style="text-align:center;">우선순위</th>
-              <th style="text-align:center;">ADX</th>
-              <th style="text-align:center;">-DI</th>
-              <th style="text-align:center;">+DI</th>
-              <th style="text-align:center;">RSI</th>
-              <th style="text-align:center;">BB</th>
-              <th style="text-align:right; padding-right:6px;">현재가</th>
-              <th style="text-align:center;">액션</th>
+              <th>우선순위</th>
+              <th>ADX</th>
+              <th>-DI</th>
+              <th>+DI</th>
+              <th>RSI</th>
+              <th>BB</th>
+              <th>현재가</th>
+              <th>액션</th>
             </tr>
           </thead>
           <tbody id="buy-candidates-body">
@@ -509,15 +511,15 @@
             <tr>
               <th>포착 일시</th>
               <th>종목</th>
-              <th style="text-align:right; padding-right:6px;">매수가</th>
-              <th style="text-align:right; padding-right:6px;">현재가</th>
-              <th style="text-align:center;">수익률</th>
-              <th style="text-align:center;">ADX</th>
-              <th style="text-align:center;">-DI</th>
-              <th style="text-align:center;">+DI</th>
-              <th style="text-align:center;">RSI</th>
-              <th style="text-align:center;">BB</th>
-              <th style="text-align:center;">신호</th>
+              <th>매수가</th>
+              <th>현재가</th>
+              <th>수익률</th>
+              <th>ADX</th>
+              <th>-DI</th>
+              <th>+DI</th>
+              <th>RSI</th>
+              <th>BB</th>
+              <th>신호</th>
             </tr>
           </thead>
           <tbody id="sell-signals-body">
@@ -549,16 +551,16 @@
             <tr>
               <th>등록일</th>
               <th>종목</th>
-              <th style="text-align:right; padding-right:6px;">매수가</th>
-              <th style="text-align:right; padding-right:6px;">현재가</th>
-              <th style="text-align:center;">수익률</th>
-              <th style="text-align:center;">ADX</th>
-              <th style="text-align:center;">-DI</th>
-              <th style="text-align:center;">+DI</th>
-              <th style="text-align:center;">RSI</th>
-              <th style="text-align:center;">BB</th>
-              <th style="text-align:center;">상태</th>
-              <th style="text-align:center;">삭제</th>
+              <th>매수가</th>
+              <th>현재가</th>
+              <th>수익률</th>
+              <th>ADX</th>
+              <th>-DI</th>
+              <th>+DI</th>
+              <th>RSI</th>
+              <th>BB</th>
+              <th>상태</th>
+              <th>삭제</th>
             </tr>
           </thead>
           <tbody id="holdings-body">
@@ -596,17 +598,17 @@
           <thead>
             <tr>
               <th>종목</th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('ADX')" title="클릭 시 ADX 지표 설명 보기">ADX <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('-DI')" title="클릭 시 -DI 지표 설명 보기">-DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('+DI')" title="클릭 시 +DI 지표 설명 보기">+DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('RSI')" title="클릭 시 RSI 지표 설명 보기">RSI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('BB_Pct')" title="클릭 시 BB 지표 설명 보기">BB <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('MACD')" title="클릭 시 MACD 지표 설명 보기">MACD <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('STOCH')" title="클릭 시 STOCH 지표 설명 보기">STOCH <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('DISPARITY')" title="클릭 시 이격도 지표 설명 보기">이격도 <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:right; padding-right: 6px;">현재가</th>
-              <th style="text-align:center;">상태</th>
+              <th onclick="showIndicatorHelp('ADX')" title="클릭 시 ADX 지표 설명 보기">ADX <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('-DI')" title="클릭 시 -DI 지표 설명 보기">-DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('+DI')" title="클릭 시 +DI 지표 설명 보기">+DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('RSI')" title="클릭 시 RSI 지표 설명 보기">RSI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('BB_Pct')" title="클릭 시 BB 지표 설명 보기">BB <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('MACD')" title="클릭 시 MACD 지표 설명 보기">MACD <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('STOCH')" title="클릭 시 STOCH 지표 설명 보기">STOCH <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('DISPARITY')" title="클릭 시 이격도 지표 설명 보기">이격도 <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th>현재가</th>
+              <th>상태</th>
             </tr>
           </thead>
           <tbody id="all-stocks-body">
@@ -641,17 +643,17 @@
           <thead>
             <tr>
               <th>종목</th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('ADX')" title="클릭 시 ADX 지표 설명 보기">ADX <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('-DI')" title="클릭 시 -DI 지표 설명 보기">-DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('+DI')" title="클릭 시 +DI 지표 설명 보기">+DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('RSI')" title="클릭 시 RSI 지표 설명 보기">RSI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('BB_Pct')" title="클릭 시 BB 지표 설명 보기">BB <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('MACD')" title="클릭 시 MACD 지표 설명 보기">MACD <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('STOCH')" title="클릭 시 STOCH 지표 설명 보기">STOCH <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('DISPARITY')" title="클릭 시 이격도 지표 설명 보기">이격도 <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:center;" onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th style="text-align:right; padding-right: 6px;">현재가</th>
-              <th style="text-align:center;">상태</th>
+              <th onclick="showIndicatorHelp('ADX')" title="클릭 시 ADX 지표 설명 보기">ADX <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('-DI')" title="클릭 시 -DI 지표 설명 보기">-DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('+DI')" title="클릭 시 +DI 지표 설명 보기">+DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('RSI')" title="클릭 시 RSI 지표 설명 보기">RSI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('BB_Pct')" title="클릭 시 BB 지표 설명 보기">BB <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('MACD')" title="클릭 시 MACD 지표 설명 보기">MACD <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('STOCH')" title="클릭 시 STOCH 지표 설명 보기">STOCH <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('DISPARITY')" title="클릭 시 이격도 지표 설명 보기">이격도 <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th>현재가</th>
+              <th>상태</th>
             </tr>
           </thead>
           <tbody id="kosdaq-stocks-body">
@@ -1225,14 +1227,14 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         return `
           <tr>
             <td><span style="color:var(--text-sub); font-size:0.85rem; font-weight:500;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
-            <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
+            <td style="padding-left: 16px;"><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
             <td style="text-align:center;"><span class="badge ${tierClass}" onclick="showDetailsModal('${name}', '${stageText}', '${reason}', '${tierClass}')" title="클릭 시 포착 사유 확인">${stageText}</span></td>
             <td style="text-align:center;"><strong style="color:var(--accent-cyan);">${formatDec(item.ADX || item.adx)}</strong></td>
             <td style="text-align:center;">${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}</td>
             <td style="text-align:center;">${formatDec(item.Plus_DI || item.plus_di || item.plusDi)}</td>
             <td style="text-align:center;"><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${formatDec(item.RSI || item.rsi)}</span></td>
             <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
-            <td style="text-align:right; padding-right: 6px;">${(item.ClosePrice || item.price) ? Number(item.ClosePrice || item.price).toLocaleString() + ' 원' : '-'}</td>
+            <td style="text-align:right; padding-right: 24px;">${(item.ClosePrice || item.price) ? Number(item.ClosePrice || item.price).toLocaleString() + ' 원' : '-'}</td>
             <td style="text-align:center;"><button class="btn-buy-reg" style="padding: 4px 10px; font-size: 0.8rem;" onclick="quickRegister('${name}', '${ticker}', ${item.ClosePrice || item.price || 0})"><i class="fa-solid fa-plus"></i> 매수</button></td>
           </tr>
         `;
@@ -1297,7 +1299,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;">${stochK} / ${stochD}</td>
             <td style="text-align:center;"><span style="color: ${Number(disparity) <= 95 ? 'var(--accent-green)' : (Number(disparity) >= 105 ? '#f87171' : 'inherit')}">${disparity}%</span></td>
             <td style="text-align:center;"><strong style="color: ${Number(vr) >= 150 ? 'var(--accent-warning)' : 'inherit'}">${vr}%</strong></td>
-            <td style="text-align:right; padding-right: 6px;">${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
+            <td style="text-align:right; padding-right: 24px;">${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
             <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 세부 지표 확인">${statusText}</span></td>
           </tr>
         `;
@@ -1378,7 +1380,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;">${stochK} / ${stochD}</td>
             <td style="text-align:center;"><span style="color: ${Number(disparity) <= 95 ? 'var(--accent-green)' : (Number(disparity) >= 105 ? '#f87171' : 'inherit')}">${disparity}%</span></td>
             <td style="text-align:center;"><strong style="color: ${Number(vr) >= 150 ? 'var(--accent-warning)' : 'inherit'}">${vr}%</strong></td>
-            <td style="text-align:right; padding-right: 6px;">${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
+            <td style="text-align:right; padding-right: 24px;">${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
             <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 세부 지표 확인">${statusText}</span></td>
           </tr>
         `;
@@ -1467,9 +1469,9 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         return `
           <tr>
             <td><span style="color:var(--text-sub); font-size:0.85rem;">${formatDateOnly(item.DateAdded || item.date)}</span></td>
-            <td><strong>${displayName}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${displayTicker})</span></td>
-            <td style="text-align:right; padding-right: 6px;">${buyPrice > 0 ? buyPrice.toLocaleString() + ' 원' : '-'}</td>
-            <td style="text-align:right; padding-right: 6px;">${currPrice > 0 ? currPrice.toLocaleString() + ' 원' : '-'}</td>
+            <td style="padding-left: 16px;"><strong>${displayName}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${displayTicker})</span></td>
+            <td style="text-align:right; padding-right: 24px;">${buyPrice > 0 ? buyPrice.toLocaleString() + ' 원' : '-'}</td>
+            <td style="text-align:right; padding-right: 24px;">${currPrice > 0 ? currPrice.toLocaleString() + ' 원' : '-'}</td>
             <td style="text-align:center;"><strong style="color:${returnRateColor}">${returnRateStr}</strong></td>
             <td style="text-align:center;"><strong style="color:var(--accent-cyan);">${adx}</strong></td>
             <td style="text-align:center;">${mdi}</td>
@@ -1532,9 +1534,9 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         return `
           <tr>
             <td><span style="color:var(--text-sub); font-size:0.85rem;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
-            <td><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
-            <td style="text-align:right; padding-right: 6px;">${Number(item.BuyPrice || item.buyPrice || 0).toLocaleString()} 원</td>
-            <td style="text-align:right; padding-right: 6px;">${Number(item.CurrPrice || item.currPrice || 0).toLocaleString()} 원</td>
+            <td style="padding-left: 16px;"><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
+            <td style="text-align:right; padding-right: 24px;">${Number(item.BuyPrice || item.buyPrice || 0).toLocaleString()} 원</td>
+            <td style="text-align:right; padding-right: 24px;">${Number(item.CurrPrice || item.currPrice || 0).toLocaleString()} 원</td>
             <td style="text-align:center;"><strong style="color:${rateColor}">${rateSign}${rate.toFixed(2)}%</strong></td>
             <td style="text-align:center;"><strong style="color:var(--accent-cyan);">${adx}</strong></td>
             <td style="text-align:center;">${mdi}</td>
