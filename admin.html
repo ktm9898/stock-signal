@@ -289,6 +289,7 @@
       color: #475569;
       border-bottom: 1px solid var(--border-color);
       white-space: nowrap;
+      text-align: center;
       z-index: 5;
     }
     td {
@@ -767,15 +768,15 @@
               <thead>
                 <tr>
                   <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('idx')">No <span id="sort-icon-idx" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                  <th style="cursor:pointer;" onclick="sortTradeLogTable('signalDate')">신호 포착일 <span id="sort-icon-signalDate" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                  <th style="cursor:pointer;" onclick="sortTradeLogTable('entryDate')">매수일 (시가) <span id="sort-icon-entryDate" style="font-size:0.7rem; opacity:0.7;">▼</span></th>
-                  <th style="cursor:pointer;" onclick="sortTradeLogTable('name')">종목명 (코드) <span id="sort-icon-name" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                  <th style="cursor:pointer; text-align:right;" onclick="sortTradeLogTable('entryPrice')">매수가 <span id="sort-icon-entryPrice" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                  <th style="cursor:pointer;" onclick="sortTradeLogTable('exitDate')">매도일 (시가) <span id="sort-icon-exitDate" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                  <th style="cursor:pointer; text-align:right;" onclick="sortTradeLogTable('exitPrice')">매도가 <span id="sort-icon-exitPrice" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('signalDate')">신호 포착일 <span id="sort-icon-signalDate" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('entryDate')">매수일 (시가) <span id="sort-icon-entryDate" style="font-size:0.7rem; opacity:0.7;">▼</span></th>
+                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('name')">종목명 (코드) <span id="sort-icon-name" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('entryPrice')">매수가 <span id="sort-icon-entryPrice" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('exitDate')">매도일 (시가) <span id="sort-icon-exitDate" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('exitPrice')">매도가 <span id="sort-icon-exitPrice" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
                   <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('returnPct')">수익률 <span id="sort-icon-returnPct" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
                   <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('holdingDays')">보유기간 <span id="sort-icon-holdingDays" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                  <th style="cursor:pointer;" onclick="sortTradeLogTable('reason')">청산 사유 <span id="sort-icon-reason" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('reason')">청산 사유 <span id="sort-icon-reason" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
                 </tr>
               </thead>
               <tbody id="trade-log-body"></tbody>
@@ -904,16 +905,16 @@
             <thead>
               <tr>
                 <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('idx')">No <span id="full-sort-icon-idx" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                <th style="cursor:pointer;" onclick="sortTradeLogTable('signalDate')">신호 포착일 <span id="full-sort-icon-signalDate" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                <th style="cursor:pointer;" onclick="sortTradeLogTable('entryDate')">매수일 (시가) <span id="full-sort-icon-entryDate" style="font-size:0.7rem; opacity:0.7;">▼</span></th>
-                <th style="cursor:pointer;" onclick="sortTradeLogTable('name')">종목명 (코드) <span id="full-sort-icon-name" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                <th style="cursor:pointer;" onclick="sortTradeLogTable('market')">시장 <span id="full-sort-icon-market" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                <th style="cursor:pointer; text-align:right;" onclick="sortTradeLogTable('entryPrice')">매수가 <span id="full-sort-icon-entryPrice" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                <th style="cursor:pointer;" onclick="sortTradeLogTable('exitDate')">매도일 (시가) <span id="full-sort-icon-exitDate" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                <th style="cursor:pointer; text-align:right;" onclick="sortTradeLogTable('exitPrice')">매도가 <span id="full-sort-icon-exitPrice" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('signalDate')">신호 포착일 <span id="full-sort-icon-signalDate" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('entryDate')">매수일 (시가) <span id="full-sort-icon-entryDate" style="font-size:0.7rem; opacity:0.7;">▼</span></th>
+                <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('name')">종목명 (코드) <span id="full-sort-icon-name" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('market')">시장 <span id="full-sort-icon-market" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('entryPrice')">매수가 <span id="full-sort-icon-entryPrice" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('exitDate')">매도일 (시가) <span id="full-sort-icon-exitDate" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('exitPrice')">매도가 <span id="full-sort-icon-exitPrice" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
                 <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('returnPct')">수익률 <span id="full-sort-icon-returnPct" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
                 <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('holdingDays')">보유기간 <span id="full-sort-icon-holdingDays" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                <th style="cursor:pointer;" onclick="sortTradeLogTable('reason')">청산 사유 <span id="full-sort-icon-reason" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('reason')">청산 사유 <span id="full-sort-icon-reason" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
               </tr>
             </thead>
             <tbody id="full-trade-log-body"></tbody>
@@ -1833,15 +1834,15 @@
         return `
           <tr>
             <td style="color:var(--text-sub); font-size:0.75rem; text-align:center;">${displayIdx}</td>
-            <td style="color:var(--text-sub);">${t.signalDate}</td>
-            <td><strong>${t.entryDate}</strong></td>
-            <td><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
-            <td style="text-align:right;">${t.entryPrice.toLocaleString()} 원</td>
-            <td><strong>${t.exitDate}</strong></td>
-            <td style="text-align:right;">${t.exitPrice.toLocaleString()} 원</td>
+            <td style="color:var(--text-sub); text-align:center;">${t.signalDate}</td>
+            <td style="text-align:center;"><strong>${t.entryDate}</strong></td>
+            <td style="padding-left: 20px;"><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
+            <td style="text-align:right; padding-right: 24px;">${t.entryPrice.toLocaleString()} 원</td>
+            <td style="text-align:center;"><strong>${t.exitDate}</strong></td>
+            <td style="text-align:right; padding-right: 24px;">${t.exitPrice.toLocaleString()} 원</td>
             <td style="text-align:center;"><span class="${retClass}">${sign}${t.returnPct}%</span></td>
             <td style="text-align:center;">${t.holdingDays}일</td>
-            <td><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${t.reason}</span></td>
+            <td style="text-align:center;"><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${t.reason}</span></td>
           </tr>
         `;
       }).join('');
@@ -1863,16 +1864,16 @@
         return `
           <tr>
             <td style="color:var(--text-sub); font-size:0.75rem; text-align:center;">${displayIdx}</td>
-            <td style="color:var(--text-sub);">${t.signalDate}</td>
-            <td><strong>${t.entryDate}</strong></td>
-            <td><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
-            <td><span style="font-size:0.72rem; background:#e2e8f0; padding:1px 5px; border-radius:3px;">${t.market}</span></td>
-            <td style="text-align:right;">${t.entryPrice.toLocaleString()} 원</td>
-            <td><strong>${t.exitDate}</strong></td>
-            <td style="text-align:right;">${t.exitPrice.toLocaleString()} 원</td>
+            <td style="color:var(--text-sub); text-align:center;">${t.signalDate}</td>
+            <td style="text-align:center;"><strong>${t.entryDate}</strong></td>
+            <td style="padding-left: 20px;"><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
+            <td style="text-align:center;"><span style="font-size:0.72rem; background:#e2e8f0; padding:1px 6px; border-radius:3px; font-weight:600;">${t.market}</span></td>
+            <td style="text-align:right; padding-right: 24px;">${t.entryPrice.toLocaleString()} 원</td>
+            <td style="text-align:center;"><strong>${t.exitDate}</strong></td>
+            <td style="text-align:right; padding-right: 24px;">${t.exitPrice.toLocaleString()} 원</td>
             <td style="text-align:center;"><span class="${retClass}">${sign}${t.returnPct}%</span></td>
             <td style="text-align:center;">${t.holdingDays}일</td>
-            <td><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${t.reason}</span></td>
+            <td style="text-align:center;"><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${t.reason}</span></td>
           </tr>
         `;
       }).join('');
