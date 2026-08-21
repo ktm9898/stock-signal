@@ -732,7 +732,7 @@
     // GAS Web App API Endpoint
     const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
 
-    let userPin = localStorage.getItem('stock_signal_pin') || sessionStorage.getItem('stock_signal_pin') || "";
+    let userPin = "";
     let buyCandidatesData = [];
     let holdingsData = [];
     let executionLogsData = [];
@@ -755,12 +755,9 @@
         const res = await loadDataFromGAS(pinVal);
         if (res.success) {
           userPin = pinVal;
-          localStorage.setItem('stock_signal_pin', pinVal);
-          sessionStorage.setItem('stock_signal_pin', pinVal);
           document.getElementById('pin-modal').style.display = 'none';
         } else {
-          localStorage.removeItem('stock_signal_pin');
-          sessionStorage.removeItem('stock_signal_pin');
+          userPin = "";
           errorEl.textContent = res.message || '비밀번호가 올바르지 않습니다.';
           errorEl.style.display = 'block';
         }
@@ -1785,19 +1782,17 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       });
     }
 
-    // Startup check: authenticate PIN or attempt PIN-free load
-    if (userPin) {
-      const pinInput = document.getElementById('input-pin');
-      if (pinInput) pinInput.value = userPin;
-    }
-    loadDataFromGAS(userPin).then(res => {
-      const pEl = document.getElementById('pin-modal');
-      if (res && res.success) {
-        if (pEl) pEl.style.display = 'none';
-      } else {
-        if (pEl) pEl.style.display = 'flex';
-      }
-    });
+    // Clear stored PINs from legacy sessions
+    try {
+      localStorage.removeItem('stock_signal_pin');
+      sessionStorage.removeItem('stock_signal_pin');
+    } catch(e) {}
+
+    // Startup check: display empty PIN modal for fresh input
+    const pinInput = document.getElementById('input-pin');
+    if (pinInput) pinInput.value = "";
+    const pEl = document.getElementById('pin-modal');
+    if (pEl) pEl.style.display = 'flex';
   </script>
 
   <!-- Indicator Help Modal -->

@@ -371,7 +371,17 @@
 
       .modal-content { width: 94vw !important; max-width: 94vw !important; padding: 14px !important; }
       
-      #equityChart { height: 260px !important; }
+      #chart-wrapper { height: 230px !important; margin-bottom: 0 !important; }
+      #equityChart { height: 230px !important; }
+
+      @media (orientation: portrait) {
+        #chart-landscape-modal {
+          width: 100vh !important;
+          height: 100vw !important;
+          transform-origin: top left !important;
+          transform: rotate(90deg) translateY(-100vw) !important;
+        }
+      }
 
       .filter-bar-responsive {
         flex-direction: column !important;
@@ -2142,12 +2152,18 @@
             x: {
               grid: { display: false },
               ticks: {
-                maxTicksLimit: 12,
+                maxTicksLimit: window.innerWidth <= 768 ? 5 : 12,
+                maxRotation: 0,
+                minRotation: 0,
                 autoSkip: true,
-                font: { size: 10 },
+                font: { size: window.innerWidth <= 768 ? 9 : 10 },
                 callback: function(val, idx) {
                   const rawDate = this.getLabelForValue(val);
-                  return rawDate ? rawDate.slice(0, 7).replace('-', '.') : '';
+                  if (!rawDate) return '';
+                  if (window.innerWidth <= 768) {
+                    return rawDate.slice(2, 7).replace('-', '.');
+                  }
+                  return rawDate.slice(0, 7).replace('-', '.');
                 }
               }
             }
@@ -2753,12 +2769,18 @@
             x: {
               grid: { display: false },
               ticks: {
-                maxTicksLimit: 12,
+                maxTicksLimit: window.innerWidth <= 768 ? 5 : 12,
+                maxRotation: 0,
+                minRotation: 0,
                 autoSkip: true,
-                font: { size: 10 },
+                font: { size: window.innerWidth <= 768 ? 9 : 10 },
                 callback: function(val) {
                   const rawDate = this.getLabelForValue(val);
-                  return rawDate ? rawDate.slice(0, 7).replace('-', '.') : '';
+                  if (!rawDate) return '';
+                  if (window.innerWidth <= 768) {
+                    return rawDate.slice(2, 7).replace('-', '.');
+                  }
+                  return rawDate.slice(0, 7).replace('-', '.');
                 }
               }
             }
@@ -2855,7 +2877,10 @@
         clonedOptions.maintainAspectRatio = false;
         if (!clonedOptions.scales) clonedOptions.scales = {};
         if (clonedOptions.scales.x) {
-          clonedOptions.scales.x.ticks.maxTicksLimit = 12;
+          clonedOptions.scales.x.ticks.maxTicksLimit = 14;
+          clonedOptions.scales.x.ticks.maxRotation = 0;
+          clonedOptions.scales.x.ticks.minRotation = 0;
+          clonedOptions.scales.x.ticks.font = { size: 10 };
           clonedOptions.scales.x.ticks.callback = function(val) {
             const rawDate = this.getLabelForValue(val);
             return rawDate ? rawDate.slice(0, 7).replace('-', '.') : '';
@@ -2870,6 +2895,9 @@
           data: clonedData,
           options: clonedOptions
         });
+        setTimeout(() => {
+          if (fullscreenChartInstance) fullscreenChartInstance.resize();
+        }, 120);
       }
     }
 
@@ -3077,10 +3105,7 @@
         </div>
 
         <div id="modal-pin-group" style="display:flex; flex-direction:column; gap:6px;">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <label for="modal-update-pin" style="font-size:0.80rem; font-weight:600; color:#334155;">보안 비밀번호 (PIN)</label>
-            <span id="modal-pin-hint" style="font-size:0.72rem; color:#16a34a; font-weight:600; display:none;"><i class="fa-solid fa-circle-check"></i> 자동 연동됨</span>
-          </div>
+          <label for="modal-update-pin" style="font-size:0.80rem; font-weight:600; color:#334155;">보안 비밀번호 (PIN)</label>
           <input type="password" id="modal-update-pin" placeholder="대시보드 비밀번호(PIN) 입력" style="padding:8px 12px; border-radius:6px; border:1px solid #cbd5e1; font-size:0.9rem; letter-spacing:2px; font-weight:600; width:100%; box-sizing:border-box;">
         </div>
 
@@ -3111,11 +3136,10 @@
 
   <!-- Modal 5: Fullscreen Landscape Chart Modal -->
   <div id="chart-landscape-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#ffffff; z-index:99999; flex-direction:column; padding:10px 14px; box-sizing:border-box;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid #e2e8f0; padding-bottom:6px;">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="font-weight:800; font-size:0.92rem; color:#0f172a;"><i class="fa-solid fa-chart-line" style="color:#2563eb; margin-right:4px;"></i> 백테스트 수익률 곡선 전체화면</span>
-        <span style="font-size:0.72rem; background:#eff6ff; color:#2563eb; padding:2px 6px; border-radius:4px; font-weight:700;">가로 확대 뷰</span>
-      </div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-bottom:1px solid #e2e8f0; padding-bottom:6px;">
+      <span style="font-weight:700; font-size:0.88rem; color:#0f172a; white-space:nowrap;">
+        <i class="fa-solid fa-chart-line" style="color:#2563eb; margin-right:4px;"></i> 백테스트 수익률 곡선
+      </span>
       <button onclick="closeFullscreenChartModal()" style="background:#1e293b; color:#ffffff; border:none; border-radius:6px; padding:5px 12px; font-size:0.80rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; box-shadow:0 2px 6px rgba(0,0,0,0.15);">
         <i class="fa-solid fa-xmark"></i> 닫기
       </button>
@@ -3136,10 +3160,6 @@
       const mm = String(kstNow.getMonth() + 1).padStart(2, '0');
       const dd = String(kstNow.getDate()).padStart(2, '0');
       return `${yyyy}-${mm}-${dd}`;
-    }
-
-    function getStoredPin() {
-      return localStorage.getItem('stock_signal_pin') || sessionStorage.getItem('stock_signal_pin') || '';
     }
 
     function getLatestDatasetDate() {
@@ -3169,17 +3189,8 @@
         modalDate.innerHTML = `${lastDate || '조회 중'} ${isAlreadyUpToDate ? '<span style="background:#dcfce7; color:#15803d; font-size:0.72rem; padding:2px 6px; border-radius:4px; font-weight:700; margin-left:6px;"><i class="fa-solid fa-circle-check"></i> 최신 상태</span>' : ''}`;
       }
 
-      const storedPin = getStoredPin();
       const pinInput = document.getElementById('modal-update-pin');
-      const pinHint = document.getElementById('modal-pin-hint');
-      if (pinInput) {
-        pinInput.value = storedPin;
-        if (storedPin && pinHint) {
-          pinHint.style.display = 'inline';
-        } else if (pinHint) {
-          pinHint.style.display = 'none';
-        }
-      }
+      if (pinInput) pinInput.value = "";
 
       document.getElementById('update-progress-box').style.display = 'none';
       document.getElementById('update-result-box').style.display = 'none';
@@ -3225,7 +3236,7 @@
       const timerText = document.getElementById('update-timer-text');
       const submitBtn = document.getElementById('btn-submit-cloud-update');
       const pinInput = document.getElementById('modal-update-pin');
-      const pinVal = (pinInput ? pinInput.value.trim() : '') || getStoredPin();
+      const pinVal = pinInput ? pinInput.value.trim() : '';
 
       if (!pinVal) {
         resultBox.style.display = 'block';
@@ -3255,12 +3266,6 @@
 
         const data = await res.json();
         if (!data.success) {
-          if (data.message && data.message.includes("PIN")) {
-            localStorage.removeItem('stock_signal_pin');
-            sessionStorage.removeItem('stock_signal_pin');
-            const pinHint = document.getElementById('modal-pin-hint');
-            if (pinHint) pinHint.style.display = 'none';
-          }
           throw new Error(data.message || "클라우드 갱신 트리거 실패");
         }
 
