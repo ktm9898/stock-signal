@@ -2898,44 +2898,60 @@
         fullCanvas.style.width = targetWidth + 'px';
         fullCanvas.style.height = targetHeight + 'px';
 
-        const clonedData = equityChartInstance.data;
-        // Shallow copy options and sub-objects to preserve callback functions
-        const clonedOptions = {
-          ...equityChartInstance.options,
-          responsive: false,
-          maintainAspectRatio: false,
-          animation: false,
-          events: [], // Disable built-in listeners so Chart.js doesn't overwrite rotated touch
-          plugins: {
-            ...equityChartInstance.options.plugins,
-            legend: { ...(equityChartInstance.options.plugins && equityChartInstance.options.plugins.legend) },
-            tooltip: { ...(equityChartInstance.options.plugins && equityChartInstance.options.plugins.tooltip) }
-          },
-          scales: {
-            ...equityChartInstance.options.scales,
-            x: { ...(equityChartInstance.options.scales && equityChartInstance.options.scales.x) },
-            y: { ...(equityChartInstance.options.scales && equityChartInstance.options.scales.y) }
-          }
-        };
-
-        if (clonedOptions.scales && clonedOptions.scales.x) {
-          clonedOptions.scales.x.ticks = {
-            ...clonedOptions.scales.x.ticks,
-            maxTicksLimit: 14,
-            maxRotation: 0,
-            minRotation: 0,
-            font: { size: 10 },
-            callback: function(val) {
-              const rawDate = this.getLabelForValue(val);
-              return rawDate ? rawDate.slice(0, 7).replace('-', '.') : '';
-            }
-          };
-        }
-
         fullscreenChartInstance = new Chart(fullCanvas.getContext('2d'), {
           type: 'line',
-          data: clonedData,
-          options: clonedOptions
+          data: {
+            labels: equityChartInstance.data.labels,
+            datasets: equityChartInstance.data.datasets
+          },
+          options: {
+            responsive: false,
+            maintainAspectRatio: false,
+            animation: false,
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+              legend: { 
+                position: 'top', 
+                labels: { 
+                  usePointStyle: true, 
+                  pointStyle: 'circle',
+                  boxWidth: 8,
+                  padding: 8,
+                  font: { weight: '600', size: 10 } 
+                } 
+              },
+              tooltip: {
+                callbacks: {
+                  title: (items) => items.length > 0 ? `날짜: ${items[0].label}` : '',
+                  label: (context) => {
+                    const label = context.dataset.label;
+                    const val = context.parsed.y;
+                    const sign = val >= 0 ? '+' : '';
+                    return ` ${label}: ${sign}${val.toFixed(1)}%`;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                grid: { color: '#f1f5f9' },
+                ticks: { callback: (val) => `${val > 0 ? '+' : ''}${val}%` }
+              },
+              x: {
+                grid: { display: false },
+                ticks: {
+                  maxTicksLimit: 14,
+                  maxRotation: 0,
+                  minRotation: 0,
+                  font: { size: 10 },
+                  callback: function(val) {
+                    const rawDate = this.getLabelForValue(val);
+                    return rawDate ? rawDate.slice(0, 7).replace('-', '.') : '';
+                  }
+                }
+              }
+            }
+          }
         });
 
         // Rotated touch-drag coordinate tracking for mobile portrait & landscape
@@ -2943,7 +2959,7 @@
           if (!fullscreenChartInstance) return;
           const touch = (e.touches && e.touches.length > 0) ? e.touches[0] : (e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches[0] : e);
           if (!touch) return;
-          if (e.cancelable && e.type.startsWith('touch')) e.preventDefault();
+          if (e.cancelable && e.type && e.type.startsWith('touch')) e.preventDefault();
 
           const rect = fullCanvas.getBoundingClientRect();
           let canvasX, canvasY;
@@ -2989,7 +3005,7 @@
                 y: canvasY 
               });
             }
-            fullscreenChartInstance.draw();
+            fullscreenChartInstance.render();
           }
         }
 
