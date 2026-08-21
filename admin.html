@@ -2923,6 +2923,62 @@
           data: clonedData,
           options: clonedOptions
         });
+
+        // Rotated touch-drag coordinate tracking for mobile portrait & landscape
+        function handleRotatedTouch(e) {
+          if (!fullscreenChartInstance) return;
+          if (e.touches && e.touches.length > 0) {
+            if (e.cancelable) e.preventDefault();
+            const touch = e.touches[0];
+            const rect = fullCanvas.getBoundingClientRect();
+            
+            let canvasX, canvasY;
+            const isPortrait = (window.innerWidth <= 768 && window.innerHeight > window.innerWidth);
+            if (isPortrait) {
+              // 90-degree clockwise rotated coordinate mapping:
+              // Touch moving down the screen (clientY increasing) maps to moving right on chart (canvasX increasing)
+              // Touch moving left across the screen (clientX decreasing) maps to moving down on chart (canvasY increasing)
+              canvasX = (touch.clientY - rect.top) * (fullCanvas.width / rect.height);
+              canvasY = (rect.right - touch.clientX) * (fullCanvas.height / rect.width);
+            } else {
+              // Standard landscape/desktop mapping
+              canvasX = (touch.clientX - rect.left) * (fullCanvas.width / rect.width);
+              canvasY = (touch.clientY - rect.top) * (fullCanvas.height / rect.height);
+            }
+
+            const xScale = fullscreenChartInstance.scales.x;
+            if (xScale) {
+              const rawVal = xScale.getValueForPixel(canvasX);
+              if (rawVal !== undefined && !isNaN(rawVal)) {
+                const totalPoints = fullscreenChartInstance.data.labels ? fullscreenChartInstance.data.labels.length : 0;
+                let dataIndex = Math.round(rawVal);
+                if (dataIndex < 0) dataIndex = 0;
+                if (dataIndex >= totalPoints) dataIndex = totalPoints - 1;
+
+                const activeElements = [];
+                fullscreenChartInstance.data.datasets.forEach((ds, datasetIndex) => {
+                  if (fullscreenChartInstance.isDatasetVisible(datasetIndex)) {
+                    activeElements.push({ datasetIndex, index: dataIndex });
+                  }
+                });
+
+                fullscreenChartInstance.setActiveElements(activeElements);
+                if (fullscreenChartInstance.tooltip) {
+                  fullscreenChartInstance.tooltip.setActiveElements(activeElements, { x: canvasX, y: canvasY });
+                }
+                fullscreenChartInstance.update('none');
+              }
+            }
+          }
+        }
+
+        if (fullCanvas._touchHandler) {
+          fullCanvas.removeEventListener('touchstart', fullCanvas._touchHandler);
+          fullCanvas.removeEventListener('touchmove', fullCanvas._touchHandler);
+        }
+        fullCanvas._touchHandler = handleRotatedTouch;
+        fullCanvas.addEventListener('touchstart', handleRotatedTouch, { passive: false });
+        fullCanvas.addEventListener('touchmove', handleRotatedTouch, { passive: false });
       }
     }
 
@@ -2930,6 +2986,14 @@
       const modal = document.getElementById('chart-landscape-modal');
       if (modal) modal.style.display = 'none';
       document.body.style.overflow = '';
+      
+      const fullCanvas = document.getElementById('fullscreenEquityChart');
+      if (fullCanvas && fullCanvas._touchHandler) {
+        fullCanvas.removeEventListener('touchstart', fullCanvas._touchHandler);
+        fullCanvas.removeEventListener('touchmove', fullCanvas._touchHandler);
+        fullCanvas._touchHandler = null;
+      }
+
       if (fullscreenChartInstance) {
         fullscreenChartInstance.destroy();
         fullscreenChartInstance = null;
@@ -3169,8 +3233,8 @@
         <i class="fa-solid fa-xmark"></i> 닫기
       </button>
     </div>
-    <div id="fullscreen-chart-box" style="flex:1; width:100%; position:relative; min-height:0;">
-      <canvas id="fullscreenEquityChart"></canvas>
+    <div id="fullscreen-chart-box" style="flex:1; width:100%; position:relative; min-height:0; touch-action:none;">
+      <canvas id="fullscreenEquityChart" style="touch-action:none;"></canvas>
     </div>
   </div>
 
