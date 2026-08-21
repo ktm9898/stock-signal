@@ -712,7 +712,7 @@
           <div style="margin-top: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
               <h4 style="font-size: 0.88rem; font-weight: 700; color: #1e293b; margin: 0;">
-                백테스트 수익률 곡선 (vs KOSPI / KOSDAQ 벤치마크)
+                백테스트 수익률 곡선 <span class="label-desktop">(vs KOSPI / KOSDAQ 벤치마크)</span>
               </h4>
               <button id="btn-toggle-chart-size" class="btn-sm-action" onclick="toggleChartSize()" style="font-size:0.75rem; background:#f1f5f9; color:#334155; border:1px solid var(--border-subtle); display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:5px; cursor:pointer;">
                 <i class="fa-solid fa-up-right-and-down-left-from-center" id="icon-chart-size"></i> <span id="text-chart-size">확대</span>
@@ -2808,7 +2808,16 @@
     }
 
     let isChartExpanded = false;
+    let fullscreenChartInstance = null;
+
     function toggleChartSize() {
+      // If mobile viewport (width <= 768px), open dedicated fullscreen landscape chart modal
+      if (window.innerWidth <= 768) {
+        openFullscreenChartModal();
+        return;
+      }
+
+      // Desktop: inline expand / collapse
       const wrapper = document.getElementById('chart-wrapper');
       const icon = document.getElementById('icon-chart-size');
       const text = document.getElementById('text-chart-size');
@@ -2825,6 +2834,52 @@
       }
       if (equityChartInstance) {
         setTimeout(() => { equityChartInstance.resize(); }, 280);
+      }
+    }
+
+    function openFullscreenChartModal() {
+      const modal = document.getElementById('chart-landscape-modal');
+      if (!modal) return;
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+
+      if (equityChartInstance) {
+        const fullCanvas = document.getElementById('fullscreenEquityChart');
+        if (!fullCanvas) return;
+        const fullCtx = fullCanvas.getContext('2d');
+        if (fullscreenChartInstance) fullscreenChartInstance.destroy();
+
+        const clonedData = JSON.parse(JSON.stringify(equityChartInstance.data));
+        const clonedOptions = JSON.parse(JSON.stringify(equityChartInstance.options));
+        clonedOptions.responsive = true;
+        clonedOptions.maintainAspectRatio = false;
+        if (!clonedOptions.scales) clonedOptions.scales = {};
+        if (clonedOptions.scales.x) {
+          clonedOptions.scales.x.ticks.maxTicksLimit = 12;
+          clonedOptions.scales.x.ticks.callback = function(val) {
+            const rawDate = this.getLabelForValue(val);
+            return rawDate ? rawDate.slice(0, 7).replace('-', '.') : '';
+          };
+        }
+        if (clonedOptions.scales.y) {
+          clonedOptions.scales.y.ticks.callback = (val) => `${val > 0 ? '+' : ''}${val}%`;
+        }
+
+        fullscreenChartInstance = new Chart(fullCtx, {
+          type: 'line',
+          data: clonedData,
+          options: clonedOptions
+        });
+      }
+    }
+
+    function closeFullscreenChartModal() {
+      const modal = document.getElementById('chart-landscape-modal');
+      if (modal) modal.style.display = 'none';
+      document.body.style.overflow = '';
+      if (fullscreenChartInstance) {
+        fullscreenChartInstance.destroy();
+        fullscreenChartInstance = null;
       }
     }
 
@@ -3051,6 +3106,22 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal 5: Fullscreen Landscape Chart Modal -->
+  <div id="chart-landscape-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#ffffff; z-index:99999; flex-direction:column; padding:10px 14px; box-sizing:border-box;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; border-bottom:1px solid #e2e8f0; padding-bottom:6px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-weight:800; font-size:0.92rem; color:#0f172a;"><i class="fa-solid fa-chart-line" style="color:#2563eb; margin-right:4px;"></i> 백테스트 수익률 곡선 전체화면</span>
+        <span style="font-size:0.72rem; background:#eff6ff; color:#2563eb; padding:2px 6px; border-radius:4px; font-weight:700;">가로 확대 뷰</span>
+      </div>
+      <button onclick="closeFullscreenChartModal()" style="background:#1e293b; color:#ffffff; border:none; border-radius:6px; padding:5px 12px; font-size:0.80rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; box-shadow:0 2px 6px rgba(0,0,0,0.15);">
+        <i class="fa-solid fa-xmark"></i> 닫기
+      </button>
+    </div>
+    <div style="flex:1; width:100%; position:relative; min-height:0;">
+      <canvas id="fullscreenEquityChart"></canvas>
     </div>
   </div>
 

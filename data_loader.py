@@ -217,7 +217,7 @@ def calculate_full_indicators(df, period=14):
     volumes = df['거래량'].values
     n = len(closes)
 
-    # 1. ADX, +DI, -DI (KIS HTS Exact Matching Algorithm: EMA alpha = 2 / (period + 1))
+    # 1. ADX, +DI, -DI (KIS MTS/HTS Standard Welles Wilder RMA Algorithm, alpha = 1 / period)
     tr, dm_p, dm_m = [], [], []
     for i in range(1, n):
         h, l, c = highs[i], lows[i], closes[i]
@@ -234,24 +234,52 @@ def calculate_full_indicators(df, period=14):
         dm_p.append(dp)
         dm_m.append(dm)
 
-    alpha = 2.0 / (period + 1)
-    
-    def calc_ema(arr):
-        if not arr:
-            return []
-        res = [arr[0]]
-        for val in arr[1:]:
-            res.append(val * alpha + res[-1] * (1 - alpha))
+    def calc_wilder(arr, p=14):
+        if len(arr) < p:
+            return [np.nan] * len(arr)
+        res = [np.nan] * (p - 1)
+        first_sum = sum(arr[:p])
+        res.append(first_sum)
+        for val in arr[p:]:
+            prev = res[-1]
+            res.append(prev - (prev / p) + val)
         return res
 
-    tr_ema = calc_ema(tr)
-    dp_ema = calc_ema(dm_p)
-    dm_ema = calc_ema(dm_m)
+    tr_w = calc_wilder(tr, period)
+    dp_w = calc_wilder(dm_p, period)
+    dm_w = calc_wilder(dm_m, period)
 
-    pdi = [100 * p / t if t != 0 else 0 for p, t in zip(dp_ema, tr_ema)]
-    mdi = [100 * m / t if t != 0 else 0 for m, t in zip(dm_ema, tr_ema)]
-    dx = [100 * abs(p - m) / (p + m) if (p + m) != 0 else 0 for p, m in zip(pdi, mdi)]
-    adx = calc_ema(dx)
+    pdi = []
+    mdi = []
+    for p_val, m_val, t_val in zip(dp_w, dm_w, tr_w):
+        if not np.isnan(p_val) and not np.isnan(t_val) and t_val > 0:
+            pdi.append((p_val / t_val) * 100.0)
+            mdi.append((m_val / t_val) * 100.0)
+        else:
+            pdi.append(np.nan)
+            mdi.append(np.nan)
+
+    dx = []
+    for p_val, m_val in zip(pdi, mdi):
+        if not np.isnan(p_val) and not np.isnan(m_val) and (p_val + m_val) > 0:
+            dx.append(100.0 * abs(p_val - m_val) / (p_val + m_val))
+        else:
+            dx.append(np.nan)
+
+    valid_dx_indices = [i for i, v in enumerate(dx) if not np.isnan(v)]
+    adx = [np.nan] * len(dx)
+    if len(valid_dx_indices) >= period:
+        first_valid_idx = valid_dx_indices[0]
+        valid_dx = [dx[i] for i in valid_dx_indices]
+        first_adx = sum(valid_dx[:period]) / period
+        adx_vals = [first_adx]
+        for val in valid_dx[period:]:
+            prev = adx_vals[-1]
+            adx_vals.append((prev * (period - 1) + val) / period)
+        for idx_offset, val in enumerate(adx_vals):
+            target_idx = first_valid_idx + period - 1 + idx_offset
+            if target_idx < len(adx):
+                adx[target_idx] = val
 
     df['plus_di'] = [np.nan] + pdi
     df['minus_di'] = [np.nan] + mdi
