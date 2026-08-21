@@ -2908,18 +2908,11 @@
             responsive: false,
             maintainAspectRatio: false,
             animation: false,
-            events: [], // Completely disable Chart.js built-in listeners so they don't corrupt rotated touch
+            events: [], // Disable built-in canvas listeners
             interaction: { intersect: false, mode: 'index' },
             plugins: {
               legend: { 
-                position: 'top', 
-                labels: { 
-                  usePointStyle: true, 
-                  pointStyle: 'circle',
-                  boxWidth: 8,
-                  padding: 8,
-                  font: { weight: '600', size: 10 } 
-                } 
+                display: false // Use high-res interactive HTML chip buttons in header instead
               },
               tooltip: {
                 enabled: true,
@@ -2956,6 +2949,8 @@
           }
         });
 
+        renderModalLegendChips();
+
         // Rotated touch-drag coordinate tracking for mobile portrait & landscape
         function handleRotatedTouch(e) {
           if (!fullscreenChartInstance) return;
@@ -2967,57 +2962,8 @@
           if (totalPoints === 0) return;
 
           const isPortrait = (window.innerWidth <= 768 && window.innerHeight > window.innerWidth);
-          let canvasX, canvasY;
-
-          if (isPortrait) {
-            const relY = Math.max(0, Math.min(window.innerHeight, touch.clientY));
-            canvasX = (relY / (window.innerHeight || 1)) * fullCanvas.width;
-
-            const relX = Math.max(0, Math.min(window.innerWidth, window.innerWidth - touch.clientX));
-            canvasY = (relX / (window.innerWidth || 1)) * fullCanvas.height;
-          } else {
-            const relX = Math.max(0, Math.min(window.innerWidth, touch.clientX));
-            canvasX = (relX / (window.innerWidth || 1)) * fullCanvas.width;
-
-            const relY = Math.max(0, Math.min(window.innerHeight, touch.clientY));
-            canvasY = (relY / (window.innerHeight || 1)) * fullCanvas.height;
-          }
-
-          // Check if touch/click was on the Legend items bar (top 38px of chart in local canvas Y)
-          if (canvasY <= 38 && (e.type === 'click' || e.type === 'touchstart' || e.type === 'pointerdown')) {
-            const legend = fullscreenChartInstance.legend;
-            if (legend && legend.legendItems && legend.legendItems.length > 0) {
-              const hitBoxes = legend.legendHitBoxes || [];
-              let toggled = false;
-              for (let i = 0; i < hitBoxes.length; i++) {
-                const box = hitBoxes[i];
-                if (canvasX >= box.left - 8 && canvasX <= box.left + box.width + 8 &&
-                    canvasY >= box.top - 8 && canvasY <= box.top + box.height + 8) {
-                  const datasetIndex = legend.legendItems[i].datasetIndex;
-                  const isVis = fullscreenChartInstance.isDatasetVisible(datasetIndex);
-                  fullscreenChartInstance.setDatasetVisibility(datasetIndex, !isVis);
-                  fullscreenChartInstance.update();
-                  toggled = true;
-                  break;
-                }
-              }
-              if (!toggled) {
-                const totalLegend = legend.legendItems.length;
-                const slotWidth = fullCanvas.width / totalLegend;
-                const itemIdx = Math.floor(canvasX / slotWidth);
-                if (itemIdx >= 0 && itemIdx < totalLegend) {
-                  const datasetIndex = legend.legendItems[itemIdx].datasetIndex;
-                  const isVis = fullscreenChartInstance.isDatasetVisible(datasetIndex);
-                  fullscreenChartInstance.setDatasetVisibility(datasetIndex, !isVis);
-                  fullscreenChartInstance.update();
-                  toggled = true;
-                }
-              }
-              if (toggled) return;
-            }
-          }
-
           let ratio;
+
           if (isPortrait) {
             // Top of smartphone (touch.clientY = 30px) -> Date 0 (2021)
             // Bottom of smartphone (touch.clientY = window.innerHeight - 30px) -> Date Max (2026)
@@ -3070,6 +3016,38 @@
         fullCanvas.addEventListener('touchmove', handleRotatedTouch, { passive: false });
         fullCanvas.addEventListener('click', handleRotatedTouch);
       }
+    }
+
+    function renderModalLegendChips() {
+      const container = document.getElementById('modal-legend-chips');
+      if (!container || !fullscreenChartInstance) return;
+
+      container.innerHTML = fullscreenChartInstance.data.datasets.map((ds, idx) => {
+        const isVis = fullscreenChartInstance.isDatasetVisible(idx);
+        const color = ds.borderColor || ds.backgroundColor || '#2563eb';
+        const isHidden = !isVis;
+        const btnBg = isHidden ? '#f8fafc' : '#ffffff';
+        const textColor = isHidden ? '#94a3b8' : '#334155';
+        const textDeco = isHidden ? 'line-through' : 'none';
+        const opacity = isHidden ? '0.5' : '1';
+        const dotBg = isHidden ? '#cbd5e1' : color;
+        const borderStyle = isHidden ? '1px solid #e2e8f0' : `1px solid ${color}55`;
+
+        return `
+          <button type="button" ontouchstart="event.stopPropagation()" onclick="event.stopPropagation(); toggleModalDatasetChip(${idx})" style="display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:14px; ${borderStyle}; background:${btnBg}; color:${textColor}; font-size:0.75rem; font-weight:600; text-decoration:${textDeco}; opacity:${opacity}; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.05); user-select:none; z-index:100000; position:relative;">
+            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${dotBg}; flex-shrink:0;"></span>
+            <span>${ds.label}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function toggleModalDatasetChip(datasetIndex) {
+      if (!fullscreenChartInstance) return;
+      const isVis = fullscreenChartInstance.isDatasetVisible(datasetIndex);
+      fullscreenChartInstance.setDatasetVisibility(datasetIndex, !isVis);
+      fullscreenChartInstance.update();
+      renderModalLegendChips();
     }
 
     function closeFullscreenChartModal() {
@@ -3314,12 +3292,15 @@
   </div>
 
   <!-- Modal 5: Fullscreen Landscape Chart Modal -->
-  <div id="chart-landscape-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#ffffff; z-index:99999; flex-direction:column; padding:10px 14px; box-sizing:border-box;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-bottom:1px solid #e2e8f0; padding-bottom:6px;">
-      <span style="font-weight:700; font-size:0.88rem; color:#0f172a; white-space:nowrap;">
-        <i class="fa-solid fa-chart-line" style="color:#2563eb; margin-right:4px;"></i> 백테스트 수익률 곡선
-      </span>
-      <button onclick="closeFullscreenChartModal()" style="background:#1e293b; color:#ffffff; border:none; border-radius:6px; padding:5px 12px; font-size:0.80rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:4px; box-shadow:0 2px 6px rgba(0,0,0,0.15);">
+  <div id="chart-landscape-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:#ffffff; z-index:99999; flex-direction:column; padding:8px 12px; box-sizing:border-box;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; border-bottom:1px solid #e2e8f0; padding-bottom:4px; gap:8px; flex-wrap:nowrap;">
+      <div style="display:flex; align-items:center; gap:10px; overflow-x:auto; flex:1; min-width:0; scrollbar-width:none;">
+        <span style="font-weight:700; font-size:0.85rem; color:#0f172a; white-space:nowrap; flex-shrink:0;">
+          <i class="fa-solid fa-chart-line" style="color:#2563eb; margin-right:3px;"></i> 수익률 곡선
+        </span>
+        <div id="modal-legend-chips" style="display:flex; align-items:center; gap:5px; flex-wrap:nowrap; flex-shrink:0;"></div>
+      </div>
+      <button onclick="closeFullscreenChartModal()" style="background:#1e293b; color:#ffffff; border:none; border-radius:6px; padding:4px 10px; font-size:0.78rem; font-weight:700; cursor:pointer; display:flex; align-items:center; gap:3px; box-shadow:0 2px 6px rgba(0,0,0,0.15); flex-shrink:0;">
         <i class="fa-solid fa-xmark"></i> 닫기
       </button>
     </div>
