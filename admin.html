@@ -2963,65 +2963,53 @@
           if (!touch) return;
           if (e.cancelable && e.type && e.type.startsWith('touch')) e.preventDefault();
 
-          const rect = fullCanvas.getBoundingClientRect();
+          const totalPoints = fullscreenChartInstance.data.labels ? fullscreenChartInstance.data.labels.length : 0;
+          if (totalPoints === 0) return;
+
           const isPortrait = (window.innerWidth <= 768 && window.innerHeight > window.innerWidth);
-          let canvasX, canvasY;
+          let ratio;
 
           if (isPortrait) {
-            // Rotated 90deg portrait:
-            // Screen Y (top to bottom) -> Chart X (left to right)
-            const relY = Math.max(0, Math.min(rect.height, touch.clientY - rect.top));
-            canvasX = (relY / (rect.height || 1)) * fullCanvas.width;
-
-            // Screen X (right to left) -> Chart Y (top to bottom)
-            const relX = Math.max(0, Math.min(rect.width, rect.right - touch.clientX));
-            canvasY = (relX / (rect.width || 1)) * fullCanvas.height;
+            // In 90-degree rotated portrait mode:
+            // Top of smartphone (touch.clientY = 30px) -> Date 0 (2021)
+            // Bottom of smartphone (touch.clientY = window.innerHeight - 30px) -> Date Max (2026)
+            const screenH = window.innerHeight || 800;
+            ratio = (touch.clientY - 30) / Math.max(1, screenH - 60);
           } else {
-            const relX = Math.max(0, Math.min(rect.width, touch.clientX - rect.left));
-            canvasX = (relX / (rect.width || 1)) * fullCanvas.width;
-
-            const relY = Math.max(0, Math.min(rect.height, touch.clientY - rect.top));
-            canvasY = (relY / (rect.height || 1)) * fullCanvas.height;
+            // In landscape or desktop mode:
+            // Left of screen (touch.clientX = 30px) -> Date 0 (2021)
+            // Right of screen (touch.clientX = window.innerWidth - 30px) -> Date Max (2026)
+            const screenW = window.innerWidth || 800;
+            ratio = (touch.clientX - 30) / Math.max(1, screenW - 60);
           }
 
-          const xScale = fullscreenChartInstance.scales.x;
-          const totalPoints = fullscreenChartInstance.data.labels ? fullscreenChartInstance.data.labels.length : 0;
+          const clampedRatio = Math.max(0, Math.min(1, ratio));
+          const dataIndex = Math.min(totalPoints - 1, Math.max(0, Math.round(clampedRatio * (totalPoints - 1))));
 
-          if (xScale && totalPoints > 0) {
-            const left = xScale.left || 0;
-            const right = xScale.right || fullCanvas.width;
-            const chartWidth = Math.max(1, right - left);
-
-            // Compute exact timeline ratio (0.0 to 1.0)
-            const ratio = (canvasX - left) / chartWidth;
-            const clampedRatio = Math.max(0, Math.min(1, ratio));
-            const dataIndex = Math.min(totalPoints - 1, Math.max(0, Math.round(clampedRatio * (totalPoints - 1))));
-
-            const activeElements = [];
-            fullscreenChartInstance.data.datasets.forEach((ds, datasetIndex) => {
-              if (fullscreenChartInstance.isDatasetVisible(datasetIndex)) {
-                const meta = fullscreenChartInstance.getDatasetMeta(datasetIndex);
-                if (meta && meta.data && meta.data[dataIndex]) {
-                  activeElements.push({
-                    element: meta.data[dataIndex],
-                    datasetIndex: datasetIndex,
-                    index: dataIndex
-                  });
-                }
-              }
-            });
-
-            if (activeElements.length > 0) {
-              fullscreenChartInstance.setActiveElements(activeElements);
-              if (fullscreenChartInstance.tooltip) {
-                const snapPoint = activeElements[0].element;
-                fullscreenChartInstance.tooltip.setActiveElements(activeElements, { 
-                  x: snapPoint.x, 
-                  y: snapPoint.y 
+          const activeElements = [];
+          fullscreenChartInstance.data.datasets.forEach((ds, datasetIndex) => {
+            if (fullscreenChartInstance.isDatasetVisible(datasetIndex)) {
+              const meta = fullscreenChartInstance.getDatasetMeta(datasetIndex);
+              if (meta && meta.data && meta.data[dataIndex]) {
+                activeElements.push({
+                  element: meta.data[dataIndex],
+                  datasetIndex: datasetIndex,
+                  index: dataIndex
                 });
               }
-              fullscreenChartInstance.update();
             }
+          });
+
+          if (activeElements.length > 0) {
+            fullscreenChartInstance.setActiveElements(activeElements);
+            if (fullscreenChartInstance.tooltip) {
+              const snapPoint = activeElements[0].element;
+              fullscreenChartInstance.tooltip.setActiveElements(activeElements, { 
+                x: snapPoint.x, 
+                y: snapPoint.y 
+              });
+            }
+            fullscreenChartInstance.update();
           }
         }
 
