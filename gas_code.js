@@ -54,6 +54,27 @@ function doGet(e) {
   const authPin = getAuthPin();
   const action = e.parameter.action || "all";
 
+  if (action === "set_active_strategy_slot") {
+    const slotId = parseInt(e.parameter.slotId || "1", 10);
+    PropertiesService.getScriptProperties().setProperty("ACTIVE_STRATEGY_SLOT_ID", String(slotId));
+    
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    setupSheets();
+    const sheet = ss.getSheetByName("Strategy_Slots");
+    if (sheet && sheet.getLastRow() > 1) {
+      const lastRow = sheet.getLastRow();
+      const activeFlags = [];
+      for (let i = 2; i <= lastRow; i++) {
+        const rowId = parseInt(sheet.getRange(i, 1).getValue(), 10);
+        activeFlags.push([rowId === slotId ? "적용중 (ACTIVE)" : ""]);
+      }
+      sheet.getRange(2, 14, activeFlags.length, 1).setValues(activeFlags);
+    }
+
+    return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success", activeSlotId: slotId }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
   if (action === "get_strategy_slots") {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     setupSheets();

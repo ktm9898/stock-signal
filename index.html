@@ -1076,17 +1076,10 @@
       closeStrategyDetailModal();
       evaluateStrategyForDashboard();
 
-      // Cloud Synchronize active strategy slot so other computers & mobile see the exact same active strategy!
+      // Cloud Synchronize active strategy slot (via GET for 100% reliable sync)
       try {
-        fetch(GAS_WEBAPP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: 'set_active_strategy_slot',
-            slotId: idx + 1,
-            pin: userPin
-          })
-        }).catch(() => {});
+        const pinParam = userPin ? `&pin=${encodeURIComponent(userPin)}` : '';
+        fetch(`${GAS_WEBAPP_URL}?action=set_active_strategy_slot&slotId=${idx + 1}${pinParam}`).catch(() => {});
       } catch(e) {}
     }
 
