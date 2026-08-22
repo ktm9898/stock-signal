@@ -133,11 +133,26 @@
       display: flex; align-items: center; justify-content: space-between;
       box-shadow: 0 2px 6px rgba(0,0,0,0.02);
     }
-    .metric-title { font-size: 0.78rem; font-weight: 600; color: var(--text-sub); white-space: nowrap; margin-bottom: 2px; }
-    .metric-value { font-size: 1.35rem; font-weight: 700; color: #0f172a; line-height: 1.2; display: flex; align-items: baseline; }
+    .metric-info-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .metric-title {
+      font-size: 0.78rem; font-weight: 600; color: var(--text-sub); white-space: nowrap; margin-bottom: 2px;
+      display: flex; align-items: center; justify-content: center; text-align: center; gap: 3px;
+    }
+    .metric-value {
+      font-size: 1.35rem; font-weight: 700; color: #0f172a; line-height: 1.2;
+      display: flex; align-items: baseline; justify-content: center; text-align: center;
+    }
     .metric-icon {
       width: 32px; height: 32px; border-radius: 8px; background: #eff6ff;
       display: flex; align-items: center; justify-content: center; font-size: 1rem; color: #2563eb;
+      flex-shrink: 0;
     }
     .label-desktop { display: inline; }
     .label-mobile { display: none; }
@@ -548,14 +563,30 @@
         margin-bottom: 12px;
       }
       .metric-card {
-        padding: 6px 8px;
+        padding: 8px 4px;
         border-radius: 10px;
         flex-direction: column;
-        align-items: flex-start;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
         gap: 2px;
       }
-      .metric-title { font-size: 0.65rem; margin-bottom: 0; }
-      .metric-value { font-size: 1.1rem; flex-wrap: wrap; }
+      .metric-title {
+        font-size: 0.68rem;
+        margin-bottom: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+      .metric-value {
+        font-size: 1.15rem;
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        text-align: center;
+        flex-wrap: wrap;
+      }
       .metric-icon { display: none; }
 
       .label-desktop { display: none !important; }
@@ -669,7 +700,7 @@
     <!-- Metric Overview (3 Clickable Cards Layout) -->
     <div class="metrics-grid">
       <div class="metric-card clickable active-tab-card" id="metric-card-buy" onclick="switchTab('buy-tab')" title="매수 신호 목록으로 이동">
-        <div>
+        <div class="metric-info-wrap">
           <div class="metric-title">매수 신호 <i class="fa-solid fa-arrow-right" style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
           <div class="metric-value">
             <span id="count-buy" style="color: var(--accent-green);">0</span>
@@ -682,7 +713,7 @@
       </div>
 
       <div class="metric-card clickable" id="metric-card-sell" onclick="switchTab('sell-signals-tab')" title="매도 신호 목록으로 이동">
-        <div>
+        <div class="metric-info-wrap">
           <div class="metric-title">매도 신호 <i class="fa-solid fa-arrow-right" style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
           <div class="metric-value" id="count-sell" style="color: var(--accent-red);">0</div>
         </div>
@@ -690,7 +721,7 @@
       </div>
 
       <div class="metric-card clickable" id="metric-card-holdings" onclick="switchTab('holdings-tab')" title="보유 종목 목록으로 이동">
-        <div>
+        <div class="metric-info-wrap">
           <div class="metric-title">보유 종목 <i class="fa-solid fa-arrow-right" style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
           <div class="metric-value">
             <span id="count-holdings" style="color: var(--accent-cyan);">0</span>
