@@ -989,18 +989,17 @@
       // Format Buy Rules
       const buyGroupsHtml = slot.buyRules.map((g, gIdx) => {
         const rulesList = (g.rules || []).map(r => `
-          <span style="display:inline-block; background:#ffffff; border:1px solid #cbd5e1; border-radius:6px; padding:3px 8px; font-size:0.82rem; font-weight:600; color:#1e293b; margin:2px;">
+          <span style="display:inline-block; background:#ffffff; border:1px solid #cbd5e1; border-radius:6px; padding:3px 8px; font-size:0.82rem; font-weight:600; color:#1e293b;">
             ${formatRuleShort(r)}
           </span>
         `).join('');
         return `
-          <div style="margin-bottom:6px;">
-            <div style="font-size:0.75rem; font-weight:700; color:#2563eb; margin-bottom:2px;">
-              ${g.name || `매수 조건 ${gIdx + 1}`} ${gIdx > 0 ? '(OR 조건)' : ''}
-            </div>
-            <div style="display:flex; flex-wrap:wrap; gap:4px;">
+          <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+            <span style="font-size:0.82rem; font-weight:700; color:#2563eb; min-width:18px;">${gIdx + 1}.</span>
+            <div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
               ${rulesList}
             </div>
+            ${gIdx > 0 ? '<span style="font-size:0.72rem; color:#64748b; font-weight:600; background:#f1f5f9; padding:2px 6px; border-radius:4px;">(OR)</span>' : ''}
           </div>
         `;
       }).join('');
@@ -1008,16 +1007,14 @@
       // Format Sell Rules
       const sellGroupsHtml = (slot.sellRules || []).map((g, gIdx) => {
         const rulesList = (g.rules || []).map(r => `
-          <span style="display:inline-block; background:#ffffff; border:1px solid #cbd5e1; border-radius:6px; padding:3px 8px; font-size:0.82rem; font-weight:600; color:#1e293b; margin:2px;">
+          <span style="display:inline-block; background:#ffffff; border:1px solid #cbd5e1; border-radius:6px; padding:3px 8px; font-size:0.82rem; font-weight:600; color:#1e293b;">
             ${formatRuleShort(r)}
           </span>
         `).join('');
         return `
-          <div style="margin-bottom:6px;">
-            <div style="font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:2px;">
-              ${g.name || `매도 조건 ${gIdx + 1}`}
-            </div>
-            <div style="display:flex; flex-wrap:wrap; gap:4px;">
+          <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
+            <span style="font-size:0.82rem; font-weight:700; color:#475569; min-width:18px;">${gIdx + 1}.</span>
+            <div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
               ${rulesList || '<span style="font-size:0.8rem; color:#64748b;">조건 없음</span>'}
             </div>
           </div>
