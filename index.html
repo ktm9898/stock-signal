@@ -142,43 +142,110 @@
     .label-desktop { display: inline; }
     .label-mobile { display: none; }
 
-    /* Tab Navigation */
-    .tabs { display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--card-border); padding-bottom: 10px; }
+    /* Navigation & Strategy Row (PC: Strategy on Left, Tabs on Right) */
+    .nav-control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 10px;
+    }
+
+    .desktop-strategy-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      padding: 4px 10px 4px 4px;
+      border-radius: 10px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .desktop-strategy-bar:hover {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      transform: translateY(-1px);
+    }
+    .desktop-strategy-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+      white-space: nowrap;
+    }
+
+    .btn-strategy-pill {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #ffffff;
+      border: none;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 6px 13px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(37, 99, 235, 0.22);
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn-strategy-pill:hover {
+      background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    }
+
+    /* Tab Navigation (Aligned Right on Desktop) */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin: 0;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
     .tab-btn {
-      background: #ffffff; border: 1px solid #cbd5e1; color: var(--text-sub); font-size: 0.9rem; font-weight: 600;
-      padding: 8px 16px; border-radius: 10px; cursor: pointer; transition: all 0.2s ease;
-      display: flex; align-items: center; gap: 6px;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: var(--text-sub);
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
     }
     .tab-btn.active {
-      background: #eff6ff; color: #2563eb;
+      background: #eff6ff;
+      color: #2563eb;
       border: 1px solid #bfdbfe;
       box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08);
     }
 
-    /* Active Strategy Banner */
-    .strategy-banner {
+    /* Mobile Strategy Bar (Under Header, Visible on Mobile Only) */
+    .mobile-strategy-bar {
+      display: none;
       background: #ffffff;
-      border: 1px solid #cbd5e1;
+      border: 1px solid #e2e8f0;
       border-radius: 12px;
-      padding: 10px 16px;
-      margin-bottom: 14px;
-      display: flex;
+      padding: 10px 14px;
+      margin-bottom: 12px;
       align-items: center;
       justify-content: space-between;
       cursor: pointer;
       box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
-      transition: all 0.2s ease;
+      user-select: none;
     }
-    .strategy-banner:hover {
-      border-color: #93c5fd;
-      background: #f8fafc;
-      transform: translateY(-1px);
-    }
-    .strategy-banner-left {
+    .mobile-strategy-left {
       display: flex;
       align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
+      gap: 8px;
+      overflow: hidden;
     }
     .strategy-badge {
       background: linear-gradient(135deg, #2563eb, #1d4ed8);
@@ -190,33 +257,89 @@
       display: inline-flex;
       align-items: center;
       gap: 5px;
+      white-space: nowrap;
     }
-    .strategy-name {
-      font-size: 0.95rem;
+    .mobile-strategy-bar .strategy-name {
+      font-size: 0.92rem;
       font-weight: 700;
       color: #0f172a;
-    }
-    .strategy-summary {
-      font-size: 0.8rem;
-      color: #64748b;
-      font-weight: 500;
-    }
-    .btn-strategy-change {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #2563eb;
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      padding: 5px 12px;
-      border-radius: 6px;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
       white-space: nowrap;
-      transition: all 0.15s ease;
+      text-overflow: ellipsis;
+      overflow: hidden;
     }
-    .btn-strategy-change:hover {
-      background: #dbeafe;
+
+    /* Custom Modern Strategy Dropdown in Modal */
+    .custom-strategy-trigger {
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+      user-select: none;
+    }
+    .custom-strategy-trigger:hover {
+      border-color: #93c5fd;
+      background: #f8fafc;
+    }
+    .custom-strategy-slot-badge {
+      background: #eff6ff;
+      color: #2563eb;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 6px;
+      border: 1px solid #bfdbfe;
+      white-space: nowrap;
+    }
+    .custom-strategy-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      width: 100%;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+      max-height: 280px;
+      overflow-y: auto;
+      z-index: 10001;
+      padding: 6px;
+      box-sizing: border-box;
+      animation: fadeInDropdown 0.15s ease-out;
+    }
+    @keyframes fadeInDropdown {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .custom-strategy-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #1e293b;
+      transition: background 0.15s;
+    }
+    .custom-strategy-item:hover {
+      background: #f1f5f9;
+    }
+    .custom-strategy-item.active {
+      background: #eff6ff;
+      color: #2563eb;
+      font-weight: 700;
+    }
+    .custom-strategy-item.is-empty {
+      color: #94a3b8;
+      font-weight: 500;
     }
 
     /* Metric Cards Clickable Style */
@@ -435,6 +558,18 @@
         box-shadow: none !important;
       }
 
+      .mobile-strategy-bar {
+        display: flex !important;
+      }
+      .desktop-strategy-bar {
+        display: none !important;
+      }
+      .nav-control-row {
+        border-bottom: none !important;
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+      }
+
       .table-container {
         overflow-x: auto !important;
         -webkit-overflow-scrolling: touch;
@@ -477,16 +612,13 @@
   </header>
 
   <div class="container">
-    <!-- Active Strategy Control Banner -->
-    <div class="strategy-banner" onclick="openStrategyDetailModal()" title="클릭하여 퀀트 전략 변경 및 상세 조건 확인">
-      <div class="strategy-banner-left">
+    <!-- Mobile Compact Strategy Bar (Shown on Mobile Only) -->
+    <div class="mobile-strategy-bar" onclick="openStrategyDetailModal()" title="클릭하여 전략 선택 및 조건 확인">
+      <div class="mobile-strategy-left">
         <span class="strategy-badge"><i class="fa-solid fa-crosshairs"></i> 적용 전략</span>
-        <span class="strategy-name" id="current-strategy-name">전략 1. 기존 전략 1번 (추세 원형)</span>
-        <span class="strategy-summary" id="current-strategy-summary">(ADX >= 30, -DI 하향돌파 | RSI >= 65)</span>
+        <span class="strategy-name" id="current-strategy-name-mobile">전략 1. 기존 전략 1번</span>
       </div>
-      <div class="strategy-banner-right">
-        <span class="btn-strategy-change"><i class="fa-solid fa-sliders"></i> 전략 변경/상세 <i class="fa-solid fa-chevron-right" style="font-size:0.7rem; margin-left:2px;"></i></span>
-      </div>
+      <button type="button" class="btn-strategy-pill"><i class="fa-solid fa-sliders"></i> 전략선택</button>
     </div>
 
     <!-- Metric Overview (3 Clickable Cards Layout) -->
@@ -526,28 +658,37 @@
       </div>
     </div>
 
-    <!-- Tab Navigation (5 Standalone Tabs: 매수 신호, 매도 신호, 보유 종목, 코스피200, 코스닥150) -->
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('buy-tab')">
-        <i class="fa-solid fa-cart-shopping"></i>
-        <span>매수 신호</span>
-      </button>
-      <button class="tab-btn" onclick="switchTab('sell-signals-tab')">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-        <span>매도 신호</span>
-      </button>
-      <button class="tab-btn" onclick="switchTab('holdings-tab')">
-        <i class="fa-solid fa-briefcase"></i>
-        <span>보유 종목</span>
-      </button>
-      <button class="tab-btn" onclick="switchTab('all-stocks-tab')">
-        <i class="fa-solid fa-list-ul"></i>
-        <span>코스피200</span>
-      </button>
-      <button class="tab-btn" onclick="switchTab('kosdaq-stocks-tab')">
-        <i class="fa-solid fa-chart-simple"></i>
-        <span>코스닥150</span>
-      </button>
+    <!-- Navigation & Strategy Row (PC: Strategy on Left, 5 Tabs on Right) -->
+    <div class="nav-control-row">
+      <!-- Desktop Strategy Bar on Left -->
+      <div class="desktop-strategy-bar" onclick="openStrategyDetailModal()" title="클릭하여 전략 선택 및 조건 확인">
+        <button type="button" class="btn-strategy-pill"><i class="fa-solid fa-sliders"></i> 전략선택</button>
+        <span class="desktop-strategy-name" id="current-strategy-name-desktop">전략 1. 기존 전략 1번</span>
+      </div>
+
+      <!-- 5 Standalone Tabs Aligned to Right on PC -->
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('buy-tab')">
+          <i class="fa-solid fa-cart-shopping"></i>
+          <span>매수 신호</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('sell-signals-tab')">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>매도 신호</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('holdings-tab')">
+          <i class="fa-solid fa-briefcase"></i>
+          <span>보유 종목</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('all-stocks-tab')">
+          <i class="fa-solid fa-list-ul"></i>
+          <span>코스피200</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('kosdaq-stocks-tab')">
+          <i class="fa-solid fa-chart-simple"></i>
+          <span>코스닥150</span>
+        </button>
+      </div>
     </div>
 
     <!-- Tab 1: Buy Signals -->
@@ -835,11 +976,19 @@
         <button class="close-btn" onclick="closeStrategyDetailModal()">&times;</button>
       </div>
 
-      <!-- Strategy Slot Selector -->
-      <div class="form-group" style="margin-bottom: 14px;">
-        <select class="form-input" id="modal-strategy-slot-select" onchange="onModalStrategySlotChange(this.value)" style="font-weight: 600; font-size: 0.92rem; background: #ffffff; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px;">
-          <!-- Dynamic options 1~10 -->
-        </select>
+      <!-- Custom Modern Strategy Dropdown -->
+      <div class="custom-strategy-dropdown-wrapper" id="custom-strategy-dropdown-wrapper" style="position: relative; margin-bottom: 14px;">
+        <button type="button" class="custom-strategy-trigger" id="custom-strategy-trigger" onclick="toggleCustomStrategyDropdown()">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="custom-strategy-slot-badge" id="custom-selected-slot-badge">전략 1</span>
+            <span id="custom-selected-slot-name" style="font-weight: 700; color: #0f172a; font-size: 0.94rem;">기존 전략 1번</span>
+          </div>
+          <i class="fa-solid fa-chevron-down" id="custom-strategy-arrow" style="color: #64748b; font-size: 0.85rem; transition: transform 0.2s;"></i>
+        </button>
+
+        <div class="custom-strategy-menu" id="custom-strategy-menu" style="display: none;">
+          <!-- 10 Strategy items dynamically generated -->
+        </div>
       </div>
 
       <!-- Selected Strategy Card -->
@@ -847,13 +996,13 @@
         <!-- Dynamic content -->
       </div>
 
-      <!-- Action Buttons -->
+      <!-- Action Buttons (간결한 명칭: 퀀트랩, 전략적용) -->
       <div style="display: flex; gap: 8px;">
-        <a href="admin.html" class="btn-admin-nav" style="flex: 1; justify-content: center; padding: 10px; font-size: 0.88rem; text-decoration: none; border-radius: 8px;">
-          <i class="fa-solid fa-sliders"></i> 퀀트 랩에서 편집
+        <a href="admin.html" class="btn-admin-nav" style="flex: 1; justify-content: center; padding: 11px; font-size: 0.9rem; text-decoration: none; border-radius: 8px;">
+          <i class="fa-solid fa-sliders"></i> 퀀트랩
         </a>
-        <button class="btn-buy-reg" style="flex: 1.2; padding: 10px; font-size: 0.88rem; border-radius: 8px;" onclick="applySelectedModalStrategy()">
-          <i class="fa-solid fa-check"></i> 이 전략 적용하기
+        <button class="btn-buy-reg" style="flex: 1.2; padding: 11px; font-size: 0.9rem; border-radius: 8px;" onclick="applySelectedModalStrategy()">
+          <i class="fa-solid fa-check"></i> 전략적용
         </button>
       </div>
     </div>
@@ -926,29 +1075,84 @@
       } catch(err) {}
     }
 
-    // Modal Operations
+    // Modal Operations & Custom Sleek Dropdown
+    let modalSelectedSlotIndex = 0;
+
     function openStrategyDetailModal() {
-      const select = document.getElementById('modal-strategy-slot-select');
-      if (select) {
-        select.innerHTML = strategySlots.map((s, idx) => `
-          <option value="${idx}" ${idx === currentActiveStrategySlotIndex ? 'selected' : ''}>
-            전략 ${idx + 1}: ${s.isEmpty ? '(비어있음)' : s.name}
-          </option>
-        `).join('');
-        onModalStrategySlotChange(currentActiveStrategySlotIndex);
-      }
+      modalSelectedSlotIndex = currentActiveStrategySlotIndex;
+      renderCustomStrategyDropdown();
+      renderModalStrategyInfoCard(strategySlots[modalSelectedSlotIndex] || strategySlots[0]);
       document.getElementById('strategy-detail-modal').style.display = 'flex';
     }
 
     function closeStrategyDetailModal() {
       document.getElementById('strategy-detail-modal').style.display = 'none';
+      const menu = document.getElementById('custom-strategy-menu');
+      if (menu) menu.style.display = 'none';
+      const arrow = document.getElementById('custom-strategy-arrow');
+      if (arrow) arrow.style.transform = 'rotate(0deg)';
     }
 
-    function onModalStrategySlotChange(slotIdxStr) {
-      const idx = parseInt(slotIdxStr, 10);
-      const slot = strategySlots[idx] || strategySlots[0];
-      renderModalStrategyInfoCard(slot);
+    function toggleCustomStrategyDropdown() {
+      const menu = document.getElementById('custom-strategy-menu');
+      const arrow = document.getElementById('custom-strategy-arrow');
+      if (!menu) return;
+      const isOpen = menu.style.display === 'block';
+      menu.style.display = isOpen ? 'none' : 'block';
+      if (arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
     }
+
+    function selectCustomStrategySlot(idx) {
+      modalSelectedSlotIndex = idx;
+      renderCustomStrategyDropdown();
+      renderModalStrategyInfoCard(strategySlots[idx] || strategySlots[0]);
+      const menu = document.getElementById('custom-strategy-menu');
+      if (menu) menu.style.display = 'none';
+      const arrow = document.getElementById('custom-strategy-arrow');
+      if (arrow) arrow.style.transform = 'rotate(0deg)';
+    }
+
+    function renderCustomStrategyDropdown() {
+      const slot = strategySlots[modalSelectedSlotIndex] || strategySlots[0];
+      const slotBadge = document.getElementById('custom-selected-slot-badge');
+      const slotName = document.getElementById('custom-selected-slot-name');
+      if (slotBadge) slotBadge.textContent = `전략 ${modalSelectedSlotIndex + 1}`;
+      if (slotName) slotName.textContent = slot.isEmpty ? '(비어있음)' : (slot.name || `전략 ${modalSelectedSlotIndex + 1}`);
+
+      const menu = document.getElementById('custom-strategy-menu');
+      if (menu) {
+        menu.innerHTML = strategySlots.map((s, idx) => {
+          const isSelected = idx === modalSelectedSlotIndex;
+          const isCurrentlyActive = idx === currentActiveStrategySlotIndex;
+          const emptyText = s.isEmpty ? ' <span style="font-size:0.75rem; color:#94a3b8; font-weight:normal;">(비어있음)</span>' : '';
+          return `
+            <div class="custom-strategy-item ${isSelected ? 'active' : ''} ${s.isEmpty ? 'is-empty' : ''}" onclick="selectCustomStrategySlot(${idx})">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="custom-strategy-slot-badge" style="${isSelected ? 'background:#2563eb; color:#ffffff; border-color:#2563eb;' : ''}">
+                  전략 ${idx + 1}
+                </span>
+                <span>${s.name || `전략 ${idx + 1}`}${emptyText}</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                ${isCurrentlyActive ? '<span style="font-size:0.72rem; background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px; font-weight:700;">적용중</span>' : ''}
+                ${isSelected ? '<i class="fa-solid fa-check" style="color:#2563eb; font-size:0.88rem;"></i>' : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // Close dropdown on outside click
+    document.addEventListener('click', function(e) {
+      const dropdownWrap = document.getElementById('custom-strategy-dropdown-wrapper');
+      const menu = document.getElementById('custom-strategy-menu');
+      const arrow = document.getElementById('custom-strategy-arrow');
+      if (dropdownWrap && !dropdownWrap.contains(e.target) && menu && menu.style.display === 'block') {
+        menu.style.display = 'none';
+        if (arrow) arrow.style.transform = 'rotate(0deg)';
+      }
+    });
 
     function formatRuleShort(r) {
       if (!r || !r.indicator) return "";
@@ -962,8 +1166,8 @@
       const targetName = r.target_indicator ? (indNames[r.target_indicator] || r.target_indicator.toUpperCase()) : "";
 
       switch (r.condition_type) {
-        case 'gte_value': return `${name} >= ${val}`;
-        case 'lte_value': return `${name} <= ${val}`;
+        case 'gte_value': return `${name} ≥ ${val}`;
+        case 'lte_value': return `${name} ≤ ${val}`;
         case 'gt_value': return `${name} > ${val}`;
         case 'lt_value': return `${name} < ${val}`;
         case 'cross_above_value': return `${name} 상향돌파 ${val}`;
@@ -972,8 +1176,8 @@
         case 'turn_down': return `${name} 음전`;
         case 'gt_indicator': return `${name} > ${targetName}`;
         case 'lt_indicator': return `${name} < ${targetName}`;
-        case 'gte_indicator': return `${name} >= ${targetName}`;
-        case 'lte_indicator': return `${name} <= ${targetName}`;
+        case 'gte_indicator': return `${name} ≥ ${targetName}`;
+        case 'lte_indicator': return `${name} ≤ ${targetName}`;
         case 'cross_above_indicator': return `${name} 상향돌파 ${targetName}`;
         case 'cross_below_indicator': return `${name} 하향돌파 ${targetName}`;
         default: return `${name} ${val}`;
@@ -995,39 +1199,25 @@
         return;
       }
 
-      // Format Buy Rules
-      const buyGroupsHtml = slot.buyRules.map((g, gIdx) => {
-        const rulesList = (g.rules || []).map(r => `
-          <span style="display:inline-block; background:#ffffff; border:1px solid #cbd5e1; border-radius:6px; padding:3px 8px; font-size:0.82rem; font-weight:600; color:#1e293b;">
-            ${formatRuleShort(r)}
-          </span>
-        `).join('');
+      // Format Buy Rules (Clean Typography Line without chunky boxes)
+      const buyGroupsHtml = (slot.buyRules || []).map((g, gIdx) => {
+        const rulesList = (g.rules || []).map(r => formatRuleShort(r)).join(' · ');
         return `
-          <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
-            <span style="font-size:0.82rem; font-weight:700; color:#2563eb; min-width:18px;">${gIdx + 1}.</span>
-            <div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
-              ${rulesList}
-            </div>
+          <div style="font-size:0.88rem; color:#1e293b; line-height:1.6; margin-bottom:6px;">
+            <strong style="color:#2563eb; margin-right:4px;">${gIdx + 1}.</strong> ${rulesList}
           </div>
         `;
-      }).join('');
+      }).join('') || '<div style="font-size:0.85rem; color:#64748b;">조건 없음</div>';
 
-      // Format Sell Rules
+      // Format Sell Rules (Clean Typography Line without chunky boxes)
       const sellGroupsHtml = (slot.sellRules || []).map((g, gIdx) => {
-        const rulesList = (g.rules || []).map(r => `
-          <span style="display:inline-block; background:#ffffff; border:1px solid #cbd5e1; border-radius:6px; padding:3px 8px; font-size:0.82rem; font-weight:600; color:#1e293b;">
-            ${formatRuleShort(r)}
-          </span>
-        `).join('');
+        const rulesList = (g.rules || []).map(r => formatRuleShort(r)).join(' · ');
         return `
-          <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:6px;">
-            <span style="font-size:0.82rem; font-weight:700; color:#475569; min-width:18px;">${gIdx + 1}.</span>
-            <div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">
-              ${rulesList || '<span style="font-size:0.8rem; color:#64748b;">조건 없음</span>'}
-            </div>
+          <div style="font-size:0.88rem; color:#1e293b; line-height:1.6; margin-bottom:6px;">
+            <strong style="color:#475569; margin-right:4px;">${gIdx + 1}.</strong> ${rulesList}
           </div>
         `;
-      }).join('');
+      }).join('') || '<div style="font-size:0.85rem; color:#64748b;">조건 없음</div>';
 
       const stopLossText = slot.stopLoss ? `-${slot.stopLoss}%` : "없음";
       const takeProfitText = slot.takeProfit ? `+${slot.takeProfit}%` : "없음";
@@ -1069,8 +1259,7 @@
     }
 
     function applySelectedModalStrategy() {
-      const select = document.getElementById('modal-strategy-slot-select');
-      const idx = parseInt(select.value, 10);
+      const idx = modalSelectedSlotIndex;
       currentActiveStrategySlotIndex = idx;
       localStorage.setItem(ACTIVE_STRATEGY_KEY, String(idx));
       closeStrategyDetailModal();
@@ -1146,29 +1335,12 @@
     function evaluateStrategyForDashboard() {
       const activeSlot = strategySlots[currentActiveStrategySlotIndex] || strategySlots[0] || DEFAULT_STRATEGY_PRESETS[0];
 
-      // Update Banner Text
-      const nameEl = document.getElementById('current-strategy-name');
-      const sumEl = document.getElementById('current-strategy-summary');
-      if (nameEl) nameEl.textContent = `전략 ${activeSlot.id}. ${activeSlot.name}`;
-
-      let summaryParts = [];
-      if (activeSlot.buyRules && activeSlot.buyRules.length > 0) {
-        const groupSummaries = activeSlot.buyRules.map(g => {
-          return (g.rules || []).map(r => formatRuleShort(r)).join(' & ');
-        }).filter(Boolean);
-        if (groupSummaries.length > 0) summaryParts.push(groupSummaries.join(' OR '));
-      }
-      if (activeSlot.sellRules && activeSlot.sellRules.length > 0) {
-        const sellSummary = (activeSlot.sellRules[0]?.rules || []).map(r => formatRuleShort(r)).join(' & ');
-        if (sellSummary) summaryParts.push(`청산: ${sellSummary}`);
-      }
-      if (activeSlot.stopLoss) {
-        summaryParts.push(`손절 -${Math.abs(activeSlot.stopLoss)}%`);
-      }
-      if (activeSlot.takeProfit) {
-        summaryParts.push(`익절 +${Math.abs(activeSlot.takeProfit)}%`);
-      }
-      if (sumEl) sumEl.textContent = summaryParts.length > 0 ? `(${summaryParts.join(' | ')})` : "";
+      // Update Strategy Name Displays (Desktop & Mobile, clean and concise)
+      const fullName = `전략 ${activeSlot.id}. ${activeSlot.name}`;
+      const nameElDesktop = document.getElementById('current-strategy-name-desktop');
+      if (nameElDesktop) nameElDesktop.textContent = fullName;
+      const nameElMobile = document.getElementById('current-strategy-name-mobile');
+      if (nameElMobile) nameElMobile.textContent = fullName;
 
       const latestKospi = window.latestMetricsCacheData || [];
       const latestKosdaq = window.latestKosdaqMetricsCacheData || [];
