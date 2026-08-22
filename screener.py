@@ -371,50 +371,138 @@ def calculate_indicators(df, period=14):
 
     return df
 
-def evaluate_buy_signal(df):
+def check_single_rule(rule, df):
+    """Evaluate a single strategy rule against the latest OHLCV/indicators dataframe."""
+    if not rule or not isinstance(rule, dict) or 'indicator' not in rule:
+        return False
+    ind = str(rule.get('indicator', '')).lower()
+    cond = str(rule.get('condition_type', ''))
+    target_ind = str(rule.get('target_indicator', '')).lower() if rule.get('target_indicator') else None
+    try:
+        rule_val = float(rule.get('value', 0))
+    except (ValueError, TypeError):
+        rule_val = 0.0
+
+    def get_indicator_series(key):
+        mapping = {
+            'adx': 'adx',
+            'minus_di': 'minus_di',
+            'plus_di': 'plus_di',
+            'rsi': 'rsi',
+            'bb_pct': 'b_band_pct',
+            'macd': 'macd',
+            'macd_osc': 'macd_osc',
+            'stoch_k': 'stoch_k',
+            'stoch_d': 'stoch_d',
+            'disparity20': 'disparity20',
+            'volume_ratio': 'volume_ratio'
+        }
+        col = mapping.get(key)
+        if col and col in df.columns:
+            return df[col]
+        return None
+
+    s = get_indicator_series(ind)
+    if s is None or len(s) < 2:
+        return False
+
+    curr_val = s.iloc[-1]
+    prev_val = s.iloc[-2]
+
+    if np.isnan(curr_val):
+        return False
+
+    target_s = get_indicator_series(target_ind) if target_ind else None
+    target_val = target_s.iloc[-1] if target_s is not None and not np.isnan(target_s.iloc[-1]) else rule_val
+    prev_target_val = target_s.iloc[-2] if target_s is not None and not np.isnan(target_s.iloc[-2]) else rule_val
+
+    if cond == 'gte_value':
+        return curr_val >= rule_val
+    elif cond == 'lte_value':
+        return curr_val <= rule_val
+    elif cond == 'gt_value':
+        return curr_val > rule_val
+    elif cond == 'lt_value':
+        return curr_val < rule_val
+    elif cond == 'cross_above_value':
+        return not np.isnan(prev_val) and prev_val <= rule_val and curr_val > rule_val
+    elif cond == 'cross_below_value':
+        return not np.isnan(prev_val) and prev_val >= rule_val and curr_val < rule_val
+    elif cond == 'turn_up':
+        return not np.isnan(prev_val) and prev_val <= 0 and curr_val > 0
+    elif cond == 'turn_down':
+        return not np.isnan(prev_val) and prev_val >= 0 and curr_val < 0
+    elif cond == 'gt_indicator':
+        return curr_val > target_val
+    elif cond == 'lt_indicator':
+        return curr_val < target_val
+    elif cond == 'gte_indicator':
+        return curr_val >= target_val
+    elif cond == 'lte_indicator':
+        return curr_val <= target_val
+    elif cond == 'cross_above_indicator':
+        return not np.isnan(prev_val) and not np.isnan(prev_target_val) and prev_val <= prev_target_val and curr_val > target_val
+    elif cond == 'cross_below_indicator':
+        return not np.isnan(prev_val) and not np.isnan(prev_target_val) and prev_val >= prev_target_val and curr_val < target_val
+    return False
+
+def check_group_match(group, df):
+    """Evaluate a buy/sell group (AND logic among rules inside the group)."""
+    if not group or not isinstance(group, dict):
+        return False
+    rules = group.get('rules', [])
+    if not rules or not isinstance(rules, list):
+        return False
+    return all(check_single_rule(r, df) for r in rules)
+
+def evaluate_buy_signal(df, active_slot=None):
     """
-    Evaluate ADX Reversal Buy Signal.
-    Condition: ADX >= 30 AND Prev(-DI) > Prev(ADX) AND Curr(-DI) <= Curr(ADX)
-    Signal Name: 전략매수
+    Evaluate Buy Signal based on active strategy slot (or default ADX reversal).
     """
     if len(df) < 2 or 'adx' not in df.columns:
         return None
 
-    prev_adx, curr_adx = df['adx'].iloc[-2], df['adx'].iloc[-1]
-    prev_mdi, curr_mdi = df['minus_di'].iloc[-2], df['minus_di'].iloc[-1]
+    curr_adx = df['adx'].iloc[-1]
+    curr_mdi = df['minus_di'].iloc[-1]
+    curr_pdi = df['plus_di'].iloc[-1]
     curr_rsi = df['rsi'].iloc[-1]
+    curr_bb_pct = df['b_band_pct'].iloc[-1] if 'b_band_pct' in df.columns else 0.5
+    curr_vr = df['volume_ratio'].iloc[-1] if 'volume_ratio' in df.columns else 100.0
+    curr_close = int(df['종가'].iloc[-1])
 
-    # Base Buy Signal: ADX >= 30 & -DI Cross Below ADX
-    is_buy = (curr_adx >= 30.0) and (prev_mdi > prev_adx) and (curr_mdi <= curr_adx)
+    is_buy = False
+    priority = "전략매수"
+
+    if active_slot and active_slot.get('buyRules') and len(active_slot['buyRules']) > 0:
+        # Check active slot buy groups (OR logic across groups)
+        is_buy = any(check_group_match(g, df) for g in active_slot['buyRules'])
+        if is_buy:
+            priority = "전략매수"
+    else:
+        # Fallback to default Strategy #1 (ADX >= 30 and -DI cross below ADX)
+        prev_adx = df['adx'].iloc[-2]
+        prev_mdi = df['minus_di'].iloc[-2]
+        is_buy = (curr_adx >= 30.0) and (prev_mdi > prev_adx) and (curr_mdi <= curr_adx)
 
     if not is_buy:
         return None
 
-    priority = "전략매수"
-    score = 1
-
-    curr_bb_pct = df['b_band_pct'].iloc[-1] if 'b_band_pct' in df.columns else 0.5
-    curr_vr = df['volume_ratio'].iloc[-1] if 'volume_ratio' in df.columns else 100.0
-
     return {
         "is_buy": True,
         "priority": priority,
-        "score": score,
+        "score": 1,
         "adx": round(curr_adx, 2),
         "minus_di": round(curr_mdi, 2),
-        "plus_di": round(df['plus_di'].iloc[-1], 2),
+        "plus_di": round(curr_pdi, 2),
         "rsi": round(curr_rsi, 2) if not np.isnan(curr_rsi) else None,
         "b_band_pct": round(curr_bb_pct, 2) if not np.isnan(curr_bb_pct) else None,
         "volume_ratio": round(curr_vr, 1) if not np.isnan(curr_vr) else 100.0,
-        "close": int(df['종가'].iloc[-1])
+        "close": curr_close
     }
 
-def evaluate_sell_signal(df, buy_price):
+def evaluate_sell_signal(df, buy_price, active_slot=None):
     """
-    Evaluate Sell Signal for a held stock.
-    Conditions:
-    - 손절매도: returnRate <= -20.0%
-    - 전략매도: RSI >= 65.0
+    Evaluate Sell Signal for a held stock based on active strategy slot.
     """
     if len(df) < 2 or 'adx' not in df.columns or 'plus_di' not in df.columns:
         return None
@@ -435,17 +523,41 @@ def evaluate_sell_signal(df, buy_price):
         return_rate = round(((curr_close - buy_price) / buy_price) * 100, 2)
 
     details = []
+    level = "관망"
+
+    stop_loss_pct = 20.0
+    take_profit_pct = None
+    if active_slot:
+        if active_slot.get('stopLoss') is not None and active_slot['stopLoss'] != '':
+            try:
+                stop_loss_pct = abs(float(active_slot['stopLoss']))
+            except:
+                pass
+        if active_slot.get('takeProfit') is not None and active_slot['takeProfit'] != '':
+            try:
+                take_profit_pct = abs(float(active_slot['takeProfit']))
+            except:
+                pass
 
     # Sell conditions
-    is_stop_loss = (buy_price and buy_price > 0 and return_rate <= -20.0)
-    is_strategy_sell = (curr_rsi >= 65.0)
+    is_stop_loss = (buy_price and buy_price > 0 and return_rate <= -stop_loss_pct)
+    is_take_profit = (buy_price and buy_price > 0 and take_profit_pct and return_rate >= take_profit_pct)
+    
+    is_strategy_sell = False
+    if active_slot and active_slot.get('sellRules') and len(active_slot['sellRules']) > 0:
+        is_strategy_sell = any(check_group_match(g, df) for g in active_slot['sellRules'])
+    else:
+        is_strategy_sell = (curr_rsi >= 65.0)
 
     if is_stop_loss:
         level = "손절매도"
-        details.append(f"손절선(-20%) 도달 이탈 (현재 수익률: {return_rate:.2f}%)")
+        details.append(f"손절선(-{stop_loss_pct}%) 도달 이탈 (현재 수익률: {return_rate:.2f}%)")
+    elif is_take_profit:
+        level = "익절매도"
+        details.append(f"익절선(+{take_profit_pct}%) 도달 (현재 수익률: +{return_rate:.2f}%)")
     elif is_strategy_sell:
         level = "전략매도"
-        details.append(f"RSI 과매수 도달 (RSI: {curr_rsi:.1f} >= 65)")
+        details.append(f"전략 매도 청산 조건 충족 (RSI: {curr_rsi:.1f})")
     else:
         level = "관망"
         details.append(f"정상 관망 (추세 유지 중 | ADX: {curr_adx:.1f})")
@@ -530,6 +642,27 @@ if __name__ == "__main__":
     
     gas_url = os.environ.get("GAS_WEBAPP_URL", "")
 
+    # Fetch Active Strategy Slot from GAS
+    active_slot = None
+    if gas_url:
+        try:
+            print("[INFO] Fetching active strategy slot from Google Apps Script...")
+            resp = requests.get(f"{gas_url}?action=get_strategy_slots", timeout=10)
+            if resp.status_code == 200:
+                slot_data = resp.json()
+                if slot_data.get('success'):
+                    active_id = slot_data.get('activeSlotId', 1)
+                    slots = slot_data.get('slots', [])
+                    active_slot = next((s for s in slots if s.get('id') == active_id), None)
+                    if active_slot:
+                        print(f" -> Active Strategy Loaded: [Slot {active_slot.get('id')}] {active_slot.get('name')}")
+                        if active_slot.get('buyRules'):
+                            print(f"    Buy Rules: {len(active_slot['buyRules'])} groups")
+                        if active_slot.get('sellRules'):
+                            print(f"    Sell Rules: {len(active_slot['sellRules'])} groups")
+        except Exception as e:
+            print(f"[WARN] Failed to fetch active strategy slot: {e}")
+
     # 1. Fetch KOSPI 200 & KOSDAQ 150 Tickers
     print("[1/4] Fetching KOSPI 200 and KOSDAQ 150 component tickers...")
     kospi_items = get_kospi200_tickers()
@@ -591,7 +724,7 @@ if __name__ == "__main__":
             curr_vr = sanitize_num(df['volume_ratio'].iloc[-1] if 'volume_ratio' in df.columns else None, default=100.0)
             curr_close = int(df['종가'].iloc[-1]) if '종가' in df.columns and not np.isnan(df['종가'].iloc[-1]) else 0
 
-            buy_res = evaluate_buy_signal(df)
+            buy_res = evaluate_buy_signal(df, active_slot=active_slot)
             status_text = "관망"
             buy_item = None
             if buy_res:
@@ -643,7 +776,7 @@ if __name__ == "__main__":
                     buy_candidates.append(buy_item)
                     print(f"  🔥 [BUY SIGNAL] [{market}] {buy_item['name']} ({buy_item['ticker']}) - {buy_item['priority']} | ADX: {buy_item['adx']} | RSI: {buy_item['rsi']}")
 
-    # Sort buy candidates by priority score (3단계 -> 2단계 -> 1단계)
+    # Sort buy candidates by priority score
     buy_candidates.sort(key=lambda x: x['score'], reverse=True)
     print(f" -> Found {len(buy_candidates)} buy candidate stocks across KOSPI 200 & KOSDAQ 150.")
     print(f" -> Calculated indicators for KOSPI 200 ({len(kospi_stocks)}) and KOSDAQ 150 ({len(kosdaq_stocks)}).")
@@ -651,11 +784,12 @@ if __name__ == "__main__":
     # 3. Post to Google Sheets API
     if gas_url:
         print("[3/4] Posting screening results to Google Sheets...")
+        strategy_desc = f" [{active_slot.get('name')}]" if active_slot else ""
         log_payload = {
             "status": "SUCCESS",
             "scanned": len(all_target_items),
             "count": len(buy_candidates),
-            "message": f"KOSPI 200 ({len(kospi_items)}개), KOSDAQ 150 ({len(kosdaq_items)}개) 종목 검사 완료 (매수 신호: {len(buy_candidates)}개)"
+            "message": f"KOSPI 200 ({len(kospi_items)}개), KOSDAQ 150 ({len(kosdaq_items)}개) 종목 검사 완료{strategy_desc} (매수 신호: {len(buy_candidates)}개)"
         }
         post_to_google_sheets(gas_url, "update_buy_candidates", {
             "candidates": buy_candidates,
@@ -726,7 +860,7 @@ if __name__ == "__main__":
                             print(f"  [WARN] Insufficient candle data for holding: {h_name} ({h_ticker})")
                             continue
 
-                        sell_res = evaluate_sell_signal(h_df, h_price)
+                        sell_res = evaluate_sell_signal(h_df, h_price, active_slot=active_slot)
                         if sell_res:
                             sell_res["ticker"] = matched_ticker if matched_ticker.isdigit() else h_ticker
                             sell_res["name"] = matched_name if matched_name else h_name

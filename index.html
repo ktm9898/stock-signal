@@ -2261,14 +2261,16 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       const uniqueList = [];
       list.forEach(item => {
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
-        const dt = formatShortDate(item.Date || item.date || item.Timestamp);
-        const stage = String(item.Stage || item.stage || '');
+        const ymd = formatDateOnly(item.Date || item.date || item.Timestamp);
+        const adx = formatDec(item.ADX || item.adx);
+        const close = Number(item.ClosePrice || item.price || item.close || 0);
 
         const alreadyExists = uniqueList.some(prev => {
           const prevTicker = formatTicker(prev.Ticker || prev.ticker || prev.code);
-          const prevDt = formatShortDate(prev.Date || prev.date || prev.Timestamp);
-          const prevStage = String(prev.Stage || prev.stage || '');
-          return prevTicker === ticker && prevDt === dt && prevStage === stage;
+          const prevYmd = formatDateOnly(prev.Date || prev.date || prev.Timestamp);
+          const prevAdx = formatDec(prev.ADX || prev.adx);
+          const prevClose = Number(prev.ClosePrice || prev.price || prev.close || 0);
+          return prevTicker === ticker && (prevYmd === ymd || (prevAdx === adx && prevClose === close && prevClose > 0));
         });
 
         if (!alreadyExists) {
@@ -2887,7 +2889,8 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({
             action: "trigger_screener",
-            pin: userPin
+            pin: userPin,
+            slotId: currentActiveStrategySlotIndex + 1
           })
         });
         const result = await resp.json();

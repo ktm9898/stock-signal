@@ -225,7 +225,7 @@ function doPost(e) {
             if (rowTickerStr === tickerStr) {
               const rowYMD = extractYMD(existingRows[i][0]);
               // 1) Same-day duplication check
-              if (rowYMD === todayYMD) {
+              if (rowYMD && todayYMD && rowYMD === todayYMD) {
                 exists = true;
                 break;
               }
@@ -233,7 +233,8 @@ function doPost(e) {
               const rowAdx = Number(existingRows[i][4]);
               const rowMdi = Number(existingRows[i][6]);
               const rowRsi = Number(existingRows[i][9]);
-              const rowClose = Number(existingRows[i][11]);
+              // Col 12 is ClosePrice in 13-col sheets, Col 11 in older 12-col sheets
+              const rowClose = existingRows[i].length >= 13 ? Number(existingRows[i][12]) : Number(existingRows[i][11]);
               const candAdx = Number(c.adx);
               const candMdi = Number(c.minus_di);
               const candRsi = Number(c.rsi);
@@ -397,6 +398,9 @@ function doPost(e) {
     }
 
     if (data.action === "trigger_screener") {
+      if (data.slotId) {
+        PropertiesService.getScriptProperties().setProperty("ACTIVE_STRATEGY_SLOT_ID", String(data.slotId));
+      }
       const githubToken = PropertiesService.getScriptProperties().getProperty("GITHUB_TOKEN");
       if (!githubToken) {
         return ContentService.createTextOutput(JSON.stringify({ 
@@ -553,6 +557,13 @@ function extractYMD(val) {
     const mm = match[2].padStart(2, '0');
     const dd = match[3].padStart(2, '0');
     return yyyy + mm + dd;
+  }
+  const matchShort = str.match(/^(\d{1,2})[^\d]+(\d{1,2})/);
+  if (matchShort) {
+    const currentYear = Utilities.formatDate(new Date(), "GMT+9", "yyyy");
+    const mm = matchShort[1].padStart(2, '0');
+    const dd = matchShort[2].padStart(2, '0');
+    return currentYear + mm + dd;
   }
   return "";
 }
