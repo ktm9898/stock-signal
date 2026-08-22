@@ -1761,26 +1761,6 @@
       });
       const finalSellList = Array.from(combinedSellMap.values());
 
-      // Auto-fill VolumeRatio for Buy and Sell lists from live 350 stock metrics
-      finalBuyList.forEach(item => {
-        if (item.VolumeRatio === undefined && item.volume_ratio === undefined) {
-          const tk = formatTicker(item.Ticker || item.ticker || item.code);
-          const found = combinedStocks.find(s => formatTicker(s.Ticker || s.ticker || s.code) === tk);
-          if (found) {
-            item.VolumeRatio = found.VolumeRatio !== undefined ? found.VolumeRatio : found.volume_ratio;
-          }
-        }
-      });
-      finalSellList.forEach(item => {
-        if (item.VolumeRatio === undefined && item.volume_ratio === undefined) {
-          const tk = formatTicker(item.Ticker || item.ticker || item.code);
-          const found = combinedStocks.find(s => formatTicker(s.Ticker || s.ticker || s.code) === tk);
-          if (found) {
-            item.VolumeRatio = found.VolumeRatio !== undefined ? found.VolumeRatio : found.volume_ratio;
-          }
-        }
-      });
-
       // 4. Dynamic evaluation for Kospi 200 & Kosdaq 150 tables
       function evaluateStockStatus(stock, prevStock) {
         if (!stock) return { status: '관망', reason: '관망 중' };
@@ -2324,17 +2304,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           else if (bBandPctVal >= 1.0) bbColor = '#f87171';
         }
 
-        let rawVR = (item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr)));
-        if ((rawVR === undefined || rawVR === null || rawVR === '' || isNaN(Number(rawVR))) && window.allMetricsData) {
-          const mItem = (window.latestMetricsCacheData || []).concat(window.latestKosdaqMetricsCacheData || []).concat(window.allMetricsData || []).find(m => {
-            const mTicker = formatTicker(m.Ticker || m.ticker || m.code);
-            const mName = String(m.Name || m.name || '').trim();
-            return (ticker && ticker !== '-' && mTicker === ticker) || (name && mName === name);
-          });
-          if (mItem) {
-            rawVR = mItem.VolumeRatio !== undefined ? mItem.VolumeRatio : (mItem.volume_ratio !== undefined ? mItem.volume_ratio : (mItem.VR !== undefined ? mItem.VR : mItem.vr));
-          }
-        }
+        const rawVR = (item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr)));
         const vrStr = (rawVR !== undefined && rawVR !== null && rawVR !== '' && !isNaN(Number(rawVR))) ? formatDec(rawVR, 0) + '%' : '-';
         const vrNum = Number(rawVR);
         const vrColor = (!isNaN(vrNum) && vrNum >= 150) ? 'var(--accent-warning)' : 'inherit';
@@ -2673,17 +2643,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           else if (bBandPctVal >= 1.0) bbColor = '#f87171';
         }
 
-        let rawVR = (item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr)));
-        if ((rawVR === undefined || rawVR === null || rawVR === '' || isNaN(Number(rawVR))) && window.allMetricsData) {
-          const mItem = (window.latestMetricsCacheData || []).concat(window.latestKosdaqMetricsCacheData || []).concat(window.allMetricsData || []).find(m => {
-            const mTicker = formatTicker(m.Ticker || m.ticker || m.code);
-            const mName = String(m.Name || m.name || '').trim();
-            return (ticker && ticker !== '-' && mTicker === ticker) || (String(item.Name || item.name || '').trim() && mName === String(item.Name || item.name || '').trim());
-          });
-          if (mItem) {
-            rawVR = mItem.VolumeRatio !== undefined ? mItem.VolumeRatio : (mItem.volume_ratio !== undefined ? mItem.volume_ratio : (mItem.VR !== undefined ? mItem.VR : mItem.vr));
-          }
-        }
+        const rawVR = (item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr)));
         const vrStr = (rawVR !== undefined && rawVR !== null && rawVR !== '' && !isNaN(Number(rawVR))) ? formatDec(rawVR, 0) + '%' : '-';
         const vrNum = Number(rawVR);
         const vrColor = (!isNaN(vrNum) && vrNum >= 150) ? 'var(--accent-warning)' : 'inherit';
