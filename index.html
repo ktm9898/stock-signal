@@ -831,15 +831,11 @@
       </div>
 
       <!-- Strategy Slot Selector -->
-      <div class="form-group" style="margin-bottom: 10px;">
+      <div class="form-group" style="margin-bottom: 14px;">
         <select class="form-input" id="modal-strategy-slot-select" onchange="onModalStrategySlotChange(this.value)" style="font-weight: 600; font-size: 0.92rem; background: #ffffff; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px;">
           <!-- Dynamic options 1~10 -->
         </select>
       </div>
-
-      <button type="button" onclick="resetToDefault7PresetsFromDashboard()" style="padding: 7px 12px; font-size: 0.78rem; background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; font-weight: 700; border-radius: 6px; cursor: pointer; margin-bottom: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
-        <i class="fa-solid fa-rotate-left"></i> 7대 기본 전략 구글 시트 동기화 저장
-      </button>
 
       <!-- Selected Strategy Card -->
       <div id="modal-strategy-info-card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
@@ -872,284 +868,15 @@
     let kosdaqMetricsData = [];
 
     // ==========================================
-    // 7 Core Quant Strategy Presets
+    // Strategy Slots (Loaded dynamically from Google Sheets)
     // ==========================================
-    const DEFAULT_STRATEGY_PRESETS = [
-      {
-        id: 1,
-        name: "기존 전략 1번 (추세 원형)",
-        memo: "ADX 30 이상 & -DI 하향돌파 진입 (RSI 65 청산)",
-        isEmpty: false,
-        market: "ALL",
-        period: "5Y",
-        startDate: "2021-01-04",
-        endDate: "2026-08-20",
-        stopLoss: 20,
-        takeProfit: null,
-        cooldownDays: null,
-        tradeAmount: 1000000,
-        buyRules: [
-          {
-            id: "bg_1",
-            name: "매수 조건 1",
-            rules: [
-              { indicator: "adx", condition_type: "gte_value", value: 30.0 },
-              { indicator: "minus_di", condition_type: "cross_below_indicator", target_indicator: "adx", value: 0 }
-            ]
-          }
-        ],
-        sellRules: [
-          {
-            id: "sg_1",
-            name: "매도 조건 1",
-            rules: [
-              { indicator: "rsi", condition_type: "gte_value", value: 65.0 }
-            ]
-          }
-        ],
-        updatedAt: "2026.08.22"
-      },
-      {
-        id: 2,
-        name: "사용자 하이브리드 (올웨더 복합)",
-        memo: "스나이퍼 바닥 OR ADX 33 돌파 복합 (RSI 55 청산)",
-        isEmpty: false,
-        market: "ALL",
-        period: "5Y",
-        startDate: "2021-01-04",
-        endDate: "2026-08-20",
-        stopLoss: null,
-        takeProfit: null,
-        cooldownDays: null,
-        tradeAmount: 1000000,
-        buyRules: [
-          {
-            id: "bg_1",
-            name: "매수 조건 1",
-            rules: [
-              { indicator: "rsi", condition_type: "lte_value", value: 24.0 },
-              { indicator: "bb_pct", condition_type: "lte_value", value: 0.05 },
-              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
-            ]
-          },
-          {
-            id: "bg_2",
-            name: "매수 조건 2",
-            rules: [
-              { indicator: "adx", condition_type: "gte_value", value: 33.0 },
-              { indicator: "minus_di", condition_type: "cross_below_indicator", target_indicator: "adx", value: 0 },
-              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
-            ]
-          }
-        ],
-        sellRules: [
-          {
-            id: "sg_1",
-            name: "매도 조건 1",
-            rules: [
-              { indicator: "rsi", condition_type: "gte_value", value: 55.0 }
-            ]
-          }
-        ],
-        updatedAt: "2026.08.22"
-      },
-      {
-        id: 3,
-        name: "고승률 스나이퍼 (바닥 반등)",
-        memo: "RSI 24 & 볼린저 0.05 바닥 매수 (RSI 55 청산)",
-        isEmpty: false,
-        market: "ALL",
-        period: "5Y",
-        startDate: "2021-01-04",
-        endDate: "2026-08-20",
-        stopLoss: 10,
-        takeProfit: 15,
-        cooldownDays: null,
-        tradeAmount: 1000000,
-        buyRules: [
-          {
-            id: "bg_1",
-            name: "매수 조건 1",
-            rules: [
-              { indicator: "rsi", condition_type: "lte_value", value: 24.0 },
-              { indicator: "bb_pct", condition_type: "lte_value", value: 0.05 },
-              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
-            ]
-          }
-        ],
-        sellRules: [
-          {
-            id: "sg_1",
-            name: "매도 조건 1",
-            rules: [
-              { indicator: "rsi", condition_type: "gte_value", value: 55.0 }
-            ]
-          }
-        ],
-        updatedAt: "2026.08.22"
-      },
-      {
-        id: 4,
-        name: "초정밀 스나이퍼 (극단적 바닥)",
-        memo: "RSI 22 & 볼린저 0.04 극단적 바닥 매수 (RSI 55 청산)",
-        isEmpty: false,
-        market: "ALL",
-        period: "5Y",
-        startDate: "2021-01-04",
-        endDate: "2026-08-20",
-        stopLoss: 10,
-        takeProfit: 15,
-        cooldownDays: null,
-        tradeAmount: 1000000,
-        buyRules: [
-          {
-            id: "bg_1",
-            name: "매수 조건 1",
-            rules: [
-              { indicator: "rsi", condition_type: "lte_value", value: 22.0 },
-              { indicator: "bb_pct", condition_type: "lte_value", value: 0.04 },
-              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
-            ]
-          }
-        ],
-        sellRules: [
-          {
-            id: "sg_1",
-            name: "매도 조건 1",
-            rules: [
-              { indicator: "rsi", condition_type: "gte_value", value: 55.0 }
-            ]
-          }
-        ],
-        updatedAt: "2026.08.22"
-      },
-      {
-        id: 5,
-        name: "추세전환 골디락스 (주도주 돌파)",
-        memo: "ADX 32 & 거래량 120% 주도주 돌파 매수 (RSI 65 청산)",
-        isEmpty: false,
-        market: "ALL",
-        period: "5Y",
-        startDate: "2021-01-04",
-        endDate: "2026-08-20",
-        stopLoss: 15,
-        takeProfit: 20,
-        cooldownDays: null,
-        tradeAmount: 1000000,
-        buyRules: [
-          {
-            id: "bg_1",
-            name: "매수 조건 1",
-            rules: [
-              { indicator: "adx", condition_type: "gte_value", value: 32.0 },
-              { indicator: "minus_di", condition_type: "cross_below_indicator", target_indicator: "adx", value: 0 },
-              { indicator: "volume_ratio", condition_type: "gte_value", value: 120.0 }
-            ]
-          }
-        ],
-        sellRules: [
-          {
-            id: "sg_1",
-            name: "매도 조건 1",
-            rules: [
-              { indicator: "rsi", condition_type: "gte_value", value: 65.0 }
-            ]
-          }
-        ],
-        updatedAt: "2026.08.22"
-      },
-      {
-        id: 6,
-        name: "수익 극대화 스나이퍼",
-        memo: "스나이퍼 바닥 매수 후 RSI 60 청산",
-        isEmpty: false,
-        market: "ALL",
-        period: "5Y",
-        startDate: "2021-01-04",
-        endDate: "2026-08-20",
-        stopLoss: 10,
-        takeProfit: 20,
-        cooldownDays: null,
-        tradeAmount: 1000000,
-        buyRules: [
-          {
-            id: "bg_1",
-            name: "매수 조건 1",
-            rules: [
-              { indicator: "rsi", condition_type: "lte_value", value: 24.0 },
-              { indicator: "bb_pct", condition_type: "lte_value", value: 0.05 },
-              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
-            ]
-          }
-        ],
-        sellRules: [
-          {
-            id: "sg_1",
-            name: "매도 조건 1",
-            rules: [
-              { indicator: "rsi", condition_type: "gte_value", value: 60.0 }
-            ]
-          }
-        ],
-        updatedAt: "2026.08.22"
-      },
-      {
-        id: 7,
-        name: "액티브 업그레이드형",
-        memo: "ADX 30 & 거래량 100% 필터 매수 (RSI 65 청산)",
-        isEmpty: false,
-        market: "ALL",
-        period: "5Y",
-        startDate: "2021-01-04",
-        endDate: "2026-08-20",
-        stopLoss: 15,
-        takeProfit: 20,
-        cooldownDays: null,
-        tradeAmount: 1000000,
-        buyRules: [
-          {
-            id: "bg_1",
-            name: "매수 조건 1",
-            rules: [
-              { indicator: "adx", condition_type: "gte_value", value: 30.0 },
-              { indicator: "minus_di", condition_type: "cross_below_indicator", target_indicator: "adx", value: 0 },
-              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
-            ]
-          }
-        ],
-        sellRules: [
-          {
-            id: "sg_1",
-            name: "매도 조건 1",
-            rules: [
-              { indicator: "rsi", condition_type: "gte_value", value: 65.0 }
-            ]
-          }
-        ],
-        updatedAt: "2026.08.22"
-      },
-      {
-        id: 8,
-        name: "전략 8 (비어있음)",
-        memo: "",
-        isEmpty: true,
-        updatedAt: "-"
-      },
-      {
-        id: 9,
-        name: "전략 9 (비어있음)",
-        memo: "",
-        isEmpty: true,
-        updatedAt: "-"
-      },
-      {
-        id: 10,
-        name: "전략 10 (비어있음)",
-        memo: "",
-        isEmpty: true,
-        updatedAt: "-"
-      }
-    ];
+    const DEFAULT_STRATEGY_PRESETS = Array.from({ length: 10 }, (_, i) => ({
+      id: i + 1,
+      name: `전략 ${i + 1} (비어있음)`,
+      memo: "",
+      isEmpty: true,
+      updatedAt: "-"
+    }));
 
     let strategySlots = JSON.parse(JSON.stringify(DEFAULT_STRATEGY_PRESETS));
     let currentActiveStrategySlotIndex = 0;
@@ -1161,11 +888,7 @@
         if (local) {
           const parsed = JSON.parse(local);
           if (Array.isArray(parsed) && parsed.length === 10) {
-            parsed.forEach((p, idx) => {
-              if (p && !p.isEmpty && p.buyRules && p.buyRules.length > 0) {
-                slots[idx] = p;
-              }
-            });
+            slots = parsed;
           }
         }
         const savedActive = localStorage.getItem(ACTIVE_STRATEGY_KEY);
@@ -1184,18 +907,10 @@
         const resp = await fetch(GAS_WEBAPP_URL + "?action=get_strategy_slots");
         const data = await resp.json();
         if (data && data.success && Array.isArray(data.slots) && data.slots.length === 10) {
-          let hasAnyRemote = false;
-          data.slots.forEach((remoteSlot, idx) => {
-            if (remoteSlot && !remoteSlot.isEmpty && remoteSlot.buyRules && remoteSlot.buyRules.length > 0) {
-              strategySlots[idx] = remoteSlot;
-              hasAnyRemote = true;
-            }
-          });
-          if (hasAnyRemote) {
-            localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
-            if (window.latestMetricsCacheData && window.latestMetricsCacheData.length > 0) {
-              evaluateStrategyForDashboard();
-            }
+          strategySlots = data.slots;
+          localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
+          if (window.latestMetricsCacheData && window.latestMetricsCacheData.length > 0) {
+            evaluateStrategyForDashboard();
           }
         }
       } catch(err) {}
@@ -1217,26 +932,6 @@
 
     function closeStrategyDetailModal() {
       document.getElementById('strategy-detail-modal').style.display = 'none';
-    }
-
-    async function resetToDefault7PresetsFromDashboard() {
-      if (!confirm("구글 시트의 전략 슬롯을 7대 기본 핵심 퀀트 전략(1~7번)으로 동기화 저장할까요?")) return;
-      strategySlots = JSON.parse(JSON.stringify(DEFAULT_STRATEGY_PRESETS));
-      localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
-      try {
-        await fetch(GAS_WEBAPP_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            action: 'save_strategy_slots',
-            pin: userPin || localStorage.getItem('stock_signal_pin') || '',
-            slots: strategySlots
-          })
-        });
-      } catch(e) {}
-      evaluateStrategyForDashboard();
-      openStrategyDetailModal();
-      showInfoModal('동기화 완료', '7대 핵심 퀀트 전략이 구글 시트(Strategy_Slots)에 성공적으로 저장되었습니다!');
     }
 
     function onModalStrategySlotChange(slotIdxStr) {
