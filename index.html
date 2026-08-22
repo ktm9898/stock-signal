@@ -1420,20 +1420,24 @@
       const sumEl = document.getElementById('current-strategy-summary');
       if (nameEl) nameEl.textContent = `전략 ${activeSlot.id}. ${activeSlot.name}`;
 
-      let summaryText = "";
+      let summaryParts = [];
       if (activeSlot.buyRules && activeSlot.buyRules.length > 0) {
         const groupSummaries = activeSlot.buyRules.map(g => {
           return (g.rules || []).map(r => formatRuleShort(r)).join(' & ');
         }).filter(Boolean);
-        summaryText = groupSummaries.join(' OR ');
+        if (groupSummaries.length > 0) summaryParts.push(groupSummaries.join(' OR '));
       }
       if (activeSlot.sellRules && activeSlot.sellRules.length > 0) {
         const sellSummary = (activeSlot.sellRules[0]?.rules || []).map(r => formatRuleShort(r)).join(' & ');
-        if (sellSummary) summaryText += ` | 청산: ${sellSummary}`;
+        if (sellSummary) summaryParts.push(`청산: ${sellSummary}`);
       }
-      if (activeSlot.stopLoss) summaryText += ` (손절 -${activeSlot.stopLoss}%)`;
-      if (activeSlot.takeProfit) summaryText += ` (익절 +${activeSlot.takeProfit}%)`;
-      if (sumEl) sumEl.textContent = summaryText ? `(${summaryText})` : "(설정됨)";
+      if (activeSlot.stopLoss) {
+        summaryParts.push(`손절 -${Math.abs(activeSlot.stopLoss)}%`);
+      }
+      if (activeSlot.takeProfit) {
+        summaryParts.push(`익절 +${Math.abs(activeSlot.takeProfit)}%`);
+      }
+      if (sumEl) sumEl.textContent = summaryParts.length > 0 ? `(${summaryParts.join(' | ')})` : "";
 
       const latestKospi = window.latestMetricsCacheData || [];
       const latestKosdaq = window.latestKosdaqMetricsCacheData || [];
@@ -1487,6 +1491,9 @@
       let profitCount = 0;
       let lossCount = 0;
 
+      const stopLossAbs = (activeSlot.stopLoss !== null && activeSlot.stopLoss !== undefined && activeSlot.stopLoss !== '') ? Math.abs(Number(activeSlot.stopLoss)) : null;
+      const takeProfitAbs = (activeSlot.takeProfit !== null && activeSlot.takeProfit !== undefined && activeSlot.takeProfit !== '') ? Math.abs(Number(activeSlot.takeProfit)) : null;
+
       holdingsData.forEach(holding => {
         const rawTicker = formatTicker(holding.Ticker || holding.ticker || holding.code || '');
         const rawName = String(holding.Name || holding.name || '').trim();
@@ -1509,12 +1516,12 @@
         let signalLevel = '보유유지';
         let signalReason = '보유 조건 유지 중';
 
-        if (activeSlot.stopLoss !== null && activeSlot.stopLoss !== undefined && returnRate <= -activeSlot.stopLoss) {
+        if (stopLossAbs && stopLossAbs > 0 && returnRate <= -stopLossAbs) {
           signalLevel = '손절매도';
-          signalReason = `손절선 (-${activeSlot.stopLoss}%) 도달 (수익률: ${returnRate.toFixed(2)}%)`;
-        } else if (activeSlot.takeProfit !== null && activeSlot.takeProfit !== undefined && returnRate >= activeSlot.takeProfit) {
+          signalReason = `손절선 (-${stopLossAbs}%) 도달 (수익률: ${returnRate.toFixed(2)}%)`;
+        } else if (takeProfitAbs && takeProfitAbs > 0 && returnRate >= takeProfitAbs) {
           signalLevel = '익절매도';
-          signalReason = `익절선 (+${activeSlot.takeProfit}%) 도달 (수익률: +${returnRate.toFixed(2)}%)`;
+          signalReason = `익절선 (+${takeProfitAbs}%) 도달 (수익률: +${returnRate.toFixed(2)}%)`;
         } else if (metric && activeSlot.sellRules && activeSlot.sellRules.length > 0) {
           const prevItem = prevRowMap.get(rawTicker) || null;
           const isSellMatch = activeSlot.sellRules.some(g => checkGroupMatch(g, metric, prevItem));
@@ -1560,7 +1567,8 @@
       });
 
       // Render Tables
-      renderBuyCandidates(finalBuyList, executionLogsData);
+      const lastSyncText = document.getElementById('sync-time')?.textContent?.replace('최근 갱신: ', '').trim() || '';
+      renderBuyCandidates(finalBuyList, lastSyncText);
       renderHoldings(holdingsData, allHistory, evaluatedHoldingsStatus);
       renderSellSignals(evaluatedSellSignals);
       renderAllStocks(latestKospi);
@@ -1959,9 +1967,17 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
     function renderBuyCandidates(list, lastTime = "") {
       const tbody = document.getElementById('buy-candidates-body');
       if (!tbody) return;
+      let timeLabel = "";
+      if (typeof lastTime === 'string' && lastTime && !lastTime.includes('[object')) {
+        timeLabel = lastTime;
+      } else if (Array.isArray(lastTime) && lastTime.length > 0) {
+        const lastLog = lastTime[lastTime.length - 1];
+        timeLabel = formatShortDate(lastLog.Timestamp || lastLog.date || '');
+      }
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-sub); padding:24px;">
-          [${lastTime}] 스크리너 정상 완료 (KOSPI 200개 종목 검사). 포착된 매수 신호 종목이 없습니다.
+        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-sub); padding:32px 20px; font-size:0.9rem;">
+          <i class="fa-regular fa-circle-check" style="margin-right:6px; color:#22c55e;"></i>
+          ${timeLabel ? `[${timeLabel}] ` : ''}전체 350개 종목 검사 완료. 현재 선택된 전략 조건에 부합하는 매수 신호 종목이 없습니다.
         </td></tr>`;
         return;
       }
