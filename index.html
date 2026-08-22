@@ -1281,18 +1281,20 @@
       const finalBuyList = [];
       const seenBuyMap = new Map();
 
-      // Official Google Sheet Buy Signals (Always preserved and displayed)
-      (buyCandidatesData || []).forEach(item => {
-        const tk = formatTicker(item.Ticker || item.ticker || item.code);
-        const dt = formatShortDate(item.Date || item.date || item.Timestamp);
-        const key = `${tk}_${dt}`;
-        const itemObj = {
-          ...item,
-          Stage: item.Stage || item.stage || '전략매수'
-        };
-        seenBuyMap.set(key, itemObj);
-        finalBuyList.push(itemObj);
-      });
+      // If Slot 1 (기존 전략 1번) is active, include Google Sheet official history
+      if (activeSlot.id === 1) {
+        (buyCandidatesData || []).forEach(item => {
+          const tk = formatTicker(item.Ticker || item.ticker || item.code);
+          const dt = formatShortDate(item.Date || item.date || item.Timestamp);
+          const key = `${tk}_${dt}`;
+          const itemObj = {
+            ...item,
+            Stage: item.Stage || item.stage || '전략매수'
+          };
+          seenBuyMap.set(key, itemObj);
+          finalBuyList.push(itemObj);
+        });
+      }
 
       // Real-time evaluated signals for the currently active strategy (with ★)
       evaluatedBuyCandidates.forEach(item => {
@@ -1378,6 +1380,7 @@
           RSI: metric ? (metric.RSI || metric.rsi) : '-',
           b_band_pct: metric ? (metric.b_band_pct !== undefined ? metric.b_band_pct : (metric.BB_Pct !== undefined ? metric.BB_Pct : metric['BB_%b'])) : '-',
           SignalLevel: signalLevel,
+          Status: signalLevel,
           Details: signalReason
         };
         evaluatedHoldingsStatus.push(holdingStatusObj);
@@ -1396,6 +1399,7 @@
             RSI: metric ? (metric.RSI || metric.rsi) : '-',
             b_band_pct: metric ? (metric.b_band_pct !== undefined ? metric.b_band_pct : (metric.BB_Pct !== undefined ? metric.BB_Pct : metric['BB_%b'])) : '-',
             SignalLevel: signalLevel,
+            Status: signalLevel,
             Details: signalReason
           });
         }
@@ -1413,13 +1417,69 @@
       });
       const finalSellList = Array.from(combinedSellMap.values());
 
+      // 4. Dynamic evaluation for Kospi 200 & Kosdaq 150 tables
+      function evaluateStockStatus(stock, prevStock) {
+        if (!stock) return { status: '관망', reason: '관망 중' };
+        
+        if (activeSlot.buyRules && activeSlot.buyRules.length > 0) {
+          const isBuyMatch = activeSlot.buyRules.some(g => checkGroupMatch(g, stock, prevStock));
+          if (isBuyMatch) {
+            return { status: '전략매수', reason: `[${activeSlot.name}] 실시간 매수 조건 충족` };
+          }
+        }
+
+        const currAdx = Number(stock.ADX || stock.adx);
+        const currMdi = Number(stock.Minus_DI || stock.minus_di || stock.minusDi);
+        const currRsi = Number(stock.RSI || stock.rsi);
+        const rawBB = stock.b_band_pct !== undefined ? stock.b_band_pct : (stock.BB_Pct !== undefined ? stock.BB_Pct : stock['BB_%b']);
+        const currBB = (rawBB !== undefined && rawBB !== null && rawBB !== '') ? Number(rawBB) : NaN;
+
+        const isSniperActive = activeSlot.name && (activeSlot.name.includes('스나이퍼') || activeSlot.name.includes('바닥'));
+        if (isSniperActive) {
+          if (currRsi <= 28 && currBB <= 0.10) {
+            return { status: '관심종목', reason: `RSI: ${formatDec(currRsi)}, 볼린저%b: ${formatDec(currBB)} (과매도 바닥 구간 근접, 진입 대기)` };
+          }
+        } else {
+          if (currAdx >= 30 && currMdi > currAdx) {
+            return { status: '관심종목', reason: `ADX: ${formatDec(currAdx)}, -DI: ${formatDec(currMdi)} (강한 추세 형성, -DI 하향돌파 진입 대기)` };
+          }
+        }
+
+        return { status: '관망', reason: '조건 미충족' };
+      }
+
+      const dynamicKospi = latestKospi.map(s => {
+        const tk = formatTicker(s.Ticker || s.ticker || s.code);
+        const prev = prevRowMap.get(tk) || null;
+        const evalRes = evaluateStockStatus(s, prev);
+        return {
+          ...s,
+          Status: evalRes.status,
+          Reason: evalRes.reason
+        };
+      });
+
+      const dynamicKosdaq = latestKosdaq.map(s => {
+        const tk = formatTicker(s.Ticker || s.ticker || s.code);
+        const prev = prevRowMap.get(tk) || null;
+        const evalRes = evaluateStockStatus(s, prev);
+        return {
+          ...s,
+          Status: evalRes.status,
+          Reason: evalRes.reason
+        };
+      });
+
+      window.latestMetricsCacheData = dynamicKospi;
+      window.latestKosdaqMetricsCacheData = dynamicKosdaq;
+
       // Render Tables
       const lastSyncText = document.getElementById('sync-time')?.textContent?.replace('최근 갱신: ', '').trim() || '';
       renderBuyCandidates(finalBuyList, lastSyncText);
       renderHoldings(holdingsData, allHistory, evaluatedHoldingsStatus);
       renderSellSignals(finalSellList);
-      renderAllStocks(latestKospi);
-      renderKosdaqStocks(latestKosdaq);
+      renderAllStocks(dynamicKospi);
+      renderKosdaqStocks(dynamicKosdaq);
 
       // Update Metric Card Numbers (Count genuine buy signals separately from watchlist)
       const genuineBuyCount = finalBuyList.filter(item => !String(item.Stage || item.stage || '').includes('관심종목')).length;
@@ -2124,11 +2184,13 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           else if (bBandPctVal >= 1.0) bbColor = '#f87171';
         }
         
-        const statusText = statusItem ? (statusItem.Status || statusItem.signalLevel || '관망') : '관망';
+        const statusText = statusItem ? (statusItem.SignalLevel || statusItem.Status || statusItem.signalLevel || '보유유지') : '보유유지';
         let badgeClass = 'badge-neutral';
-        if (statusText.includes('손절매도') || statusText.includes('손절') || statusText.includes('3단계')) badgeClass = 'badge-sell-danger';
-        else if (statusText.includes('전략매도') || statusText.includes('매도') || statusText.includes('2단계')) badgeClass = 'badge-sell-warn';
-        else if (statusText.includes('전략매수') || statusText.includes('매수') || statusText.includes('1단계')) badgeClass = 'badge-t1';
+        if (statusText.includes('손절매도') || statusText.includes('손절')) badgeClass = 'badge-sell-danger';
+        else if (statusText.includes('익절매도') || statusText.includes('익절')) badgeClass = 'badge-t1';
+        else if (statusText.includes('전략매도') || statusText.includes('매도')) badgeClass = 'badge-sell-warn';
+        else if (statusText.includes('전략매수') || statusText.includes('매수')) badgeClass = 'badge-t1';
+        else { badgeClass = 'badge-neutral'; }
 
         let returnRateStr = '-';
         let returnRateColor = 'inherit';
