@@ -2523,7 +2523,12 @@
     // Strategy Preset Storage & Multi-Strategy Comparison Engine
     // ==========================================
     const GAS_WEBAPP_URL_ADMIN = "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
+    const GAS_WEBAPP_URL = GAS_WEBAPP_URL_ADMIN;
     const LOCAL_SLOTS_KEY = "quant_strategy_slots_v1";
+
+    function getStoredPin() {
+      return localStorage.getItem('stock_signal_pin') || sessionStorage.getItem('stock_signal_pin') || '';
+    }
 
     const DEFAULT_STRATEGY_PRESETS = [
       {
@@ -3050,7 +3055,7 @@
 
     async function saveSlotsToGoogleSheetAsync() {
       try {
-        await fetch(GAS_WEBAPP_URL_ADMIN, {
+        const resp = await fetch(GAS_WEBAPP_URL_ADMIN, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
@@ -3059,7 +3064,12 @@
             slots: strategySlots
           })
         });
-      } catch(e) {}
+        const res = await resp.json();
+        return res;
+      } catch(e) {
+        console.warn("GAS save strategy slots error:", e);
+        return { success: false, message: e.message };
+      }
     }
 
     function simulateTradesForRules(buyRules, sellRules, buyOp, sellOp, stopLoss, takeProfit, cooldownDays, market, startDateStr, endDateStr, tradeAmount) {
