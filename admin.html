@@ -164,12 +164,109 @@
       color: #0f172a;
     }
 
-    /* Strategy Rules */
+    /* Strategy Rules & Groups */
+    .condition-group-card {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+    .condition-group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .condition-group-title {
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: #1e293b;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .condition-group-subtitle {
+      font-size: 0.72rem;
+      font-weight: 500;
+      color: #64748b;
+    }
+    .condition-or-divider {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 8px 0 12px 0;
+      position: relative;
+    }
+    .condition-or-divider::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 50%;
+      height: 1px;
+      background: #e2e8f0;
+      z-index: 1;
+    }
+    .condition-or-badge {
+      position: relative;
+      z-index: 2;
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .btn-add-item {
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      color: #475569;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-weight: 600;
+      font-size: 0.75rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 4px;
+    }
+    .btn-add-item:hover {
+      background: #edf2f7;
+      color: #1e293b;
+    }
+    .btn-add-group {
+      width: 100%;
+      background: #f8fafc;
+      border: 1px dashed #94a3b8;
+      color: #334155;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.82rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-add-group:hover {
+      background: #e2e8f0;
+      border-color: #64748b;
+    }
+
     .rule-box {
       background: #f8fafc;
       border: 1px solid var(--border-color);
       border-radius: 8px;
-      padding: 10px 12px;
+      padding: 8px 12px;
       margin-bottom: 8px;
       display: flex;
       align-items: center;
@@ -181,7 +278,7 @@
       border-radius: 4px;
       font-size: 0.72rem;
       font-weight: 700;
-      background: #64748b;
+      background: #475569;
       color: #fff;
       white-space: nowrap;
     }
@@ -518,18 +615,15 @@
       <div class="quant-card">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <div class="card-title">매수 조건 설정</div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <select id="buy-operator" class="operator-select-sm" title="조건 결합 연산자">
-              <option value="AND" selected>AND</option>
-              <option value="OR">OR</option>
-            </select>
+          <div style="font-size: 0.74rem; color: #64748b; font-weight: 500;">
+            각 조건 내 모든 항목 충족 시 매수 (조건 간 OR 결합)
           </div>
         </div>
 
         <div id="buy-rules-container"></div>
 
-        <button class="btn-add-rule" onclick="addRule('buy')">
-          + 매수 조건 추가
+        <button class="btn-add-group" onclick="addConditionGroup('buy')">
+          <i class="fa-solid fa-plus"></i> 매수 조건 추가
         </button>
       </div>
 
@@ -537,18 +631,15 @@
       <div class="quant-card">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <div class="card-title">매도 조건 설정</div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <select id="sell-operator" class="operator-select-sm" title="조건 결합 연산자">
-              <option value="OR" selected>OR</option>
-              <option value="AND">AND</option>
-            </select>
+          <div style="font-size: 0.74rem; color: #64748b; font-weight: 500;">
+            각 조건 내 모든 항목 충족 시 매도 (조건 간 OR 결합)
           </div>
         </div>
 
         <div id="sell-rules-container"></div>
 
-        <button class="btn-add-rule" onclick="addRule('sell')">
-          + 매도 조건 추가
+        <button class="btn-add-group" onclick="addConditionGroup('sell')">
+          <i class="fa-solid fa-plus"></i> 매도 조건 추가
         </button>
 
         <!-- Stop Loss / Take Profit Sub-section inside Sell Rules -->
@@ -1204,81 +1295,142 @@
 
     let ALL_350_STOCKS = [];
     let REAL_PRELOADED_DATA = null;
-    let currentBuyRules = [];
-    let currentSellRules = [];
+    let currentBuyGroups = [];
+    let currentSellGroups = [];
     let equityChartInstance = null;
     let cachedExecutedTrades = [];
 
+    function normalizeRulesToGroups(rules, type = 'buy') {
+      if (!rules || !Array.isArray(rules) || rules.length === 0) {
+        return [];
+      }
+      // If already an array of condition groups (has .rules array)
+      if (rules[0] && Array.isArray(rules[0].rules)) {
+        return rules.map((g, idx) => ({
+          id: g.id || `${type}_g_${idx + 1}_${Date.now()}`,
+          name: (type === 'buy' ? '매수 조건 ' : '매도 조건 ') + (idx + 1),
+          rules: Array.isArray(g.rules) ? g.rules : []
+        }));
+      }
+      // If legacy flat array of rule objects (with .indicator)
+      if (rules[0] && rules[0].indicator) {
+        return [
+          {
+            id: `${type}_g_1`,
+            name: (type === 'buy' ? '매수 조건 1' : '매도 조건 1'),
+            rules: JSON.parse(JSON.stringify(rules))
+          }
+        ];
+      }
+      return [];
+    }
+
     function loadDefaultBuyRules() {
-      currentBuyRules = [
+      currentBuyGroups = [
         {
-          indicator: "adx",
-          condition_type: "gte_value",
-          value: 30.0
-        },
-        {
-          indicator: "minus_di",
-          condition_type: "cross_below_indicator",
-          target_indicator: "adx",
-          value: 0
+          id: "bg_default",
+          name: "매수 조건 1",
+          rules: [
+            {
+              indicator: "adx",
+              condition_type: "gte_value",
+              value: 30.0
+            },
+            {
+              indicator: "minus_di",
+              condition_type: "cross_below_indicator",
+              target_indicator: "adx",
+              value: 0
+            }
+          ]
         }
       ];
       renderRules();
     }
 
     function resetBuyRules() {
-      currentBuyRules = [];
+      currentBuyGroups = [];
       renderRules();
     }
 
     function loadDefaultSellRules() {
-      currentSellRules = [
+      currentSellGroups = [
         {
-          indicator: "rsi",
-          condition_type: "gte_value",
-          value: 65.0
+          id: "sg_default",
+          name: "매도 조건 1",
+          rules: [
+            {
+              indicator: "rsi",
+              condition_type: "gte_value",
+              value: 65.0
+            }
+          ]
         }
       ];
       const stopLossEl = document.getElementById('opt-stop-loss');
       if (stopLossEl) stopLossEl.value = 20;
+      const takeProfitEl = document.getElementById('opt-take-profit');
+      if (takeProfitEl) takeProfitEl.value = "";
       renderRules();
     }
 
     function resetSellRules() {
-      currentSellRules = [];
+      currentSellGroups = [];
       renderRules();
     }
 
-    function addRule(type) {
-      if (type === 'buy') {
-        currentBuyRules.push({
-          indicator: "adx",
-          condition_type: "gte_value",
-          value: 25.0
-        });
+    function addConditionGroup(type) {
+      const groups = type === 'buy' ? currentBuyGroups : currentSellGroups;
+      const defaultRule = type === 'buy'
+        ? { indicator: "rsi", condition_type: "lte_value", value: 30.0 }
+        : { indicator: "rsi", condition_type: "gte_value", value: 70.0 };
+
+      groups.push({
+        id: `${type}_g_${Date.now()}`,
+        name: (type === 'buy' ? '매수 조건 ' : '매도 조건 ') + (groups.length + 1),
+        rules: [defaultRule]
+      });
+      renderRules();
+    }
+
+    function deleteConditionGroup(type, groupIndex) {
+      const groups = type === 'buy' ? currentBuyGroups : currentSellGroups;
+      if (groups.length <= 1) {
+        groups[0].rules = [];
       } else {
-        currentSellRules.push({
-          indicator: "rsi",
-          condition_type: "gte_value",
-          value: 60.0
+        groups.splice(groupIndex, 1);
+        groups.forEach((g, idx) => {
+          g.name = (type === 'buy' ? '매수 조건 ' : '매도 조건 ') + (idx + 1);
         });
       }
       renderRules();
     }
 
-    function deleteRule(type, index) {
-      if (type === 'buy') {
-        currentBuyRules.splice(index, 1);
-      } else {
-        currentSellRules.splice(index, 1);
-      }
+    function addRuleToGroup(type, groupIndex) {
+      const groups = type === 'buy' ? currentBuyGroups : currentSellGroups;
+      if (!groups[groupIndex]) return;
+      if (!groups[groupIndex].rules) groups[groupIndex].rules = [];
+
+      const defaultRule = type === 'buy'
+        ? { indicator: "adx", condition_type: "gte_value", value: 25.0 }
+        : { indicator: "rsi", condition_type: "gte_value", value: 60.0 };
+
+      groups[groupIndex].rules.push(defaultRule);
       renderRules();
     }
 
-    function updateRule(type, index, key, val) {
-      const list = type === 'buy' ? currentBuyRules : currentSellRules;
-      if (list[index]) {
-        list[index][key] = (key === 'value' ? parseFloat(val) || 0 : val);
+    function deleteRuleFromGroup(type, groupIndex, ruleIndex) {
+      const groups = type === 'buy' ? currentBuyGroups : currentSellGroups;
+      if (groups[groupIndex] && groups[groupIndex].rules) {
+        groups[groupIndex].rules.splice(ruleIndex, 1);
+        renderRules();
+      }
+    }
+
+    function updateGroupRule(type, groupIndex, ruleIndex, key, val) {
+      const groups = type === 'buy' ? currentBuyGroups : currentSellGroups;
+      if (groups[groupIndex] && groups[groupIndex].rules && groups[groupIndex].rules[ruleIndex]) {
+        groups[groupIndex].rules[ruleIndex][key] = (key === 'value' ? (parseFloat(val) || 0) : val);
         if (key === 'condition_type' || key === 'indicator' || key === 'target_indicator') {
           renderRules();
         }
@@ -1288,35 +1440,68 @@
     function renderRules() {
       const buyContainer = document.getElementById('buy-rules-container');
       if (buyContainer) {
-        if (currentBuyRules.length === 0) {
-          buyContainer.innerHTML = `<div style="color:var(--text-sub); font-size:0.78rem; padding:8px; text-align:center; background:#f8fafc; border-radius:5px; margin-bottom:8px;">등록된 매수 조건이 없습니다.</div>`;
+        if (!currentBuyGroups || currentBuyGroups.length === 0) {
+          buyContainer.innerHTML = `<div style="color:var(--text-sub); font-size:0.78rem; padding:10px; text-align:center; background:#f8fafc; border-radius:6px; margin-bottom:8px;">등록된 매수 조건이 없습니다. 아래 버튼을 눌러 매수 조건을 추가하세요.</div>`;
         } else {
-          buyContainer.innerHTML = currentBuyRules.map((rule, idx) => {
-            const isCross = rule.condition_type.includes('indicator');
-            const isTurn = rule.condition_type.includes('turn');
+          buyContainer.innerHTML = currentBuyGroups.map((group, gIdx) => {
+            const hasRules = group.rules && group.rules.length > 0;
+            const rulesHtml = hasRules ? group.rules.map((rule, rIdx) => {
+              const isCross = rule.condition_type.includes('indicator');
+              const isTurn = rule.condition_type.includes('turn');
+
+              return `
+                <div class="rule-box" style="margin-bottom: 6px;">
+                  <span class="rule-tag">항목 ${rIdx + 1}</span>
+
+                  <select class="form-select" onchange="updateGroupRule('buy', ${gIdx}, ${rIdx}, 'indicator', this.value)">
+                    ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === rule.indicator ? 'selected' : ''}>${opt.name}</option>`).join('')}
+                  </select>
+
+                  <select class="form-select" onchange="updateGroupRule('buy', ${gIdx}, ${rIdx}, 'condition_type', this.value)">
+                    ${CONDITION_TYPES.map(cond => `<option value="${cond.id}" ${cond.id === rule.condition_type ? 'selected' : ''}>${cond.name}</option>`).join('')}
+                  </select>
+
+                  ${isCross ? `
+                    <select class="form-select" onchange="updateGroupRule('buy', ${gIdx}, ${rIdx}, 'target_indicator', this.value)">
+                      ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === (rule.target_indicator || 'adx') ? 'selected' : ''}>${opt.name}</option>`).join('')}
+                    </select>
+                  ` : (isTurn ? `` : `
+                    <input type="number" step="0.1" class="form-input" style="width: 85px;" value="${rule.value !== undefined ? rule.value : 0}" oninput="updateGroupRule('buy', ${gIdx}, ${rIdx}, 'value', this.value)">
+                  `)}
+
+                  <button class="btn-del-rule" onclick="deleteRuleFromGroup('buy', ${gIdx}, ${rIdx})" title="항목 삭제"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+              `;
+            }).join('') : `<div style="font-size:0.75rem; color:#94a3b8; padding:6px 0;">등록된 항목이 없습니다. 항목을 추가해 주세요.</div>`;
+
+            const dividerHtml = (gIdx < currentBuyGroups.length - 1) ? `
+              <div class="condition-or-divider">
+                <span class="condition-or-badge">OR (또는)</span>
+              </div>
+            ` : '';
 
             return `
-              <div class="rule-box">
-                <span class="rule-tag">조건 ${idx + 1}</span>
-
-                <select class="form-select" onchange="updateRule('buy', ${idx}, 'indicator', this.value)">
-                  ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === rule.indicator ? 'selected' : ''}>${opt.name}</option>`).join('')}
-                </select>
-
-                <select class="form-select" onchange="updateRule('buy', ${idx}, 'condition_type', this.value)">
-                  ${CONDITION_TYPES.map(cond => `<option value="${cond.id}" ${cond.id === rule.condition_type ? 'selected' : ''}>${cond.name}</option>`).join('')}
-                </select>
-
-                ${isCross ? `
-                  <select class="form-select" onchange="updateRule('buy', ${idx}, 'target_indicator', this.value)">
-                    ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === (rule.target_indicator || 'adx') ? 'selected' : ''}>${opt.name}</option>`).join('')}
-                  </select>
-                ` : (isTurn ? `` : `
-                  <input type="number" step="0.1" class="form-input" style="width: 85px;" value="${rule.value !== undefined ? rule.value : 0}" oninput="updateRule('buy', ${idx}, 'value', this.value)">
-                `)}
-
-                <button class="btn-del-rule" onclick="deleteRule('buy', ${idx})" title="조건 삭제"><i class="fa-solid fa-xmark"></i></button>
+              <div class="condition-group-card">
+                <div class="condition-group-header">
+                  <div class="condition-group-title">
+                    <i class="fa-solid fa-layer-group" style="color:#2563eb; font-size:0.85rem;"></i>
+                    <span>매수 조건 ${gIdx + 1}</span>
+                    <span class="condition-group-subtitle">(모든 항목 만족 시 매수)</span>
+                  </div>
+                  ${currentBuyGroups.length > 1 ? `
+                    <button class="btn-del-rule" onclick="deleteConditionGroup('buy', ${gIdx})" title="조건 그룹 삭제" style="font-size:0.85rem; color:#ef4444;">
+                      <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                  ` : ''}
+                </div>
+                <div class="condition-rules-list">
+                  ${rulesHtml}
+                </div>
+                <button class="btn-add-item" onclick="addRuleToGroup('buy', ${gIdx})">
+                  <i class="fa-solid fa-plus" style="font-size:0.7rem;"></i> 항목 추가
+                </button>
               </div>
+              ${dividerHtml}
             `;
           }).join('');
         }
@@ -1324,35 +1509,68 @@
 
       const sellContainer = document.getElementById('sell-rules-container');
       if (sellContainer) {
-        if (currentSellRules.length === 0) {
-          sellContainer.innerHTML = `<div style="color:var(--text-sub); font-size:0.78rem; padding:8px; text-align:center; background:#f8fafc; border-radius:5px; margin-bottom:8px;">등록된 매도 조건이 없습니다.</div>`;
+        if (!currentSellGroups || currentSellGroups.length === 0) {
+          sellContainer.innerHTML = `<div style="color:var(--text-sub); font-size:0.78rem; padding:10px; text-align:center; background:#f8fafc; border-radius:6px; margin-bottom:8px;">등록된 매도 조건이 없습니다. 아래 버튼을 눌러 매도 조건을 추가하세요.</div>`;
         } else {
-          sellContainer.innerHTML = currentSellRules.map((rule, idx) => {
-            const isCross = rule.condition_type.includes('indicator');
-            const isTurn = rule.condition_type.includes('turn');
+          sellContainer.innerHTML = currentSellGroups.map((group, gIdx) => {
+            const hasRules = group.rules && group.rules.length > 0;
+            const rulesHtml = hasRules ? group.rules.map((rule, rIdx) => {
+              const isCross = rule.condition_type.includes('indicator');
+              const isTurn = rule.condition_type.includes('turn');
+
+              return `
+                <div class="rule-box" style="margin-bottom: 6px;">
+                  <span class="rule-tag">항목 ${rIdx + 1}</span>
+
+                  <select class="form-select" onchange="updateGroupRule('sell', ${gIdx}, ${rIdx}, 'indicator', this.value)">
+                    ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === rule.indicator ? 'selected' : ''}>${opt.name}</option>`).join('')}
+                  </select>
+
+                  <select class="form-select" onchange="updateGroupRule('sell', ${gIdx}, ${rIdx}, 'condition_type', this.value)">
+                    ${CONDITION_TYPES.map(cond => `<option value="${cond.id}" ${cond.id === rule.condition_type ? 'selected' : ''}>${cond.name}</option>`).join('')}
+                  </select>
+
+                  ${isCross ? `
+                    <select class="form-select" onchange="updateGroupRule('sell', ${gIdx}, ${rIdx}, 'target_indicator', this.value)">
+                      ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === (rule.target_indicator || 'plus_di') ? 'selected' : ''}>${opt.name}</option>`).join('')}
+                    </select>
+                  ` : (isTurn ? `` : `
+                    <input type="number" step="0.1" class="form-input" style="width: 85px;" value="${rule.value !== undefined ? rule.value : 0}" oninput="updateGroupRule('sell', ${gIdx}, ${rIdx}, 'value', this.value)">
+                  `)}
+
+                  <button class="btn-del-rule" onclick="deleteRuleFromGroup('sell', ${gIdx}, ${rIdx})" title="항목 삭제"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+              `;
+            }).join('') : `<div style="font-size:0.75rem; color:#94a3b8; padding:6px 0;">등록된 항목이 없습니다. 항목을 추가해 주세요.</div>`;
+
+            const dividerHtml = (gIdx < currentSellGroups.length - 1) ? `
+              <div class="condition-or-divider">
+                <span class="condition-or-badge">OR (또는)</span>
+              </div>
+            ` : '';
 
             return `
-              <div class="rule-box">
-                <span class="rule-tag">조건 ${idx + 1}</span>
-
-                <select class="form-select" onchange="updateRule('sell', ${idx}, 'indicator', this.value)">
-                  ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === rule.indicator ? 'selected' : ''}>${opt.name}</option>`).join('')}
-                </select>
-
-                <select class="form-select" onchange="updateRule('sell', ${idx}, 'condition_type', this.value)">
-                  ${CONDITION_TYPES.map(cond => `<option value="${cond.id}" ${cond.id === rule.condition_type ? 'selected' : ''}>${cond.name}</option>`).join('')}
-                </select>
-
-                ${isCross ? `
-                  <select class="form-select" onchange="updateRule('sell', ${idx}, 'target_indicator', this.value)">
-                    ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === (rule.target_indicator || 'plus_di') ? 'selected' : ''}>${opt.name}</option>`).join('')}
-                  </select>
-                ` : (isTurn ? `` : `
-                  <input type="number" step="0.1" class="form-input" style="width: 85px;" value="${rule.value !== undefined ? rule.value : 0}" oninput="updateRule('sell', ${idx}, 'value', this.value)">
-                `)}
-
-                <button class="btn-del-rule" onclick="deleteRule('sell', ${idx})" title="조건 삭제"><i class="fa-solid fa-xmark"></i></button>
+              <div class="condition-group-card">
+                <div class="condition-group-header">
+                  <div class="condition-group-title">
+                    <i class="fa-solid fa-layer-group" style="color:#ef4444; font-size:0.85rem;"></i>
+                    <span>매도 조건 ${gIdx + 1}</span>
+                    <span class="condition-group-subtitle">(모든 항목 만족 시 매도)</span>
+                  </div>
+                  ${currentSellGroups.length > 1 ? `
+                    <button class="btn-del-rule" onclick="deleteConditionGroup('sell', ${gIdx})" title="조건 그룹 삭제" style="font-size:0.85rem; color:#ef4444;">
+                      <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                  ` : ''}
+                </div>
+                <div class="condition-rules-list">
+                  ${rulesHtml}
+                </div>
+                <button class="btn-add-item" onclick="addRuleToGroup('sell', ${gIdx})">
+                  <i class="fa-solid fa-plus" style="font-size:0.7rem;"></i> 항목 추가
+                </button>
               </div>
+              ${dividerHtml}
             `;
           }).join('');
         }
@@ -1648,17 +1866,19 @@
 
     
     function evaluateBuyCondition(row, prevRow) {
-      if (!currentBuyRules || currentBuyRules.length === 0) return false;
-      const op = document.getElementById('buy-operator').value;
-      const results = currentBuyRules.map(r => checkSingleRule(r, row, prevRow));
-      return op === 'AND' ? results.every(Boolean) : results.some(Boolean);
+      if (!currentBuyGroups || currentBuyGroups.length === 0) return false;
+      return currentBuyGroups.some(group => {
+        if (!group.rules || group.rules.length === 0) return false;
+        return group.rules.every(r => checkSingleRule(r, row, prevRow));
+      });
     }
 
     function evaluateSellCondition(row, prevRow) {
-      if (!currentSellRules || currentSellRules.length === 0) return false;
-      const op = document.getElementById('sell-operator').value;
-      const results = currentSellRules.map(r => checkSingleRule(r, row, prevRow));
-      return op === 'AND' ? results.every(Boolean) : results.some(Boolean);
+      if (!currentSellGroups || currentSellGroups.length === 0) return false;
+      return currentSellGroups.some(group => {
+        if (!group.rules || group.rules.length === 0) return false;
+        return group.rules.every(r => checkSingleRule(r, row, prevRow));
+      });
     }
 
     function getRawIndicatorValue(ind, row, prevRow) {
@@ -2278,10 +2498,8 @@
         stopLoss: stopLossVal,
         takeProfit: takeProfitVal,
         tradeAmount: tradeAmount,
-        buyRules: JSON.parse(JSON.stringify(currentBuyRules)),
-        sellRules: JSON.parse(JSON.stringify(currentSellRules)),
-        buyOperator: document.getElementById('buy-operator').value,
-        sellOperator: document.getElementById('sell-operator').value,
+        buyRules: JSON.parse(JSON.stringify(currentBuyGroups)),
+        sellRules: JSON.parse(JSON.stringify(currentSellGroups)),
         updatedAt: timeStr
       };
 
@@ -2342,12 +2560,10 @@
         return;
       }
 
-      currentBuyRules = JSON.parse(JSON.stringify(slot.buyRules));
-      currentSellRules = JSON.parse(JSON.stringify(slot.sellRules));
+      currentBuyGroups = normalizeRulesToGroups(slot.buyRules, 'buy');
+      currentSellGroups = normalizeRulesToGroups(slot.sellRules, 'sell');
       renderRules();
 
-      if (slot.buyOperator) document.getElementById('buy-operator').value = slot.buyOperator;
-      if (slot.sellOperator) document.getElementById('sell-operator').value = slot.sellOperator;
       if (slot.market) document.getElementById('opt-backtest-market').value = slot.market;
       if (slot.period) {
         document.getElementById('opt-backtest-period').value = slot.period;
@@ -2436,6 +2652,9 @@
       const feeRate = 0.0015 + 0.0010;
       const tickers = Object.keys(REAL_PRELOADED_DATA);
 
+      const normalizedBuyGroups = normalizeRulesToGroups(buyRules, 'buy');
+      const normalizedSellGroups = normalizeRulesToGroups(sellRules, 'sell');
+
       tickers.forEach(ticker => {
         if (ticker === '069500' || ticker === 'KOSPI' || ticker === 'KOSDAQ') return;
         const rawRows = REAL_PRELOADED_DATA[ticker];
@@ -2458,8 +2677,9 @@
           const curr = rows[i];
           const nextDay = rows[i + 1];
 
-          const buyResults = (buyRules || []).map(r => checkSingleRule(r, curr, rows[i - 1]));
-          const isBuySignal = buyRules && buyRules.length > 0 ? (buyOp === 'OR' ? buyResults.some(Boolean) : buyResults.every(Boolean)) : false;
+          const isBuySignal = normalizedBuyGroups.length > 0 && normalizedBuyGroups.some(group => 
+            group.rules && group.rules.length > 0 && group.rules.every(r => checkSingleRule(r, curr, rows[i - 1]))
+          );
 
           if (!inPosition) {
             if (isBuySignal && nextDay.open > 0) {
@@ -2474,8 +2694,9 @@
             let isExit = false;
             let triggerType = "SIGNAL";
 
-            const sellResults = (sellRules || []).map(r => checkSingleRule(r, curr, rows[i - 1]));
-            const isSellSignal = sellRules && sellRules.length > 0 ? (sellOp === 'AND' ? sellResults.every(Boolean) : sellResults.some(Boolean)) : false;
+            const isSellSignal = normalizedSellGroups.length > 0 && normalizedSellGroups.some(group => 
+              group.rules && group.rules.length > 0 && group.rules.every(r => checkSingleRule(r, curr, rows[i - 1]))
+            );
 
             if (stopLoss !== null && stopLoss !== undefined && stopLoss !== "" && paperReturnPct <= -Math.abs(Number(stopLoss))) {
               isExit = true;
