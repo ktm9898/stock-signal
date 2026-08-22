@@ -831,11 +831,15 @@
       </div>
 
       <!-- Strategy Slot Selector -->
-      <div class="form-group" style="margin-bottom: 14px;">
+      <div class="form-group" style="margin-bottom: 10px;">
         <select class="form-input" id="modal-strategy-slot-select" onchange="onModalStrategySlotChange(this.value)" style="font-weight: 600; font-size: 0.92rem; background: #ffffff; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px;">
           <!-- Dynamic options 1~10 -->
         </select>
       </div>
+
+      <button type="button" onclick="resetToDefault7PresetsFromDashboard()" style="padding: 7px 12px; font-size: 0.78rem; background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; font-weight: 700; border-radius: 6px; cursor: pointer; margin-bottom: 14px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <i class="fa-solid fa-rotate-left"></i> 7대 기본 전략 구글 시트 동기화 저장
+      </button>
 
       <!-- Selected Strategy Card -->
       <div id="modal-strategy-info-card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
@@ -1213,6 +1217,26 @@
 
     function closeStrategyDetailModal() {
       document.getElementById('strategy-detail-modal').style.display = 'none';
+    }
+
+    async function resetToDefault7PresetsFromDashboard() {
+      if (!confirm("구글 시트의 전략 슬롯을 7대 기본 핵심 퀀트 전략(1~7번)으로 동기화 저장할까요?")) return;
+      strategySlots = JSON.parse(JSON.stringify(DEFAULT_STRATEGY_PRESETS));
+      localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
+      try {
+        await fetch(GAS_WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'save_strategy_slots',
+            pin: userPin || localStorage.getItem('stock_signal_pin') || '',
+            slots: strategySlots
+          })
+        });
+      } catch(e) {}
+      evaluateStrategyForDashboard();
+      openStrategyDetailModal();
+      showInfoModal('동기화 완료', '7대 핵심 퀀트 전략이 구글 시트(Strategy_Slots)에 성공적으로 저장되었습니다!');
     }
 
     function onModalStrategySlotChange(slotIdxStr) {
