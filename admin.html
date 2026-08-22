@@ -615,9 +615,6 @@
       <div class="quant-card">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <div class="card-title">매수 조건 설정</div>
-          <div style="font-size: 0.74rem; color: #64748b; font-weight: 500;">
-            각 조건 내 모든 항목 충족 시 매수 (조건 간 OR 결합)
-          </div>
         </div>
 
         <div id="buy-rules-container"></div>
@@ -631,9 +628,6 @@
       <div class="quant-card">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <div class="card-title">매도 조건 설정</div>
-          <div style="font-size: 0.74rem; color: #64748b; font-weight: 500;">
-            각 조건 내 모든 항목 충족 시 매도 (조건 간 OR 결합)
-          </div>
         </div>
 
         <div id="sell-rules-container"></div>
@@ -1486,7 +1480,6 @@
                   <div class="condition-group-title">
                     <i class="fa-solid fa-layer-group" style="color:#2563eb; font-size:0.85rem;"></i>
                     <span>매수 조건 ${gIdx + 1}</span>
-                    <span class="condition-group-subtitle">(모든 항목 만족 시 매수)</span>
                   </div>
                   ${currentBuyGroups.length > 1 ? `
                     <button class="btn-del-rule" onclick="deleteConditionGroup('buy', ${gIdx})" title="조건 그룹 삭제" style="font-size:0.85rem; color:#ef4444;">
@@ -1555,7 +1548,6 @@
                   <div class="condition-group-title">
                     <i class="fa-solid fa-layer-group" style="color:#ef4444; font-size:0.85rem;"></i>
                     <span>매도 조건 ${gIdx + 1}</span>
-                    <span class="condition-group-subtitle">(모든 항목 만족 시 매도)</span>
                   </div>
                   ${currentSellGroups.length > 1 ? `
                     <button class="btn-del-rule" onclick="deleteConditionGroup('sell', ${gIdx})" title="조건 그룹 삭제" style="font-size:0.85rem; color:#ef4444;">
