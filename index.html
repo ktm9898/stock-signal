@@ -862,6 +862,7 @@
 
     let userPin = "";
     let buyCandidatesData = [];
+    let sellSignalsData = [];
     let holdingsData = [];
     let executionLogsData = [];
     let allMetricsData = [];
@@ -1212,26 +1213,92 @@
           const isBuyMatch = activeSlot.buyRules.some(g => checkGroupMatch(g, item, prevItem));
           if (isBuyMatch) {
             evaluatedBuyCandidates.push({
-              Date: item.Date || item.date || item.Timestamp || new Date().toISOString(),
+              Date: item.Date || item.date || item.Timestamp || (executionLogsData.length > 0 ? executionLogsData[executionLogsData.length - 1].Timestamp : new Date().toISOString()),
               Name: item.Name || item.name,
               Ticker: tk,
-              Stage: '전략매수',
+              Stage: '전략매수 ★',
               ADX: item.ADX || item.adx,
               Minus_DI: item.Minus_DI || item.minus_di,
               Plus_DI: item.Plus_DI || item.plus_di,
               RSI: item.RSI || item.rsi,
               b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
               ClosePrice: item.ClosePrice || item.price || item.close,
-              Reason: `[${activeSlot.name}] 전략 매수 조건 충족`
+              Reason: `[${activeSlot.name}] 실시간 전략 매수 조건 충족`
             });
           }
         });
       }
 
-      // Unified evaluation for all slots (1~10)
-      const finalBuyList = isCustomStrategy ? evaluatedBuyCandidates : (buyCandidatesData || []);
+      // 2. Build Today's Watchlist / 진입대기 (추세 형성 중 or 과매도 바닥 근접)
+      const todayWatchlistMap = new Map();
+      combinedStocks.forEach(item => {
+        const rawStatus = String(item.Status || item.status || '');
+        const currAdx = Number(item.ADX || item.adx);
+        const currMdi = Number(item.Minus_DI || item.minus_di || item.minusDi);
+        const currRsi = Number(item.RSI || item.rsi);
+        const rawBB = item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']);
+        const currBB = (rawBB !== undefined && rawBB !== null && rawBB !== '') ? Number(rawBB) : NaN;
 
-      // 2. Evaluate Holdings & Sell Alerts
+        let isWatchlist = rawStatus.includes('관심종목') || rawStatus.includes('추세강함') || rawStatus.includes('진입대기');
+        let watchReason = `ADX: ${formatDec(currAdx)}, -DI: ${formatDec(currMdi)} (추세 형성 중, -DI 하향돌파 진입 대기)`;
+
+        const isSniperActive = activeSlot.name && (activeSlot.name.includes('스나이퍼') || activeSlot.name.includes('바닥'));
+        if (isSniperActive) {
+          if (currRsi <= 28 && currBB <= 0.10) {
+            isWatchlist = true;
+            watchReason = `RSI: ${formatDec(currRsi)}, 볼린저%b: ${formatDec(currBB)} (과매도 바닥 구간 근접, 진입 대기)`;
+          }
+        } else {
+          if (currAdx >= 30 && currMdi > currAdx) {
+            isWatchlist = true;
+            watchReason = `ADX: ${formatDec(currAdx)}, -DI: ${formatDec(currMdi)} (강한 추세 형성, -DI 하향돌파 진입 대기)`;
+          }
+        }
+
+        if (isWatchlist) {
+          const tk = formatTicker(item.Ticker || item.ticker || item.code);
+          if (!todayWatchlistMap.has(tk)) {
+            todayWatchlistMap.set(tk, {
+              Date: item.Date || item.date || item.Timestamp || (executionLogsData.length > 0 ? executionLogsData[executionLogsData.length - 1].Timestamp : new Date().toISOString()),
+              Name: item.Name || item.name,
+              Ticker: tk,
+              Stage: '관심종목',
+              ADX: item.ADX || item.adx,
+              Minus_DI: item.Minus_DI || item.minus_di,
+              Plus_DI: item.Plus_DI || item.plus_di,
+              RSI: item.RSI || item.rsi,
+              b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
+              ClosePrice: item.ClosePrice || item.price || item.close,
+              Reason: watchReason
+            });
+          }
+        }
+      });
+      const todayWatchlist = Array.from(todayWatchlistMap.values());
+
+      // Combine official buyCandidatesData (from Google Sheets) + real-time evaluated candidates + today's watchlist
+      const combinedBuyMap = new Map();
+      (buyCandidatesData || []).forEach(item => {
+        const tk = formatTicker(item.Ticker || item.ticker || item.code);
+        combinedBuyMap.set(tk, {
+          ...item,
+          Stage: item.Stage || item.stage || '전략매수'
+        });
+      });
+      evaluatedBuyCandidates.forEach(item => {
+        const tk = formatTicker(item.Ticker || item.ticker || item.code);
+        combinedBuyMap.set(tk, item);
+      });
+      todayWatchlist.forEach(item => {
+        const tk = formatTicker(item.Ticker || item.ticker || item.code);
+        if (!combinedBuyMap.has(tk)) {
+          combinedBuyMap.set(tk, item);
+        }
+      });
+
+      const finalBuyList = Array.from(combinedBuyMap.values());
+
+      // 3. Evaluate Holdings & Sell Alerts
       const evaluatedHoldingsStatus = [];
       const evaluatedSellSignals = [];
       let profitCount = 0;
@@ -1312,17 +1379,29 @@
         }
       });
 
+      // Combine official sellSignalsData (from Google Sheets) + real-time evaluated sell triggers
+      const combinedSellMap = new Map();
+      (sellSignalsData || []).forEach(item => {
+        const tk = formatTicker(item.Ticker || item.ticker || item.code);
+        combinedSellMap.set(tk, item);
+      });
+      evaluatedSellSignals.forEach(item => {
+        const tk = formatTicker(item.Ticker || item.ticker || item.code);
+        combinedSellMap.set(tk, item);
+      });
+      const finalSellList = Array.from(combinedSellMap.values());
+
       // Render Tables
       const lastSyncText = document.getElementById('sync-time')?.textContent?.replace('최근 갱신: ', '').trim() || '';
       renderBuyCandidates(finalBuyList, lastSyncText);
       renderHoldings(holdingsData, allHistory, evaluatedHoldingsStatus);
-      renderSellSignals(evaluatedSellSignals);
+      renderSellSignals(finalSellList);
       renderAllStocks(latestKospi);
       renderKosdaqStocks(latestKosdaq);
 
       // Update Metric Card Numbers
       document.getElementById('count-buy').textContent = finalBuyList.length;
-      document.getElementById('count-sell').textContent = evaluatedSellSignals.length;
+      document.getElementById('count-sell').textContent = finalSellList.length;
       document.getElementById('count-holdings').textContent = holdingsData.length;
       document.getElementById('count-profit').textContent = profitCount;
       document.getElementById('count-loss').textContent = lossCount;
@@ -1401,7 +1480,7 @@
         executionLogsData = data.executionLogs || [];
         allMetricsData = data.allMetrics || [];
         kosdaqMetricsData = data.kosdaqMetrics || [];
-        const sellSignalsData = data.sellSignals || [];
+        sellSignalsData = data.sellSignals || [];
 
         // Extract latest date metrics for display in renderAllStocks (from 60-day rolling DB)
         let latestMetricsData = allMetricsData;
@@ -1773,9 +1852,12 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || '전략매수');
         let stageText = '전략매수';
         let tierClass = 'badge-t1';
-        if (rawStage.includes('관심종목') || rawStage.includes('추세강함')) {
+        if (rawStage.includes('관심종목') || rawStage.includes('추세강함') || rawStage.includes('진입대기')) {
           stageText = '관심종목';
           tierClass = 'badge-sell-warn';
+        } else if (rawStage.includes('★') || rawStage.includes('실시간')) {
+          stageText = '전략매수 ★';
+          tierClass = 'badge-t1';
         } else {
           stageText = '전략매수';
           tierClass = 'badge-t1';
