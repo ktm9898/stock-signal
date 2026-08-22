@@ -45,10 +45,8 @@ function setupSheets() {
 
   // 8. Strategy Slots Sheet Header Enforce
   let slotsSheet = ss.getSheetByName("Strategy_Slots") || ss.insertSheet("Strategy_Slots");
-  if (slotsSheet.getLastRow() === 0) {
-    slotsSheet.getRange("A1:M1").setValues([["SlotID", "Name", "Memo", "Market", "Period", "StartDate", "EndDate", "StopLoss", "TakeProfit", "TradeAmount", "BuyRules", "SellRules", "UpdatedAt"]]);
-    slotsSheet.getRange("A1:M1").setFontWeight("bold").setBackground("#dbeafe");
-  }
+  slotsSheet.getRange("A1:N1").setValues([["SlotID", "Name", "Memo", "Market", "Period", "StartDate", "EndDate", "StopLoss", "TakeProfit", "TradeAmount", "BuyRules", "SellRules", "UpdatedAt", "IsActive"]]);
+  slotsSheet.getRange("A1:N1").setFontWeight("bold").setBackground("#dbeafe");
 }
 
 function doGet(e) {
@@ -62,7 +60,7 @@ function doGet(e) {
     let slotsSheet = ss.getSheetByName("Strategy_Slots");
     let slots = [];
     if (slotsSheet && slotsSheet.getLastRow() > 1) {
-      const rows = slotsSheet.getRange(2, 1, slotsSheet.getLastRow() - 1, 13).getValues();
+      const rows = slotsSheet.getRange(2, 1, slotsSheet.getLastRow() - 1, 14).getValues();
       slots = rows.map((r, idx) => ({
         id: r[0] || (idx + 1),
         name: r[1] || `전략 ${idx + 1}`,
@@ -77,7 +75,8 @@ function doGet(e) {
         tradeAmount: r[9] ? Number(r[9]) : 1000000,
         buyRules: r[10] ? JSON.parse(r[10]) : [],
         sellRules: r[11] ? JSON.parse(r[11]) : [],
-        updatedAt: r[12] || '-'
+        updatedAt: r[12] || '-',
+        isActive: String(r[13] || '').includes('적용') || String(r[13] || '').includes('ACTIVE')
       }));
     }
     
@@ -123,35 +122,53 @@ function doPost(e) {
     const authPin = getAuthPin();
 
     if (data.action === "set_active_strategy_slot") {
-      const slotId = String(data.slotId || "1");
-      PropertiesService.getScriptProperties().setProperty("ACTIVE_STRATEGY_SLOT_ID", slotId);
-      return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success", activeSlotId: parseInt(slotId, 10) }))
+      const slotId = parseInt(data.slotId || "1", 10);
+      PropertiesService.getScriptProperties().setProperty("ACTIVE_STRATEGY_SLOT_ID", String(slotId));
+      
+      setupSheets();
+      const sheet = ss.getSheetByName("Strategy_Slots");
+      if (sheet && sheet.getLastRow() > 1) {
+        const lastRow = sheet.getLastRow();
+        const activeFlags = [];
+        for (let i = 2; i <= lastRow; i++) {
+          const rowId = parseInt(sheet.getRange(i, 1).getValue(), 10);
+          activeFlags.push([rowId === slotId ? "적용중 (ACTIVE)" : ""]);
+        }
+        sheet.getRange(2, 14, activeFlags.length, 1).setValues(activeFlags);
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success", activeSlotId: slotId }))
         .setMimeType(ContentService.MimeType.JSON);
     }
 
     if (data.action === "save_strategy_slots") {
       setupSheets();
       const sheet = ss.getSheetByName("Strategy_Slots");
+      const activeSlotId = parseInt(PropertiesService.getScriptProperties().getProperty("ACTIVE_STRATEGY_SLOT_ID") || "1", 10);
       if (data.slots && Array.isArray(data.slots) && sheet) {
         if (sheet.getLastRow() > 1) {
-          sheet.getRange(2, 1, sheet.getLastRow() - 1, 13).clearContent();
+          sheet.getRange(2, 1, sheet.getLastRow() - 1, 14).clearContent();
         }
-        const rows = data.slots.map(s => [
-          s.id,
-          s.name || `전략 ${s.id}`,
-          s.memo || '',
-          s.market || 'ALL',
-          s.period || '5Y',
-          s.startDate || '',
-          s.endDate || '',
-          s.stopLoss !== null && s.stopLoss !== undefined ? s.stopLoss : '',
-          s.takeProfit !== null && s.takeProfit !== undefined ? s.takeProfit : '',
-          s.tradeAmount || 1000000,
-          JSON.stringify(s.buyRules || []),
-          JSON.stringify(s.sellRules || []),
-          s.updatedAt || '-'
-        ]);
-        sheet.getRange(2, 1, rows.length, 13).setValues(rows);
+        const rows = data.slots.map((s, idx) => {
+          const currentId = s.id || (idx + 1);
+          return [
+            currentId,
+            s.name || `전략 ${currentId}`,
+            s.memo || '',
+            s.market || 'ALL',
+            s.period || '5Y',
+            s.startDate || '',
+            s.endDate || '',
+            s.stopLoss !== null && s.stopLoss !== undefined ? s.stopLoss : '',
+            s.takeProfit !== null && s.takeProfit !== undefined ? s.takeProfit : '',
+            s.tradeAmount || 1000000,
+            JSON.stringify(s.buyRules || []),
+            JSON.stringify(s.sellRules || []),
+            s.updatedAt || '-',
+            currentId === activeSlotId ? "적용중 (ACTIVE)" : ""
+          ];
+        });
+        sheet.getRange(2, 1, rows.length, 14).setValues(rows);
         PropertiesService.getScriptProperties().setProperty("STRATEGY_SLOTS_JSON", JSON.stringify(data.slots));
       }
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
