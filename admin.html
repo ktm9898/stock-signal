@@ -2996,13 +2996,22 @@
       strategySlots[idx] = {
         id: idx + 1,
         name: `전략 ${idx + 1} (비어있음)`,
-        memo: `전략 ${idx + 1}에 대한 설명이나 아이디어를 남겨보세요.`,
+        memo: "",
         isEmpty: true,
         updatedAt: "-"
       };
       localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
       renderLoadSlotsTable();
       saveSlotsToGoogleSheetAsync();
+    }
+
+    function resetToDefault7Presets() {
+      if (!confirm("현재 슬롯들을 7대 핵심 퀀트 전략(슬롯 1~7)으로 초기화하고 구글 시트에 동기화 저장할까요?")) return;
+      strategySlots = JSON.parse(JSON.stringify(DEFAULT_STRATEGY_PRESETS));
+      localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
+      saveSlotsToGoogleSheetAsync();
+      renderLoadSlotsTable();
+      alert("7대 핵심 퀀트 전략이 구글 시트(Strategy_Slots)에 성공적으로 저장되었습니다!");
     }
 
     function openCompareModal() {
@@ -4217,19 +4226,75 @@
     }
   </script>
 
-  <!-- Indicator Help Modal -->
-  <div id="info-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); z-index:9999; justify-content:center; align-items:center;">
-    <div class="modal-content" style="background:#fff; border-radius:12px; width:92%; max-width:480px; padding:18px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); border:1px solid #e2e8f0;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:6px;">
-        <h4 id="info-modal-title" style="font-size:0.90rem; font-weight:700; color:#0f172a; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;">지표 설명</h4>
-        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-          <span id="info-modal-badge" class="badge badge-t2" style="white-space:nowrap !important; flex-shrink:0; font-size:0.72rem; padding:3px 7px; font-weight:600; display:inline-block;">안내</span>
-          <button onclick="closeInfoModal()" style="background:none; border:none; font-size:1.15rem; color:#64748b; cursor:pointer; padding:0; flex-shrink:0; line-height:1; margin-left:2px;">✕</button>
-        </div>
+  <!-- Save Strategy Modal -->
+  <div id="save-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div class="modal-content" style="background:#fff; border-radius:12px; width:92%; max-width:460px; padding:20px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); border:1px solid #e2e8f0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h4 style="font-size:1.05rem; font-weight:700; color:#0f172a; margin:0;">전략 슬롯에 저장</h4>
+        <button onclick="closeSaveModal()" style="background:none; border:none; font-size:1.2rem; color:#64748b; cursor:pointer;">✕</button>
       </div>
-      <div id="info-modal-body" style="font-size:0.82rem; color:#334155; line-height:1.6; white-space:pre-line; max-height:60vh; overflow-y:auto; padding-right:4px;"></div>
-      <div style="margin-top:16px; text-align:right;">
-        <button class="btn-sm-action" onclick="closeInfoModal()" style="background:#2563eb; color:#fff; padding:6px 16px; border:none; border-radius:6px; font-weight:600; cursor:pointer;">확인</button>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:0.82rem; font-weight:600; color:#334155; display:block; margin-bottom:4px;">저장할 슬롯 선택</label>
+        <select id="save-slot-select" class="form-select" style="width:100%; padding:8px;" onchange="onSaveSlotSelectChange(this.value)"></select>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:0.82rem; font-weight:600; color:#334155; display:block; margin-bottom:4px;">전략 이름</label>
+        <input type="text" id="save-slot-name" class="form-input" style="width:100%; padding:8px;" placeholder="예: 스나이퍼 바닥반등 V2">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:0.82rem; font-weight:600; color:#334155; display:block; margin-bottom:4px;">전략 설명</label>
+        <input type="text" id="save-slot-memo" class="form-input" style="width:100%; padding:8px;" placeholder="간단한 메모 입력">
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button onclick="closeSaveModal()" style="padding:8px 14px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; font-weight:600; color:#475569; cursor:pointer;">취소</button>
+        <button onclick="executeSaveSlotFromModal()" style="padding:8px 16px; background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">저장하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Load Strategy Modal -->
+  <div id="load-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div class="modal-content" style="background:#fff; border-radius:12px; width:94%; max-width:680px; padding:20px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); border:1px solid #e2e8f0; max-height:85vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h4 style="font-size:1.05rem; font-weight:700; color:#0f172a; margin:0;">저장된 전략 슬롯 목록</h4>
+        <button onclick="closeLoadModal()" style="background:none; border:none; font-size:1.2rem; color:#64748b; cursor:pointer;">✕</button>
+      </div>
+      
+      <div style="margin-bottom:12px; display:flex; justify-content:flex-end;">
+        <button onclick="resetToDefault7Presets()" style="padding:6px 12px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; font-size:0.8rem; font-weight:700; color:#1d4ed8; cursor:pointer;">
+          <i class="fa-solid fa-rotate-left"></i> 7대 기본 전략 구글 시트 동기화 저장
+        </button>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+          <thead>
+            <tr style="background:#f8fafc; border-bottom:1px solid #e2e8f0;">
+              <th style="padding:8px; width:80px; text-align:center;">슬롯</th>
+              <th style="padding:8px; text-align:left;">전략명</th>
+              <th style="padding:8px; text-align:left;">설명</th>
+              <th style="padding:8px; width:90px; text-align:center;">갱신일</th>
+              <th style="padding:8px; width:110px; text-align:center;">관리</th>
+            </tr>
+          </thead>
+          <tbody id="load-slots-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compare Strategy Modal -->
+  <div id="compare-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div class="modal-content" style="background:#fff; border-radius:12px; width:92%; max-width:540px; padding:20px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); border:1px solid #e2e8f0; max-height:85vh; overflow-y:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <h4 style="font-size:1.05rem; font-weight:700; color:#0f172a; margin:0;">전략 슬롯 멀티 비교</h4>
+        <button onclick="closeCompareModal()" style="background:none; border:none; font-size:1.2rem; color:#64748b; cursor:pointer;">✕</button>
+      </div>
+      <p style="font-size:0.82rem; color:#64748b; margin-bottom:12px;">비교할 전략 슬롯을 체크하고 [비교 실행]을 누르세요.</p>
+      <div id="compare-slots-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;"></div>
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button onclick="closeCompareModal()" style="padding:8px 14px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; font-weight:600; color:#475569; cursor:pointer;">닫기</button>
+        <button onclick="runMultiStrategyComparisonFromModal()" style="padding:8px 16px; background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">비교 실행</button>
       </div>
     </div>
   </div>
