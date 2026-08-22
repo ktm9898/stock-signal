@@ -2636,7 +2636,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
         return `
           <tr>
-            <td><span style="color:var(--text-sub); font-size:0.85rem;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
+            <td style="text-align:center;"><span style="color:var(--text-sub); font-size:0.85rem; font-weight:500;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
             <td style="padding-left: 16px;"><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
             <td style="text-align:right; padding-right: 24px;">${Number(item.BuyPrice || item.buyPrice || 0).toLocaleString()} 원</td>
             <td style="text-align:right; padding-right: 24px;">${Number(item.CurrPrice || item.currPrice || 0).toLocaleString()} 원</td>
