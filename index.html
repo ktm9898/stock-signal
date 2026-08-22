@@ -1819,17 +1819,60 @@
       window.latestMetricsCacheData = dynamicKospi;
       window.latestKosdaqMetricsCacheData = dynamicKosdaq;
 
+      // Deduplicate finalBuyList so that top metric count and table match exactly
+      const uniqueBuyList = [];
+      finalBuyList.forEach(item => {
+        const ticker = formatTicker(item.Ticker || item.ticker || item.code);
+        const ymd = formatDateOnly(item.Date || item.date || item.Timestamp);
+        const adx = formatDec(item.ADX || item.adx);
+        const close = Number(item.ClosePrice || item.price || item.close || 0);
+
+        const alreadyExists = uniqueBuyList.some(prev => {
+          const prevTicker = formatTicker(prev.Ticker || prev.ticker || prev.code);
+          const prevYmd = formatDateOnly(prev.Date || prev.date || prev.Timestamp);
+          const prevAdx = formatDec(prev.ADX || prev.adx);
+          const prevClose = Number(prev.ClosePrice || prev.price || prev.close || 0);
+          return prevTicker === ticker && (prevYmd === ymd || (prevAdx === adx && prevClose === close && prevClose > 0));
+        });
+
+        if (!alreadyExists) {
+          uniqueBuyList.push(item);
+        }
+      });
+
+      // Deduplicate finalSellList so that top metric count and table match exactly
+      const uniqueSellList = [];
+      finalSellList.forEach(item => {
+        const ticker = formatTicker(item.Ticker || item.ticker || item.code);
+        const price = Number(item.CurrPrice || item.currPrice || 0);
+        const adx = Number(item.ADX || item.adx);
+        const level = String(item.Status || item.signalLevel || '');
+
+        const alreadyExists = uniqueSellList.some(prev => {
+          const prevTicker = formatTicker(prev.Ticker || prev.ticker || prev.code);
+          if (prevTicker !== ticker) return false;
+          const prevPrice = Number(prev.CurrPrice || prev.currPrice || 0);
+          const prevAdx = Number(prev.ADX || prev.adx);
+          const prevLevel = String(prev.Status || prev.signalLevel || '');
+          return prevPrice === price && Math.abs(prevAdx - adx) < 0.01 && prevLevel === level;
+        });
+
+        if (!alreadyExists) {
+          uniqueSellList.push(item);
+        }
+      });
+
       // Render Tables
       const lastSyncText = document.getElementById('sync-time')?.textContent?.replace('최근 갱신: ', '').trim() || '';
-      renderBuyCandidates(finalBuyList, lastSyncText);
+      renderBuyCandidates(uniqueBuyList, lastSyncText);
       renderHoldings(holdingsData, allHistory, evaluatedHoldingsStatus);
-      renderSellSignals(finalSellList);
+      renderSellSignals(uniqueSellList);
       renderAllStocks(dynamicKospi);
       renderKosdaqStocks(dynamicKosdaq);
 
       // Update Metric Card Numbers (Count genuine buy signals separately from watchlist)
-      const genuineBuyCount = finalBuyList.filter(item => !String(item.Stage || item.stage || '').includes('관심종목')).length;
-      const watchCount = finalBuyList.length - genuineBuyCount;
+      const genuineBuyCount = uniqueBuyList.filter(item => !String(item.Stage || item.stage || '').includes('관심종목')).length;
+      const watchCount = uniqueBuyList.length - genuineBuyCount;
 
       document.getElementById('count-buy').textContent = genuineBuyCount;
       const watchEl = document.getElementById('count-watch');
@@ -1837,7 +1880,7 @@
       const watchWrap = document.getElementById('count-watch-wrapper');
       if (watchWrap) watchWrap.style.display = watchCount > 0 ? '' : 'none';
 
-      document.getElementById('count-sell').textContent = finalSellList.length;
+      document.getElementById('count-sell').textContent = uniqueSellList.length;
       document.getElementById('count-holdings').textContent = holdingsData.length;
       document.getElementById('count-profit').textContent = profitCount;
       document.getElementById('count-loss').textContent = lossCount;
