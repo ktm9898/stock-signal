@@ -854,7 +854,7 @@
               <th>+DI</th>
               <th>RSI</th>
               <th>BB</th>
-              <th onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기" style="cursor:pointer;">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th>VR</th>
               <th>현재가</th>
               <th>액션</th>
             </tr>
@@ -896,7 +896,7 @@
               <th>+DI</th>
               <th>RSI</th>
               <th>BB</th>
-              <th onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기" style="cursor:pointer;">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th>VR</th>
               <th>신호</th>
             </tr>
           </thead>
@@ -938,7 +938,7 @@
               <th>+DI</th>
               <th>RSI</th>
               <th>BB</th>
-              <th onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기" style="cursor:pointer;">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+              <th>VR</th>
               <th>상태</th>
               <th>삭제</th>
             </tr>
@@ -1721,6 +1721,7 @@
           Plus_DI: metric ? (metric.Plus_DI || metric.plus_di) : '-',
           RSI: metric ? (metric.RSI || metric.rsi) : '-',
           b_band_pct: metric ? (metric.b_band_pct !== undefined ? metric.b_band_pct : (metric.BB_Pct !== undefined ? metric.BB_Pct : metric['BB_%b'])) : '-',
+          VolumeRatio: metric ? (metric.VolumeRatio !== undefined ? metric.VolumeRatio : (metric.volume_ratio !== undefined ? metric.volume_ratio : '-')) : '-',
           SignalLevel: signalLevel,
           Status: signalLevel,
           Details: signalReason
@@ -1740,6 +1741,7 @@
             Plus_DI: metric ? (metric.Plus_DI || metric.plus_di) : '-',
             RSI: metric ? (metric.RSI || metric.rsi) : '-',
             b_band_pct: metric ? (metric.b_band_pct !== undefined ? metric.b_band_pct : (metric.BB_Pct !== undefined ? metric.BB_Pct : metric['BB_%b'])) : '-',
+            VolumeRatio: metric ? (metric.VolumeRatio !== undefined ? metric.VolumeRatio : (metric.volume_ratio !== undefined ? metric.volume_ratio : '-')) : '-',
             SignalLevel: signalLevel,
             Status: signalLevel,
             Details: signalReason
@@ -1758,6 +1760,26 @@
         combinedSellMap.set(tk, item);
       });
       const finalSellList = Array.from(combinedSellMap.values());
+
+      // Auto-fill VolumeRatio for Buy and Sell lists from live 350 stock metrics
+      finalBuyList.forEach(item => {
+        if (item.VolumeRatio === undefined && item.volume_ratio === undefined) {
+          const tk = formatTicker(item.Ticker || item.ticker || item.code);
+          const found = combinedStocks.find(s => formatTicker(s.Ticker || s.ticker || s.code) === tk);
+          if (found) {
+            item.VolumeRatio = found.VolumeRatio !== undefined ? found.VolumeRatio : found.volume_ratio;
+          }
+        }
+      });
+      finalSellList.forEach(item => {
+        if (item.VolumeRatio === undefined && item.volume_ratio === undefined) {
+          const tk = formatTicker(item.Ticker || item.ticker || item.code);
+          const found = combinedStocks.find(s => formatTicker(s.Ticker || s.ticker || s.code) === tk);
+          if (found) {
+            item.VolumeRatio = found.VolumeRatio !== undefined ? found.VolumeRatio : found.volume_ratio;
+          }
+        }
+      });
 
       // 4. Dynamic evaluation for Kospi 200 & Kosdaq 150 tables
       function evaluateStockStatus(stock, prevStock) {
