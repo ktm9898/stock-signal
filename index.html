@@ -833,13 +833,14 @@
         <table class="buy-signals-table">
           <colgroup>
             <col style="width: 75px;">
-            <col style="width: 160px;">
+            <col style="width: 155px;">
             <col style="width: 75px;">
             <col style="width: 54px;">
             <col style="width: 54px;">
             <col style="width: 54px;">
             <col style="width: 54px;">
             <col style="width: 54px;">
+            <col style="width: 56px;">
             <col style="width: 68px;">
             <col style="width: 75px;">
           </colgroup>
@@ -853,6 +854,7 @@
               <th>+DI</th>
               <th>RSI</th>
               <th>BB</th>
+              <th onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기" style="cursor:pointer;">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
               <th>현재가</th>
               <th>액션</th>
             </tr>
@@ -870,7 +872,7 @@
         <table class="sell-signals-table">
           <colgroup>
             <col style="width: 75px;">
-            <col style="width: 145px;">
+            <col style="width: 140px;">
             <col style="width: 76px;">
             <col style="width: 76px;">
             <col style="width: 72px;">
@@ -879,6 +881,7 @@
             <col style="width: 54px;">
             <col style="width: 54px;">
             <col style="width: 54px;">
+            <col style="width: 56px;">
             <col style="width: 75px;">
           </colgroup>
           <thead>
@@ -893,6 +896,7 @@
               <th>+DI</th>
               <th>RSI</th>
               <th>BB</th>
+              <th onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기" style="cursor:pointer;">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
               <th>신호</th>
             </tr>
           </thead>
@@ -909,7 +913,7 @@
         <table class="holdings-table">
           <colgroup>
             <col style="width: 58px;">
-            <col style="width: 145px;">
+            <col style="width: 140px;">
             <col style="width: 76px;">
             <col style="width: 76px;">
             <col style="width: 72px;">
@@ -918,6 +922,7 @@
             <col style="width: 54px;">
             <col style="width: 54px;">
             <col style="width: 54px;">
+            <col style="width: 56px;">
             <col style="width: 72px;">
             <col style="width: 58px;">
           </colgroup>
@@ -933,6 +938,7 @@
               <th>+DI</th>
               <th>RSI</th>
               <th>BB</th>
+              <th onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기" style="cursor:pointer;">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
               <th>상태</th>
               <th>삭제</th>
             </tr>
@@ -2243,7 +2249,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         timeLabel = formatShortDate(lastLog.Timestamp || lastLog.date || '');
       }
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-sub); padding:32px 20px; font-size:0.9rem;">
+        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--text-sub); padding:32px 20px; font-size:0.9rem;">
           <i class="fa-regular fa-circle-check" style="margin-right:6px; color:#22c55e;"></i>
           ${timeLabel ? `[${timeLabel}] ` : ''}전체 350개 종목 검사 완료. 현재 선택된 전략 조건에 부합하는 매수 신호 종목이 없습니다.
         </td></tr>`;
@@ -2296,7 +2302,22 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           else if (bBandPctVal >= 1.0) bbColor = '#f87171';
         }
 
-        const reason = (item.Reason || item.reason || item.Notes || item.notes || `ADX: ${formatDec(item.ADX || item.adx)}, -DI: ${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}, RSI: ${formatDec(item.RSI || item.rsi)}, 볼린저%b: ${bBandPctStr} 조건 충족`).replace(/'/g, "\\'");
+        let rawVR = (item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr)));
+        if ((rawVR === undefined || rawVR === null || rawVR === '' || isNaN(Number(rawVR))) && window.allMetricsData) {
+          const mItem = (window.latestMetricsCacheData || []).concat(window.latestKosdaqMetricsCacheData || []).concat(window.allMetricsData || []).find(m => {
+            const mTicker = formatTicker(m.Ticker || m.ticker || m.code);
+            const mName = String(m.Name || m.name || '').trim();
+            return (ticker && ticker !== '-' && mTicker === ticker) || (name && mName === name);
+          });
+          if (mItem) {
+            rawVR = mItem.VolumeRatio !== undefined ? mItem.VolumeRatio : (mItem.volume_ratio !== undefined ? mItem.volume_ratio : (mItem.VR !== undefined ? mItem.VR : mItem.vr));
+          }
+        }
+        const vrStr = (rawVR !== undefined && rawVR !== null && rawVR !== '' && !isNaN(Number(rawVR))) ? formatDec(rawVR, 0) + '%' : '-';
+        const vrNum = Number(rawVR);
+        const vrColor = (!isNaN(vrNum) && vrNum >= 150) ? 'var(--accent-warning)' : 'inherit';
+
+        const reason = (item.Reason || item.reason || item.Notes || item.notes || `ADX: ${formatDec(item.ADX || item.adx)}, -DI: ${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}, RSI: ${formatDec(item.RSI || item.rsi)}, 볼린저%b: ${bBandPctStr}, VR: ${vrStr} 조건 충족`).replace(/'/g, "\\'");
 
         return `
           <tr>
@@ -2308,6 +2329,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;">${formatDec(item.Plus_DI || item.plus_di || item.plusDi)}</td>
             <td style="text-align:center;"><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${formatDec(item.RSI || item.rsi)}</span></td>
             <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
+            <td style="text-align:center;"><strong style="color: ${vrColor}">${vrStr}</strong></td>
             <td style="text-align:right; padding-right: 14px;">${(item.ClosePrice || item.price) ? Number(item.ClosePrice || item.price).toLocaleString() + ' 원' : '-'}</td>
             <td style="text-align:center;"><button class="btn-buy-reg" style="padding: 4px 10px; font-size: 0.8rem;" onclick="quickRegister('${name}', '${ticker}', ${item.ClosePrice || item.price || 0})"><i class="fa-solid fa-plus"></i> 매수</button></td>
           </tr>
@@ -2482,7 +2504,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
     function renderHoldings(list, metricsList = [], statusList = []) {
       const tbody = document.getElementById('holdings-body');
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-sub); padding:24px;">매수 등록된 보유 종목이 없습니다.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="13" style="text-align:center; color:var(--text-sub); padding:24px;">매수 등록된 보유 종목이 없습니다.</td></tr>`;
         return;
       }
       tbody.innerHTML = list.map(item => {
@@ -2522,6 +2544,11 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           if (bBandPctVal <= 0.0) bbColor = 'var(--accent-green)';
           else if (bBandPctVal >= 1.0) bbColor = '#f87171';
         }
+
+        const rawVR = metric ? (metric.VolumeRatio !== undefined ? metric.VolumeRatio : (metric.volume_ratio !== undefined ? metric.volume_ratio : (metric.VR !== undefined ? metric.VR : metric.vr))) : (item.VolumeRatio !== undefined ? item.VolumeRatio : item.volume_ratio);
+        const vrStr = (rawVR !== undefined && rawVR !== null && rawVR !== '' && !isNaN(Number(rawVR))) ? formatDec(rawVR, 0) + '%' : '-';
+        const vrNum = Number(rawVR);
+        const vrColor = (!isNaN(vrNum) && vrNum >= 150) ? 'var(--accent-warning)' : 'inherit';
         
         const statusText = statusItem ? (statusItem.SignalLevel || statusItem.Status || statusItem.signalLevel || '보유유지') : '보유유지';
         let badgeClass = 'badge-neutral';
@@ -2554,6 +2581,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;">${pdi}</td>
             <td style="text-align:center;"><span style="color: ${Number(rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
             <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
+            <td style="text-align:center;"><strong style="color: ${vrColor}">${vrStr}</strong></td>
             <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${displayName}', '${statusText}', '${escapedDetails}', '${badgeClass}')" title="클릭 시 감시 사유 확인">${statusText}</span></td>
             <td style="text-align:center;"><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${rawTicker !== '-' ? rawTicker : rawName}')" title="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
           </tr>
@@ -2565,7 +2593,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       const tbody = document.getElementById('sell-signals-body');
       if (!tbody) return;
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--text-sub); padding:24px;">
+        tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; color:var(--text-sub); padding:24px;">
           감지된 매도 경고 또는 매도 신호 이력이 없습니다.
         </td></tr>`;
         return;
@@ -2623,6 +2651,21 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           else if (bBandPctVal >= 1.0) bbColor = '#f87171';
         }
 
+        let rawVR = (item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr)));
+        if ((rawVR === undefined || rawVR === null || rawVR === '' || isNaN(Number(rawVR))) && window.allMetricsData) {
+          const mItem = (window.latestMetricsCacheData || []).concat(window.latestKosdaqMetricsCacheData || []).concat(window.allMetricsData || []).find(m => {
+            const mTicker = formatTicker(m.Ticker || m.ticker || m.code);
+            const mName = String(m.Name || m.name || '').trim();
+            return (ticker && ticker !== '-' && mTicker === ticker) || (String(item.Name || item.name || '').trim() && mName === String(item.Name || item.name || '').trim());
+          });
+          if (mItem) {
+            rawVR = mItem.VolumeRatio !== undefined ? mItem.VolumeRatio : (mItem.volume_ratio !== undefined ? mItem.volume_ratio : (mItem.VR !== undefined ? mItem.VR : mItem.vr));
+          }
+        }
+        const vrStr = (rawVR !== undefined && rawVR !== null && rawVR !== '' && !isNaN(Number(rawVR))) ? formatDec(rawVR, 0) + '%' : '-';
+        const vrNum = Number(rawVR);
+        const vrColor = (!isNaN(vrNum) && vrNum >= 150) ? 'var(--accent-warning)' : 'inherit';
+
         let detailsText = String(item.Details || item.details || '-').trim();
         if (!detailsText || detailsText === 'undefined' || !isNaN(Number(detailsText))) {
           detailsText = '-';
@@ -2641,6 +2684,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;">${pdi}</td>
             <td style="text-align:center;"><span style="color: ${Number(rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
             <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
+            <td style="text-align:center;"><strong style="color: ${vrColor}">${vrStr}</strong></td>
             <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${item.Name || item.name}', '${level}', '${escapedDetails}', '${badgeClass}')" title="클릭 시 감시 사유 확인">${level}</span></td>
           </tr>
         `;
