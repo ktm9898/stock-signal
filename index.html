@@ -329,6 +329,63 @@
       font-weight: 500;
     }
 
+    /* Modal Action Buttons */
+    .modal-btn-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 10px !important;
+      width: 100% !important;
+      margin-top: 12px !important;
+      box-sizing: border-box !important;
+    }
+    .btn-modal-action-quant {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
+      color: #ffffff !important;
+      padding: 12px 0 !important;
+      border-radius: 10px !important;
+      font-size: 0.92rem !important;
+      font-weight: 700 !important;
+      text-decoration: none !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+      box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25) !important;
+      transition: all 0.2s ease !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+      border: none !important;
+      cursor: pointer !important;
+      text-align: center !important;
+    }
+    .btn-modal-action-quant:hover {
+      background: linear-gradient(135deg, #4338ca, #6d28d9) !important;
+    }
+    .btn-modal-action-apply {
+      background: linear-gradient(135deg, #2563eb, #0284c7) !important;
+      color: #ffffff !important;
+      padding: 12px 0 !important;
+      border-radius: 10px !important;
+      font-size: 0.92rem !important;
+      font-weight: 700 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 6px !important;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25) !important;
+      transition: all 0.2s ease !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+      border: none !important;
+      cursor: pointer !important;
+      text-align: center !important;
+    }
+    .btn-modal-action-apply:hover {
+      background: linear-gradient(135deg, #1d4ed8, #0369a1) !important;
+    }
+
     /* Metric Cards Clickable Style */
     .metric-card.clickable {
       cursor: pointer;
@@ -461,7 +518,9 @@
       }
       .time-badge { display: none; }
 
-      .btn-header-refresh, .btn-manual-exec, .btn-admin-nav {
+      .header-right-group .btn-header-refresh,
+      .header-right-group .btn-manual-exec,
+      .header-right-group .btn-admin-nav {
         width: 36px !important;
         height: 36px !important;
         min-width: 36px !important;
@@ -474,7 +533,9 @@
         font-size: 0.95rem !important;
         box-sizing: border-box !important;
       }
-      .btn-header-refresh i, .btn-manual-exec i, .btn-admin-nav i {
+      .header-right-group .btn-header-refresh i,
+      .header-right-group .btn-manual-exec i,
+      .header-right-group .btn-admin-nav i {
         margin: 0 !important;
         font-size: 0.95rem !important;
       }
@@ -980,12 +1041,12 @@
         <!-- Dynamic content -->
       </div>
 
-      <!-- Action Buttons (동일한 1:1 너비 및 크기) -->
-      <div style="display: flex; gap: 8px;">
-        <a href="admin.html" class="btn-admin-nav" style="flex: 1; justify-content: center; padding: 12px 0; font-size: 0.9rem; text-decoration: none; border-radius: 8px; text-align: center; box-sizing: border-box;">
+      <!-- Action Buttons (Grid 1:1 완벽 50% 50% 분할) -->
+      <div class="modal-btn-grid">
+        <a href="admin.html" class="btn-modal-action-quant">
           <i class="fa-solid fa-sliders"></i> 퀀트랩
         </a>
-        <button class="btn-buy-reg" style="flex: 1; padding: 12px 0; font-size: 0.9rem; border-radius: 8px; justify-content: center; box-sizing: border-box;" onclick="applySelectedModalStrategy()">
+        <button type="button" class="btn-modal-action-apply" onclick="applySelectedModalStrategy()">
           <i class="fa-solid fa-check"></i> 전략적용
         </button>
       </div>
