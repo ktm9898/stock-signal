@@ -2525,25 +2525,303 @@
     const GAS_WEBAPP_URL_ADMIN = "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
     const LOCAL_SLOTS_KEY = "quant_strategy_slots_v1";
 
-    let strategySlots = Array.from({ length: 10 }, (_, i) => ({
-      id: i + 1,
-      name: `전략 ${i + 1} (비어있음)`,
-      memo: `전략 ${i + 1}에 대한 설명이나 아이디어를 남겨보세요.`,
-      isEmpty: true,
-      updatedAt: "-"
-    }));
+    const DEFAULT_STRATEGY_PRESETS = [
+      {
+        id: 1,
+        name: "기존 전략 1번 (추세 원형)",
+        memo: "ADX 30 이상에서 -DI가 ADX를 하향 돌파할 때 진입하는 오리지널 추세 추종 전략",
+        isEmpty: false,
+        market: "ALL",
+        period: "5Y",
+        startDate: "2021-01-04",
+        endDate: "2026-08-20",
+        stopLoss: 20,
+        takeProfit: null,
+        cooldownDays: null,
+        tradeAmount: 1000000,
+        buyRules: [
+          {
+            id: "bg_1",
+            name: "매수 조건 1",
+            rules: [
+              { indicator: "adx", condition_type: "gte_value", value: 30.0 },
+              { indicator: "minus_di", condition_type: "cross_below_indicator", target_indicator: "adx", value: 0 }
+            ]
+          }
+        ],
+        sellRules: [
+          {
+            id: "sg_1",
+            name: "매도 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "gte_value", value: 65.0 }
+            ]
+          }
+        ],
+        updatedAt: "2026.08.22 17:00"
+      },
+      {
+        id: 2,
+        name: "사용자 하이브리드 (올웨더 복합)",
+        memo: "스나이퍼 바닥반등 OR ADX 33 돌파 복합 포트폴리오 (RSI 55 청산, 손절/익절 없음)",
+        isEmpty: false,
+        market: "ALL",
+        period: "5Y",
+        startDate: "2021-01-04",
+        endDate: "2026-08-20",
+        stopLoss: null,
+        takeProfit: null,
+        cooldownDays: null,
+        tradeAmount: 1000000,
+        buyRules: [
+          {
+            id: "bg_1",
+            name: "매수 조건 1 (스나이퍼 바닥)",
+            rules: [
+              { indicator: "rsi", condition_type: "lte_value", value: 24.0 },
+              { indicator: "bb_pct", condition_type: "lte_value", value: 0.05 },
+              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
+            ]
+          },
+          {
+            id: "bg_2",
+            name: "매수 조건 2 (추세전환 돌파)",
+            rules: [
+              { indicator: "adx", condition_type: "gte_value", value: 33.0 },
+              { indicator: "minus_di", condition_type: "cross_below_indicator", target_indicator: "adx", value: 0 },
+              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
+            ]
+          }
+        ],
+        sellRules: [
+          {
+            id: "sg_1",
+            name: "매도 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "gte_value", value: 55.0 }
+            ]
+          }
+        ],
+        updatedAt: "2026.08.22 17:35"
+      },
+      {
+        id: 3,
+        name: "고승률 스나이퍼 (바닥 반등)",
+        memo: "RSI 24 이하 & 볼린저 0.05 이하 & 거래량 100% 이상 바닥 투매 포착 후 반등 익절",
+        isEmpty: false,
+        market: "ALL",
+        period: "5Y",
+        startDate: "2021-01-04",
+        endDate: "2026-08-20",
+        stopLoss: 10,
+        takeProfit: 15,
+        cooldownDays: null,
+        tradeAmount: 1000000,
+        buyRules: [
+          {
+            id: "bg_1",
+            name: "매수 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "lte_value", value: 24.0 },
+              { indicator: "bb_pct", condition_type: "lte_value", value: 0.05 },
+              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
+            ]
+          }
+        ],
+        sellRules: [
+          {
+            id: "sg_1",
+            name: "매도 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "gte_value", value: 55.0 }
+            ]
+          }
+        ],
+        updatedAt: "2026.08.22 16:30"
+      },
+      {
+        id: 4,
+        name: "초정밀 스나이퍼 (극단적 바닥)",
+        memo: "RSI 22 이하 & 볼린저 0.04 이하 극단적 언더슈팅 바닥만 엄선 공략 (건당 +4.4% 수익)",
+        isEmpty: false,
+        market: "ALL",
+        period: "5Y",
+        startDate: "2021-01-04",
+        endDate: "2026-08-20",
+        stopLoss: 10,
+        takeProfit: 15,
+        cooldownDays: null,
+        tradeAmount: 1000000,
+        buyRules: [
+          {
+            id: "bg_1",
+            name: "매수 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "lte_value", value: 22.0 },
+              { indicator: "bb_pct", condition_type: "lte_value", value: 0.04 },
+              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
+            ]
+          }
+        ],
+        sellRules: [
+          {
+            id: "sg_1",
+            name: "매도 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "gte_value", value: 55.0 }
+            ]
+          }
+        ],
+        updatedAt: "2026.08.22 16:35"
+      },
+      {
+        id: 5,
+        name: "추세전환 골디락스 (주도주 돌파)",
+        memo: "ADX 32 이상에서 -DI 하향돌파 & 거래량 1.2배 터지는 주도주 추세 전환 포착",
+        isEmpty: false,
+        market: "ALL",
+        period: "5Y",
+        startDate: "2021-01-04",
+        endDate: "2026-08-20",
+        stopLoss: 15,
+        takeProfit: 20,
+        cooldownDays: null,
+        tradeAmount: 1000000,
+        buyRules: [
+          {
+            id: "bg_1",
+            name: "매수 조건 1",
+            rules: [
+              { indicator: "adx", condition_type: "gte_value", value: 32.0 },
+              { indicator: "minus_di", condition_type: "cross_below_indicator", target_indicator: "adx", value: 0 },
+              { indicator: "volume_ratio", condition_type: "gte_value", value: 120.0 }
+            ]
+          }
+        ],
+        sellRules: [
+          {
+            id: "sg_1",
+            name: "매도 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "gte_value", value: 65.0 }
+            ]
+          }
+        ],
+        updatedAt: "2026.08.22 17:15"
+      },
+      {
+        id: 6,
+        name: "수익 극대화 스나이퍼 (RSI 60 청산)",
+        memo: "스나이퍼 바닥 매수 후 RSI 60 과열권까지 길게 홀딩하여 이익을 극대화하는 세팅",
+        isEmpty: false,
+        market: "ALL",
+        period: "5Y",
+        startDate: "2021-01-04",
+        endDate: "2026-08-20",
+        stopLoss: 10,
+        takeProfit: 20,
+        cooldownDays: null,
+        tradeAmount: 1000000,
+        buyRules: [
+          {
+            id: "bg_1",
+            name: "매수 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "lte_value", value: 24.0 },
+              { indicator: "bb_pct", condition_type: "lte_value", value: 0.05 },
+              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
+            ]
+          }
+        ],
+        sellRules: [
+          {
+            id: "sg_1",
+            name: "매도 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "gte_value", value: 60.0 }
+            ]
+          }
+        ],
+        updatedAt: "2026.08.22 16:40"
+      },
+      {
+        id: 7,
+        name: "액티브 업그레이드형 (거래량 필터)",
+        memo: "기존 1번에 5일 평균 거래량(100%) 필터를 추가하여 소외 잡주를 털어낸 액티브 세팅",
+        isEmpty: false,
+        market: "ALL",
+        period: "5Y",
+        startDate: "2021-01-04",
+        endDate: "2026-08-20",
+        stopLoss: 15,
+        takeProfit: 20,
+        cooldownDays: null,
+        tradeAmount: 1000000,
+        buyRules: [
+          {
+            id: "bg_1",
+            name: "매수 조건 1",
+            rules: [
+              { indicator: "adx", condition_type: "gte_value", value: 30.0 },
+              { indicator: "minus_di", condition_type: "cross_below_indicator", target_indicator: "adx", value: 0 },
+              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
+            ]
+          }
+        ],
+        sellRules: [
+          {
+            id: "sg_1",
+            name: "매도 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "gte_value", value: 65.0 }
+            ]
+          }
+        ],
+        updatedAt: "2026.08.22 17:20"
+      },
+      {
+        id: 8,
+        name: "전략 8 (비어있음)",
+        memo: "전략 8에 대한 설명이나 아이디어를 남겨보세요.",
+        isEmpty: true,
+        updatedAt: "-"
+      },
+      {
+        id: 9,
+        name: "전략 9 (비어있음)",
+        memo: "전략 9에 대한 설명이나 아이디어를 남겨보세요.",
+        isEmpty: true,
+        updatedAt: "-"
+      },
+      {
+        id: 10,
+        name: "전략 10 (비어있음)",
+        memo: "전략 10에 대한 설명이나 아이디어를 남겨보세요.",
+        isEmpty: true,
+        updatedAt: "-"
+      }
+    ];
+
+    let strategySlots = JSON.parse(JSON.stringify(DEFAULT_STRATEGY_PRESETS));
 
     function initStrategySlots() {
+      let slots = JSON.parse(JSON.stringify(DEFAULT_STRATEGY_PRESETS));
       try {
         const local = localStorage.getItem(LOCAL_SLOTS_KEY);
         if (local) {
           const parsed = JSON.parse(local);
           if (Array.isArray(parsed) && parsed.length === 10) {
-            strategySlots = parsed;
+            parsed.forEach((p, idx) => {
+              if (p && !p.isEmpty && p.buyRules && p.buyRules.length > 0) {
+                slots[idx] = p;
+              }
+            });
           }
         }
       } catch(e) {}
 
+      strategySlots = slots;
+      localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
       fetchGoogleSheetSlots();
     }
 
@@ -2552,9 +2830,18 @@
         const resp = await fetch(GAS_WEBAPP_URL_ADMIN + "?action=get_strategy_slots");
         const data = await resp.json();
         if (data && data.success && Array.isArray(data.slots) && data.slots.length === 10) {
-          strategySlots = data.slots;
-          localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
-          return;
+          let hasAnyRemote = false;
+          data.slots.forEach((remoteSlot, idx) => {
+            if (remoteSlot && !remoteSlot.isEmpty && remoteSlot.buyRules && remoteSlot.buyRules.length > 0) {
+              strategySlots[idx] = remoteSlot;
+              hasAnyRemote = true;
+            }
+          });
+          if (hasAnyRemote) {
+            localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
+          } else {
+            saveSlotsToGoogleSheetAsync();
+          }
         }
       } catch (err) {
         console.warn("Google Sheets Sync Fallback to localStorage:", err);

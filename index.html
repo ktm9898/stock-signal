@@ -155,6 +155,87 @@
       box-shadow: 0 2px 6px rgba(37, 99, 235, 0.08);
     }
 
+    /* Active Strategy Banner */
+    .strategy-banner {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 10px 16px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+      transition: all 0.2s ease;
+    }
+    .strategy-banner:hover {
+      border-color: #93c5fd;
+      background: #f8fafc;
+      transform: translateY(-1px);
+    }
+    .strategy-banner-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .strategy-badge {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #ffffff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .strategy-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .strategy-summary {
+      font-size: 0.8rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .btn-strategy-change {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #2563eb;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 5px 12px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .btn-strategy-change:hover {
+      background: #dbeafe;
+    }
+
+    /* Metric Cards Clickable Style */
+    .metric-card.clickable {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .metric-card.clickable:hover {
+      border-color: #93c5fd;
+      background: #f8fafc;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+    }
+    .metric-card.active-tab-card {
+      border-color: #3b82f6;
+      background: #eff6ff;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
     /* Tables */
     .table-container {
       background: var(--card-bg); border: 1px solid var(--card-border);
@@ -396,27 +477,39 @@
   </header>
 
   <div class="container">
-    <!-- Metric Overview (3 Compact Cards Layout) -->
+    <!-- Active Strategy Control Banner -->
+    <div class="strategy-banner" onclick="openStrategyDetailModal()" title="클릭하여 퀀트 전략 변경 및 상세 조건 확인">
+      <div class="strategy-banner-left">
+        <span class="strategy-badge"><i class="fa-solid fa-crosshairs"></i> 적용 전략</span>
+        <span class="strategy-name" id="current-strategy-name">전략 1. 기존 전략 1번 (추세 원형)</span>
+        <span class="strategy-summary" id="current-strategy-summary">(ADX >= 30, -DI 하향돌파 | RSI >= 65)</span>
+      </div>
+      <div class="strategy-banner-right">
+        <span class="btn-strategy-change"><i class="fa-solid fa-sliders"></i> 전략 변경/상세 <i class="fa-solid fa-chevron-right" style="font-size:0.7rem; margin-left:2px;"></i></span>
+      </div>
+    </div>
+
+    <!-- Metric Overview (3 Clickable Cards Layout) -->
     <div class="metrics-grid">
-      <div class="metric-card">
+      <div class="metric-card clickable active-tab-card" id="metric-card-buy" onclick="switchTab('buy-tab')" title="매수 신호 목록으로 이동">
         <div>
-          <div class="metric-title">매수 신호</div>
+          <div class="metric-title">매수 신호 <i class="fa-solid fa-arrow-right" style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
           <div class="metric-value" id="count-buy" style="color: var(--accent-green);">0</div>
         </div>
         <div class="metric-icon"><i class="fa-solid fa-bullseye"></i></div>
       </div>
 
-      <div class="metric-card">
+      <div class="metric-card clickable" id="metric-card-sell" onclick="switchTab('sell-signals-tab')" title="매도 신호 목록으로 이동">
         <div>
-          <div class="metric-title">매도 신호</div>
+          <div class="metric-title">매도 신호 <i class="fa-solid fa-arrow-right" style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
           <div class="metric-value" id="count-sell" style="color: var(--accent-red);">0</div>
         </div>
         <div class="metric-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
       </div>
 
-      <div class="metric-card">
+      <div class="metric-card clickable" id="metric-card-holdings" onclick="switchTab('holdings-tab')" title="보유 종목 목록으로 이동">
         <div>
-          <div class="metric-title">보유 종목</div>
+          <div class="metric-title">보유 종목 <i class="fa-solid fa-arrow-right" style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
           <div class="metric-value">
             <span id="count-holdings" style="color: var(--accent-cyan);">0</span>
             <span style="font-size: 0.78rem; font-weight: 500; color: var(--text-sub); margin-left: 4px;">
@@ -729,9 +822,47 @@
     </div>
   </div>
 
+  <!-- Strategy Detail & Switcher Modal -->
+  <div class="modal-overlay" id="strategy-detail-modal">
+    <div class="modal-content" style="max-width: 540px; padding: 22px; max-height: 88vh; overflow-y: auto;">
+      <div class="modal-header" style="margin-bottom: 14px; align-items: flex-start;">
+        <div>
+          <div style="font-size: 0.72rem; font-weight: 700; color: #2563eb; letter-spacing: 0.5px; margin-bottom: 2px;">QUANT STRATEGY PRESET</div>
+          <div class="modal-title" style="font-size: 1.15rem;">퀀트 전략 선택 및 상세 조건</div>
+        </div>
+        <button class="close-btn" onclick="closeStrategyDetailModal()">&times;</button>
+      </div>
+
+      <!-- Strategy Slot Selector -->
+      <div class="form-group" style="margin-bottom: 14px;">
+        <label class="form-label" style="font-weight: 600; color: #334155;">적용할 전략 슬롯 선택</label>
+        <select class="form-input" id="modal-strategy-slot-select" onchange="onModalStrategySlotChange(this.value)" style="font-weight: 600; font-size: 0.92rem; background: #ffffff;">
+          <!-- Dynamic options 1~10 -->
+        </select>
+      </div>
+
+      <!-- Selected Strategy Card -->
+      <div id="modal-strategy-info-card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+        <!-- Dynamic content: Name, Memo, Buy Rules, Sell Rules, SL/TP -->
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; gap: 8px;">
+        <a href="admin.html" class="btn-admin-nav" style="flex: 1; justify-content: center; padding: 10px; font-size: 0.88rem; text-decoration: none;">
+          <i class="fa-solid fa-sliders"></i> 퀀트 랩에서 편집
+        </a>
+        <button class="btn-buy-reg" style="flex: 1.2; padding: 10px; font-size: 0.88rem;" onclick="applySelectedModalStrategy()">
+          <i class="fa-solid fa-check"></i> 이 전략 적용하기
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // GAS Web App API Endpoint
     const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
+    const LOCAL_SLOTS_KEY = "quant_strategy_slots_v1";
+    const ACTIVE_STRATEGY_KEY = "active_dashboard_strategy_index";
 
     let userPin = "";
     let buyCandidatesData = [];
@@ -739,6 +870,735 @@
     let executionLogsData = [];
     let allMetricsData = [];
     let kosdaqMetricsData = [];
+
+    // ==========================================
+    // 7 Core Quant Strategy Presets
+    // ==========================================
+    const DEFAULT_STRATEGY_PRESETS = [
+      {
+        id: 1,
+        name: "기존 전략 1번 (추세 원형)",
+        memo: "ADX 30 이상에서 -DI가 ADX를 하향 돌파할 때 진입하는 오리지널 추세 추종 전략",
+        isEmpty: false,
+        market: "ALL",
+        period: "5Y",
+        startDate: "2021-01-04",
+        endDate: "2026-08-20",
+        stopLoss: 20,
+        takeProfit: null,
+        cooldownDays: null,
+        tradeAmount: 1000000,
+        buyRules: [
+          {
+            id: "bg_1",
+            name: "매수 조건 1",
+            rules: [
+              { indicator: "adx", condition_type: "gte_value", value: 30.0 },
+              { indicator: "minus_di", condition_type: "cross_below_indicator", target_indicator: "adx", value: 0 }
+            ]
+          }
+        ],
+        sellRules: [
+          {
+            id: "sg_1",
+            name: "매도 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "gte_value", value: 65.0 }
+            ]
+          }
+        ],
+        updatedAt: "2026.08.22 17:00"
+      },
+      {
+        id: 2,
+        name: "사용자 하이브리드 (올웨더 복합)",
+        memo: "스나이퍼 바닥반등 OR ADX 33 돌파 복합 포트폴리오 (RSI 55 청산, 손절/익절 없음)",
+        isEmpty: false,
+        market: "ALL",
+        period: "5Y",
+        startDate: "2021-01-04",
+        endDate: "2026-08-20",
+        stopLoss: null,
+        takeProfit: null,
+        cooldownDays: null,
+        tradeAmount: 1000000,
+        buyRules: [
+          {
+            id: "bg_1",
+            name: "매수 조건 1 (스나이퍼 바닥)",
+            rules: [
+              { indicator: "rsi", condition_type: "lte_value", value: 24.0 },
+              { indicator: "bb_pct", condition_type: "lte_value", value: 0.05 },
+              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
+            ]
+          },
+          {
+            id: "bg_2",
+            name: "매수 조건 2 (추세전환 돌파)",
+            rules: [
+              { indicator: "adx", condition_type: "gte_value", value: 33.0 },
+              { indicator: "minus_di", condition_type: "cross_below_indicator", target_indicator: "adx", value: 0 },
+              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
+            ]
+          }
+        ],
+        sellRules: [
+          {
+            id: "sg_1",
+            name: "매도 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "gte_value", value: 55.0 }
+            ]
+          }
+        ],
+        updatedAt: "2026.08.22 17:35"
+      },
+      {
+        id: 3,
+        name: "고승률 스나이퍼 (바닥 반등)",
+        memo: "RSI 24 이하 & 볼린저 0.05 이하 & 거래량 100% 이상 바닥 투매 포착 후 반등 익절",
+        isEmpty: false,
+        market: "ALL",
+        period: "5Y",
+        startDate: "2021-01-04",
+        endDate: "2026-08-20",
+        stopLoss: 10,
+        takeProfit: 15,
+        cooldownDays: null,
+        tradeAmount: 1000000,
+        buyRules: [
+          {
+            id: "bg_1",
+            name: "매수 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "lte_value", value: 24.0 },
+              { indicator: "bb_pct", condition_type: "lte_value", value: 0.05 },
+              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
+            ]
+          }
+        ],
+        sellRules: [
+          {
+            id: "sg_1",
+            name: "매도 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "gte_value", value: 55.0 }
+            ]
+          }
+        ],
+        updatedAt: "2026.08.22 16:30"
+      },
+      {
+        id: 4,
+        name: "초정밀 스나이퍼 (극단적 바닥)",
+        memo: "RSI 22 이하 & 볼린저 0.04 이하 극단적 언더슈팅 바닥만 엄선 공략 (건당 +4.4% 수익)",
+        isEmpty: false,
+        market: "ALL",
+        period: "5Y",
+        startDate: "2021-01-04",
+        endDate: "2026-08-20",
+        stopLoss: 10,
+        takeProfit: 15,
+        cooldownDays: null,
+        tradeAmount: 1000000,
+        buyRules: [
+          {
+            id: "bg_1",
+            name: "매수 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "lte_value", value: 22.0 },
+              { indicator: "bb_pct", condition_type: "lte_value", value: 0.04 },
+              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
+            ]
+          }
+        ],
+        sellRules: [
+          {
+            id: "sg_1",
+            name: "매도 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "gte_value", value: 55.0 }
+            ]
+          }
+        ],
+        updatedAt: "2026.08.22 16:35"
+      },
+      {
+        id: 5,
+        name: "추세전환 골디락스 (주도주 돌파)",
+        memo: "ADX 32 이상에서 -DI 하향돌파 & 거래량 1.2배 터지는 주도주 추세 전환 포착",
+        isEmpty: false,
+        market: "ALL",
+        period: "5Y",
+        startDate: "2021-01-04",
+        endDate: "2026-08-20",
+        stopLoss: 15,
+        takeProfit: 20,
+        cooldownDays: null,
+        tradeAmount: 1000000,
+        buyRules: [
+          {
+            id: "bg_1",
+            name: "매수 조건 1",
+            rules: [
+              { indicator: "adx", condition_type: "gte_value", value: 32.0 },
+              { indicator: "minus_di", condition_type: "cross_below_indicator", target_indicator: "adx", value: 0 },
+              { indicator: "volume_ratio", condition_type: "gte_value", value: 120.0 }
+            ]
+          }
+        ],
+        sellRules: [
+          {
+            id: "sg_1",
+            name: "매도 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "gte_value", value: 65.0 }
+            ]
+          }
+        ],
+        updatedAt: "2026.08.22 17:15"
+      },
+      {
+        id: 6,
+        name: "수익 극대화 스나이퍼 (RSI 60 청산)",
+        memo: "스나이퍼 바닥 매수 후 RSI 60 과열권까지 길게 홀딩하여 이익을 극대화하는 세팅",
+        isEmpty: false,
+        market: "ALL",
+        period: "5Y",
+        startDate: "2021-01-04",
+        endDate: "2026-08-20",
+        stopLoss: 10,
+        takeProfit: 20,
+        cooldownDays: null,
+        tradeAmount: 1000000,
+        buyRules: [
+          {
+            id: "bg_1",
+            name: "매수 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "lte_value", value: 24.0 },
+              { indicator: "bb_pct", condition_type: "lte_value", value: 0.05 },
+              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
+            ]
+          }
+        ],
+        sellRules: [
+          {
+            id: "sg_1",
+            name: "매도 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "gte_value", value: 60.0 }
+            ]
+          }
+        ],
+        updatedAt: "2026.08.22 16:40"
+      },
+      {
+        id: 7,
+        name: "액티브 업그레이드형 (거래량 필터)",
+        memo: "기존 1번에 5일 평균 거래량(100%) 필터를 추가하여 소외 잡주를 털어낸 액티브 세팅",
+        isEmpty: false,
+        market: "ALL",
+        period: "5Y",
+        startDate: "2021-01-04",
+        endDate: "2026-08-20",
+        stopLoss: 15,
+        takeProfit: 20,
+        cooldownDays: null,
+        tradeAmount: 1000000,
+        buyRules: [
+          {
+            id: "bg_1",
+            name: "매수 조건 1",
+            rules: [
+              { indicator: "adx", condition_type: "gte_value", value: 30.0 },
+              { indicator: "minus_di", condition_type: "cross_below_indicator", target_indicator: "adx", value: 0 },
+              { indicator: "volume_ratio", condition_type: "gte_value", value: 100.0 }
+            ]
+          }
+        ],
+        sellRules: [
+          {
+            id: "sg_1",
+            name: "매도 조건 1",
+            rules: [
+              { indicator: "rsi", condition_type: "gte_value", value: 65.0 }
+            ]
+          }
+        ],
+        updatedAt: "2026.08.22 17:20"
+      },
+      {
+        id: 8,
+        name: "전략 8 (비어있음)",
+        memo: "전략 8에 대한 설명이나 아이디어를 남겨보세요.",
+        isEmpty: true,
+        updatedAt: "-"
+      },
+      {
+        id: 9,
+        name: "전략 9 (비어있음)",
+        memo: "전략 9에 대한 설명이나 아이디어를 남겨보세요.",
+        isEmpty: true,
+        updatedAt: "-"
+      },
+      {
+        id: 10,
+        name: "전략 10 (비어있음)",
+        memo: "전략 10에 대한 설명이나 아이디어를 남겨보세요.",
+        isEmpty: true,
+        updatedAt: "-"
+      }
+    ];
+
+    let strategySlots = JSON.parse(JSON.stringify(DEFAULT_STRATEGY_PRESETS));
+    let currentActiveStrategySlotIndex = 0;
+
+    function initStrategySlotsForDashboard() {
+      let slots = JSON.parse(JSON.stringify(DEFAULT_STRATEGY_PRESETS));
+      try {
+        const local = localStorage.getItem(LOCAL_SLOTS_KEY);
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed) && parsed.length === 10) {
+            parsed.forEach((p, idx) => {
+              if (p && !p.isEmpty && p.buyRules && p.buyRules.length > 0) {
+                slots[idx] = p;
+              }
+            });
+          }
+        }
+        const savedActive = localStorage.getItem(ACTIVE_STRATEGY_KEY);
+        if (savedActive !== null) {
+          const idx = parseInt(savedActive, 10);
+          if (idx >= 0 && idx < 10) currentActiveStrategySlotIndex = idx;
+        }
+      } catch(e) {}
+
+      strategySlots = slots;
+      fetchGoogleSheetSlotsForDashboard();
+    }
+
+    async function fetchGoogleSheetSlotsForDashboard() {
+      try {
+        const resp = await fetch(GAS_WEBAPP_URL + "?action=get_strategy_slots");
+        const data = await resp.json();
+        if (data && data.success && Array.isArray(data.slots) && data.slots.length === 10) {
+          let hasAnyRemote = false;
+          data.slots.forEach((remoteSlot, idx) => {
+            if (remoteSlot && !remoteSlot.isEmpty && remoteSlot.buyRules && remoteSlot.buyRules.length > 0) {
+              strategySlots[idx] = remoteSlot;
+              hasAnyRemote = true;
+            }
+          });
+          if (hasAnyRemote) {
+            localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
+            if (window.latestMetricsCacheData && window.latestMetricsCacheData.length > 0) {
+              evaluateStrategyForDashboard();
+            }
+          }
+        }
+      } catch(err) {}
+    }
+
+    // Modal Operations
+    function openStrategyDetailModal() {
+      const select = document.getElementById('modal-strategy-slot-select');
+      if (select) {
+        select.innerHTML = strategySlots.map((s, idx) => `
+          <option value="${idx}" ${idx === currentActiveStrategySlotIndex ? 'selected' : ''}>
+            전략 ${idx + 1}: ${s.isEmpty ? '(비어있음)' : s.name}
+          </option>
+        `).join('');
+        onModalStrategySlotChange(currentActiveStrategySlotIndex);
+      }
+      document.getElementById('strategy-detail-modal').style.display = 'flex';
+    }
+
+    function closeStrategyDetailModal() {
+      document.getElementById('strategy-detail-modal').style.display = 'none';
+    }
+
+    function onModalStrategySlotChange(slotIdxStr) {
+      const idx = parseInt(slotIdxStr, 10);
+      const slot = strategySlots[idx] || strategySlots[0];
+      renderModalStrategyInfoCard(slot);
+    }
+
+    function formatRuleShort(r) {
+      if (!r || !r.indicator) return "";
+      const indNames = {
+        adx: "ADX", minus_di: "-DI", plus_di: "+DI", rsi: "RSI", bb_pct: "볼린저%b",
+        macd: "MACD", macd_osc: "MACD Osc", stoch_k: "스토K", stoch_d: "스토D",
+        disparity20: "이격도", volume_ratio: "거래량비율(5일)"
+      };
+      const name = indNames[r.indicator] || r.indicator.toUpperCase();
+      const val = r.value !== undefined && r.value !== null ? r.value : "";
+      const targetName = r.target_indicator ? (indNames[r.target_indicator] || r.target_indicator.toUpperCase()) : "";
+
+      switch (r.condition_type) {
+        case 'gte_value': return `${name} >= ${val}`;
+        case 'lte_value': return `${name} <= ${val}`;
+        case 'gt_value': return `${name} > ${val}`;
+        case 'lt_value': return `${name} < ${val}`;
+        case 'cross_above_value': return `${name} 상향돌파 ${val}`;
+        case 'cross_below_value': return `${name} 하향돌파 ${val}`;
+        case 'turn_up': return `${name} 양전`;
+        case 'turn_down': return `${name} 음전`;
+        case 'gt_indicator': return `${name} > ${targetName}`;
+        case 'lt_indicator': return `${name} < ${targetName}`;
+        case 'gte_indicator': return `${name} >= ${targetName}`;
+        case 'lte_indicator': return `${name} <= ${targetName}`;
+        case 'cross_above_indicator': return `${name} 상향돌파 ${targetName}`;
+        case 'cross_below_indicator': return `${name} 하향돌파 ${targetName}`;
+        default: return `${name} ${val}`;
+      }
+    }
+
+    function renderModalStrategyInfoCard(slot) {
+      const card = document.getElementById('modal-strategy-info-card');
+      if (!card) return;
+
+      if (slot.isEmpty || !slot.buyRules || slot.buyRules.length === 0) {
+        card.innerHTML = `
+          <div style="text-align:center; padding:20px; color:#64748b;">
+            <i class="fa-regular fa-folder-open" style="font-size:1.8rem; margin-bottom:8px; display:block; color:#94a3b8;"></i>
+            <strong>설정된 전략이 없습니다.</strong>
+            <div style="font-size:0.8rem; margin-top:4px;">퀀트 랩에서 이 슬롯에 새로운 퀀트 전략을 저장할 수 있습니다.</div>
+          </div>
+        `;
+        return;
+      }
+
+      // Format Buy Rules
+      const buyGroupsHtml = slot.buyRules.map((g, gIdx) => {
+        const rulesList = (g.rules || []).map(r => `
+          <span style="display:inline-block; background:#ffffff; border:1px solid #cbd5e1; border-radius:6px; padding:3px 8px; font-size:0.82rem; font-weight:600; color:#1e293b; margin:2px;">
+            ${formatRuleShort(r)}
+          </span>
+        `).join('');
+        return `
+          <div style="margin-bottom:6px;">
+            <div style="font-size:0.75rem; font-weight:700; color:#2563eb; margin-bottom:2px;">
+              ${g.name || `매수 조건 ${gIdx + 1}`} ${gIdx > 0 ? '(OR 조건)' : ''}
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:4px;">
+              ${rulesList}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Format Sell Rules
+      const sellGroupsHtml = (slot.sellRules || []).map((g, gIdx) => {
+        const rulesList = (g.rules || []).map(r => `
+          <span style="display:inline-block; background:#ffffff; border:1px solid #fecaca; border-radius:6px; padding:3px 8px; font-size:0.82rem; font-weight:600; color:#dc2626; margin:2px;">
+            ${formatRuleShort(r)}
+          </span>
+        `).join('');
+        return `
+          <div style="margin-bottom:6px;">
+            <div style="font-size:0.75rem; font-weight:700; color:#dc2626; margin-bottom:2px;">
+              ${g.name || `매도 조건 ${gIdx + 1}`}
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:4px;">
+              ${rulesList || '<span style="font-size:0.8rem; color:#64748b;">조건 없음</span>'}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const stopLossText = slot.stopLoss ? `-${slot.stopLoss}%` : "없음";
+      const takeProfitText = slot.takeProfit ? `+${slot.takeProfit}%` : "없음";
+      const cooldownText = slot.cooldownDays ? `${slot.cooldownDays}일` : "없음 (0일)";
+
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
+          <div>
+            <div style="font-weight:700; font-size:1.05rem; color:#0f172a;">${slot.name}</div>
+            <div style="font-size:0.82rem; color:#64748b; margin-top:2px;">${slot.memo || '설명 없음'}</div>
+          </div>
+          <span style="font-size:0.72rem; color:#94a3b8; white-space:nowrap;">${slot.updatedAt || '-'}</span>
+        </div>
+
+        <div style="border-top:1px solid #e2e8f0; padding-top:10px; margin-bottom:10px;">
+          <div style="font-size:0.82rem; font-weight:700; color:#334155; margin-bottom:6px;"><i class="fa-solid fa-bullseye" style="color:#059669;"></i> 매수 진입 룰 (Buy Conditions)</div>
+          ${buyGroupsHtml}
+        </div>
+
+        <div style="border-top:1px solid #e2e8f0; padding-top:10px; margin-bottom:10px;">
+          <div style="font-size:0.82rem; font-weight:700; color:#334155; margin-bottom:6px;"><i class="fa-solid fa-triangle-exclamation" style="color:#dc2626;"></i> 매도 청산 룰 (Sell Conditions)</div>
+          ${sellGroupsHtml}
+        </div>
+
+        <div style="border-top:1px solid #e2e8f0; padding-top:10px; display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; text-align:center;">
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:6px;">
+            <div style="font-size:0.7rem; color:#64748b;">손절선</div>
+            <div style="font-weight:700; font-size:0.9rem; color:#dc2626;">${stopLossText}</div>
+          </div>
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:6px;">
+            <div style="font-size:0.7rem; color:#64748b;">익절선</div>
+            <div style="font-weight:700; font-size:0.9rem; color:#059669;">${takeProfitText}</div>
+          </div>
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:6px;">
+            <div style="font-size:0.7rem; color:#64748b;">쿨다운</div>
+            <div style="font-weight:700; font-size:0.9rem; color:#0284c7;">${cooldownText}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function applySelectedModalStrategy() {
+      const select = document.getElementById('modal-strategy-slot-select');
+      const idx = parseInt(select.value, 10);
+      currentActiveStrategySlotIndex = idx;
+      localStorage.setItem(ACTIVE_STRATEGY_KEY, String(idx));
+      closeStrategyDetailModal();
+      evaluateStrategyForDashboard();
+    }
+
+    // Rule Evaluation Helpers
+    function checkSingleRule(rule, row, prevRow) {
+      if (!rule || !rule.indicator) return true;
+      const ind = rule.indicator;
+      const cond = rule.condition_type;
+      const targetInd = rule.target_indicator;
+      const ruleVal = parseFloat(rule.value);
+
+      function getIndicatorValue(indicatorKey, r) {
+        if (!r) return NaN;
+        switch (indicatorKey) {
+          case 'adx': return parseFloat(r.ADX !== undefined && r.ADX !== null ? r.ADX : r.adx);
+          case 'minus_di': return parseFloat(r.Minus_DI !== undefined && r.Minus_DI !== null ? r.Minus_DI : r.minus_di);
+          case 'plus_di': return parseFloat(r.Plus_DI !== undefined && r.Plus_DI !== null ? r.Plus_DI : r.plus_di);
+          case 'rsi': return parseFloat(r.RSI !== undefined && r.RSI !== null ? r.RSI : r.rsi);
+          case 'bb_pct': return parseFloat(r.b_band_pct !== undefined && r.b_band_pct !== null && r.b_band_pct !== '-' ? r.b_band_pct : (r.BB_Pct !== undefined ? r.BB_Pct : r['BB_%b']));
+          case 'macd': return parseFloat(r.macd !== undefined && r.macd !== null ? r.macd : r.MACD);
+          case 'macd_osc': return parseFloat(r.macd_osc !== undefined && r.macd_osc !== null ? r.macd_osc : (r.MACD_Osc !== undefined ? r.MACD_Osc : r.macdOsc));
+          case 'stoch_k': return parseFloat(r.stoch_k !== undefined && r.stoch_k !== null ? r.stoch_k : r.Stoch_K);
+          case 'stoch_d': return parseFloat(r.stoch_d !== undefined && r.stoch_d !== null ? r.stoch_d : r.Stoch_D);
+          case 'disparity20': return parseFloat(r.disparity20 !== undefined && r.disparity20 !== null ? r.disparity20 : r.Disparity20);
+          case 'volume_ratio': return parseFloat(r.volume_ratio !== undefined && r.volume_ratio !== null ? r.volume_ratio : (r.VolumeRatio !== undefined ? r.VolumeRatio : r.VR));
+          default: return NaN;
+        }
+      }
+
+      const currVal = getIndicatorValue(ind, row);
+      if (isNaN(currVal)) return false;
+
+      const prevVal = prevRow ? getIndicatorValue(ind, prevRow) : currVal;
+      const targetVal = targetInd ? getIndicatorValue(targetInd, row) : ruleVal;
+      const prevTargetVal = (targetInd && prevRow) ? getIndicatorValue(targetInd, prevRow) : ruleVal;
+
+      switch (cond) {
+        case 'gte_value': return currVal >= ruleVal;
+        case 'lte_value': return currVal <= ruleVal;
+        case 'gt_value': return currVal > ruleVal;
+        case 'lt_value': return currVal < ruleVal;
+        case 'cross_above_value': return prevVal <= ruleVal && currVal > ruleVal;
+        case 'cross_below_value': return prevVal >= ruleVal && currVal < ruleVal;
+        case 'turn_up': return prevVal <= 0 && currVal > 0;
+        case 'turn_down': return prevVal >= 0 && currVal < 0;
+        case 'gt_indicator': return !isNaN(targetVal) && currVal > targetVal;
+        case 'lt_indicator': return !isNaN(targetVal) && currVal < targetVal;
+        case 'gte_indicator': return !isNaN(targetVal) && currVal >= targetVal;
+        case 'lte_indicator': return !isNaN(targetVal) && currVal <= targetVal;
+        case 'cross_above_indicator':
+          return !isNaN(targetVal) && !isNaN(prevVal) && !isNaN(prevTargetVal) && prevVal <= prevTargetVal && currVal > targetVal;
+        case 'cross_below_indicator':
+          return !isNaN(targetVal) && !isNaN(prevVal) && !isNaN(prevTargetVal) && prevVal >= prevTargetVal && currVal < targetVal;
+        default: return true;
+      }
+    }
+
+    function checkGroupMatch(group, row, prevRow) {
+      if (!group || !Array.isArray(group.rules) || group.rules.length === 0) return false;
+      return group.rules.every(rule => checkSingleRule(rule, row, prevRow));
+    }
+
+    // Dynamic Strategy Evaluator for Dashboard
+    function evaluateStrategyForDashboard() {
+      const activeSlot = strategySlots[currentActiveStrategySlotIndex] || strategySlots[0] || DEFAULT_STRATEGY_PRESETS[0];
+
+      // Update Banner Text
+      const nameEl = document.getElementById('current-strategy-name');
+      const sumEl = document.getElementById('current-strategy-summary');
+      if (nameEl) nameEl.textContent = `전략 ${activeSlot.id}. ${activeSlot.name}`;
+
+      let summaryText = "";
+      if (activeSlot.buyRules && activeSlot.buyRules.length > 0) {
+        const groupSummaries = activeSlot.buyRules.map(g => {
+          return (g.rules || []).map(r => formatRuleShort(r)).join(' & ');
+        }).filter(Boolean);
+        summaryText = groupSummaries.join(' OR ');
+      }
+      if (activeSlot.sellRules && activeSlot.sellRules.length > 0) {
+        const sellSummary = (activeSlot.sellRules[0]?.rules || []).map(r => formatRuleShort(r)).join(' & ');
+        if (sellSummary) summaryText += ` | 청산: ${sellSummary}`;
+      }
+      if (activeSlot.stopLoss) summaryText += ` (손절 -${activeSlot.stopLoss}%)`;
+      if (activeSlot.takeProfit) summaryText += ` (익절 +${activeSlot.takeProfit}%)`;
+      if (sumEl) sumEl.textContent = summaryText ? `(${summaryText})` : "(설정됨)";
+
+      const latestKospi = window.latestMetricsCacheData || [];
+      const latestKosdaq = window.latestKosdaqMetricsCacheData || [];
+      const combinedStocks = [...latestKospi, ...latestKosdaq];
+      const allHistory = [...(allMetricsData || []), ...(kosdaqMetricsData || [])];
+
+      // Map second-to-latest row for previous indicator comparison
+      const prevRowMap = new Map();
+      combinedStocks.forEach(item => {
+        const tk = formatTicker(item.Ticker || item.ticker || item.code);
+        const hist = allHistory.filter(h => formatTicker(h.Ticker || h.ticker || h.code) === tk);
+        if (hist.length >= 2) {
+          prevRowMap.set(tk, hist[hist.length - 2]);
+        }
+      });
+
+      // 1. Evaluate Buy Candidates (OR Logic across buyGroups)
+      const evaluatedBuyCandidates = [];
+      const isCustomStrategy = activeSlot.buyRules && activeSlot.buyRules.length > 0;
+
+      if (isCustomStrategy) {
+        combinedStocks.forEach(item => {
+          const tk = formatTicker(item.Ticker || item.ticker || item.code);
+          const prevItem = prevRowMap.get(tk) || null;
+
+          // Check if ANY buy group matches
+          const isBuyMatch = activeSlot.buyRules.some(g => checkGroupMatch(g, item, prevItem));
+          if (isBuyMatch) {
+            evaluatedBuyCandidates.push({
+              Date: item.Date || item.date || item.Timestamp || new Date().toISOString(),
+              Name: item.Name || item.name,
+              Ticker: tk,
+              Stage: '전략매수',
+              ADX: item.ADX || item.adx,
+              Minus_DI: item.Minus_DI || item.minus_di,
+              Plus_DI: item.Plus_DI || item.plus_di,
+              RSI: item.RSI || item.rsi,
+              b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
+              ClosePrice: item.ClosePrice || item.price || item.close,
+              Reason: `[${activeSlot.name}] 전략 매수 조건 충족`
+            });
+          } else {
+            // Check for '진입대기 (관심종목)'
+            const rawStatus = String(item.Status || item.status || '');
+            const rsiVal = parseFloat(item.RSI || item.rsi);
+            const adxVal = parseFloat(item.ADX || item.adx);
+            if (rawStatus.includes('관심종목') || (!isNaN(rsiVal) && rsiVal <= 30) || (!isNaN(adxVal) && adxVal >= 28)) {
+              evaluatedBuyCandidates.push({
+                Date: item.Date || item.date || item.Timestamp || new Date().toISOString(),
+                Name: item.Name || item.name,
+                Ticker: tk,
+                Stage: '진입대기',
+                ADX: item.ADX || item.adx,
+                Minus_DI: item.Minus_DI || item.minus_di,
+                Plus_DI: item.Plus_DI || item.plus_di,
+                RSI: item.RSI || item.rsi,
+                b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
+                ClosePrice: item.ClosePrice || item.price || item.close,
+                Reason: `지표 접근 중 (RSI: ${item.RSI || item.rsi}, ADX: ${item.ADX || item.adx}) - 진입 대기`
+              });
+            }
+          }
+        });
+      }
+
+      const finalBuyList = isCustomStrategy ? evaluatedBuyCandidates : buyCandidatesData;
+
+      // 2. Evaluate Holdings & Sell Alerts
+      const evaluatedHoldingsStatus = [];
+      const evaluatedSellSignals = [];
+      let profitCount = 0;
+      let lossCount = 0;
+
+      holdingsData.forEach(holding => {
+        const rawTicker = formatTicker(holding.Ticker || holding.ticker || holding.code || '');
+        const rawName = String(holding.Name || holding.name || '').trim();
+        const buyPrice = Number(holding.BuyPrice || holding.buyPrice || 0);
+
+        const metric = combinedStocks.find(s => {
+          const sTicker = formatTicker(s.Ticker || s.ticker || '');
+          const sName = String(s.Name || s.name || '').trim();
+          return (rawTicker && rawTicker !== '-' && sTicker === rawTicker) || (rawName && sName === rawName);
+        });
+
+        const currPrice = metric ? Number(metric.ClosePrice || metric.close || metric.CurrPrice || metric.currPrice || 0) : 0;
+        const returnRate = (buyPrice > 0 && currPrice > 0) ? ((currPrice - buyPrice) / buyPrice) * 100 : 0;
+
+        if (buyPrice > 0 && currPrice > 0) {
+          if (returnRate > 0) profitCount++;
+          else if (returnRate < 0) lossCount++;
+        }
+
+        let signalLevel = '보유유지';
+        let signalReason = '보유 조건 유지 중';
+
+        if (activeSlot.stopLoss !== null && activeSlot.stopLoss !== undefined && returnRate <= -activeSlot.stopLoss) {
+          signalLevel = '손절매도';
+          signalReason = `손절선 (-${activeSlot.stopLoss}%) 도달 (수익률: ${returnRate.toFixed(2)}%)`;
+        } else if (activeSlot.takeProfit !== null && activeSlot.takeProfit !== undefined && returnRate >= activeSlot.takeProfit) {
+          signalLevel = '익절매도';
+          signalReason = `익절선 (+${activeSlot.takeProfit}%) 도달 (수익률: +${returnRate.toFixed(2)}%)`;
+        } else if (metric && activeSlot.sellRules && activeSlot.sellRules.length > 0) {
+          const prevItem = prevRowMap.get(rawTicker) || null;
+          const isSellMatch = activeSlot.sellRules.some(g => checkGroupMatch(g, metric, prevItem));
+          if (isSellMatch) {
+            signalLevel = '전략매도';
+            signalReason = `[${activeSlot.name}] 매도 청산 조건 충족 (RSI: ${metric.RSI || metric.rsi})`;
+          }
+        }
+
+        const holdingStatusObj = {
+          Ticker: rawTicker,
+          Name: rawName,
+          BuyPrice: buyPrice,
+          CurrPrice: currPrice,
+          ReturnRate: returnRate,
+          ADX: metric ? (metric.ADX || metric.adx) : '-',
+          Minus_DI: metric ? (metric.Minus_DI || metric.minus_di) : '-',
+          Plus_DI: metric ? (metric.Plus_DI || metric.plus_di) : '-',
+          RSI: metric ? (metric.RSI || metric.rsi) : '-',
+          b_band_pct: metric ? (metric.b_band_pct !== undefined ? metric.b_band_pct : (metric.BB_Pct !== undefined ? metric.BB_Pct : metric['BB_%b'])) : '-',
+          SignalLevel: signalLevel,
+          Details: signalReason
+        };
+        evaluatedHoldingsStatus.push(holdingStatusObj);
+
+        if (signalLevel === '전략매도' || signalLevel === '손절매도' || signalLevel === '익절매도') {
+          evaluatedSellSignals.push({
+            Date: metric ? (metric.Date || metric.date || new Date().toISOString()) : new Date().toISOString(),
+            Ticker: rawTicker,
+            Name: rawName,
+            BuyPrice: buyPrice,
+            CurrPrice: currPrice,
+            ReturnRate: returnRate,
+            ADX: metric ? (metric.ADX || metric.adx) : '-',
+            Minus_DI: metric ? (metric.Minus_DI || metric.minus_di) : '-',
+            Plus_DI: metric ? (metric.Plus_DI || metric.plus_di) : '-',
+            RSI: metric ? (metric.RSI || metric.rsi) : '-',
+            b_band_pct: metric ? (metric.b_band_pct !== undefined ? metric.b_band_pct : (metric.BB_Pct !== undefined ? metric.BB_Pct : metric['BB_%b'])) : '-',
+            SignalLevel: signalLevel,
+            Details: signalReason
+          });
+        }
+      });
+
+      // Render Tables
+      renderBuyCandidates(finalBuyList, executionLogsData);
+      renderHoldings(holdingsData, allHistory, evaluatedHoldingsStatus);
+      renderSellSignals(evaluatedSellSignals);
+      renderAllStocks(latestKospi);
+      renderKosdaqStocks(latestKosdaq);
+
+      // Update Metric Card Numbers
+      const buyRealCount = finalBuyList.filter(item => String(item.Stage || item.stage || '').includes('전략매수')).length;
+      document.getElementById('count-buy').textContent = buyRealCount > 0 ? buyRealCount : finalBuyList.length;
+      document.getElementById('count-sell').textContent = evaluatedSellSignals.length;
+      document.getElementById('count-holdings').textContent = holdingsData.length;
+      document.getElementById('count-profit').textContent = profitCount;
+      document.getElementById('count-loss').textContent = lossCount;
+    }
 
     async function verifyPin() {
       const pinVal = document.getElementById('input-pin').value.trim();
@@ -840,74 +1700,11 @@
           }
         }
 
-        // Dynamically add today's '관심종목' from latestMetricsData & latestKosdaqMetricsData
-        const todayWatchlistMap = new Map();
-        [...latestMetricsData, ...latestKosdaqMetricsData]
-          .filter(item => String(item.Status || item.status || '').includes('관심종목'))
-          .forEach(item => {
-            const tk = formatTicker(item.Ticker || item.ticker || item.code);
-            if (!todayWatchlistMap.has(tk)) {
-              todayWatchlistMap.set(tk, {
-                date: item.Date || item.date || item.Timestamp || (executionLogsData.length > 0 ? executionLogsData[executionLogsData.length - 1].Timestamp : new Date().toISOString()),
-                name: item.Name || item.name,
-                ticker: tk,
-                stage: '관심종목',
-                adx: item.ADX || item.adx,
-                minus_di: item.Minus_DI || item.minus_di,
-                plus_di: item.Plus_DI || item.plus_di,
-                rsi: item.RSI || item.rsi,
-                b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
-                price: item.ClosePrice || item.price || item.close,
-                reason: `ADX: ${item.ADX || item.adx}, -DI: ${item.Minus_DI || item.minus_di} (추세 강함 + -DI 상단 위치로 매수 신호 임박 대기)`
-              });
-            }
-          });
-        const todayWatchlist = Array.from(todayWatchlistMap.values());
-
-        const combinedBuyList = [...buyCandidatesData, ...todayWatchlist];
-
         window.latestMetricsCacheData = latestMetricsData;
         window.latestKosdaqMetricsCacheData = latestKosdaqMetricsData;
 
-        renderBuyCandidates(combinedBuyList, executionLogsData);
-        renderHoldings(holdingsData, [...allMetricsData, ...kosdaqMetricsData], holdingsStatusData);
-        renderSellSignals(sellSignalsData);
-        renderAllStocks(latestMetricsData);
-        renderKosdaqStocks(latestKosdaqMetricsData);
-        
-        document.getElementById('count-buy').textContent = buyCandidatesData.length;
-        document.getElementById('count-sell').textContent = sellSignalsData.length;
-        document.getElementById('count-holdings').textContent = holdingsData.length;
-
-        // Calculate profit & loss counts from holdingsData & metricsData
-        let profitCount = 0;
-        let lossCount = 0;
-        const combinedAllMetrics = [...allMetricsData, ...kosdaqMetricsData];
-        holdingsData.forEach(item => {
-          const rawTicker = formatTicker(item.Ticker || item.ticker || item.code || '');
-          const rawName = String(item.Name || item.name || '').trim();
-          const buyPrice = Number(item.BuyPrice || item.buyPrice || 0);
-          
-          const metric = holdingsStatusData.find(s => {
-            const sTicker = formatTicker(s.Ticker || s.ticker || '');
-            const sName = String(s.Name || s.name || '').trim();
-            return (rawTicker && rawTicker !== '-' && sTicker === rawTicker) || (rawName && sName === rawName);
-          }) || combinedAllMetrics.find(m => {
-            const mTicker = formatTicker(m.Ticker || m.ticker || '');
-            const mName = String(m.Name || m.name || '').trim();
-            return (rawTicker && rawTicker !== '-' && mTicker === rawTicker) || (rawName && mName === rawName);
-          });
-
-          const currPrice = metric ? Number(metric.ClosePrice || metric.close || metric.CurrPrice || metric.currPrice || 0) : 0;
-          if (buyPrice > 0 && currPrice > 0) {
-            const rate = ((currPrice - buyPrice) / buyPrice) * 100;
-            if (rate > 0) profitCount++;
-            else if (rate < 0) lossCount++;
-          }
-        });
-
-        document.getElementById('count-profit').textContent = profitCount;
-        document.getElementById('count-loss').textContent = lossCount;
+        initStrategySlotsForDashboard();
+        evaluateStrategyForDashboard();
 
         if (executionLogsData.length > 0) {
           const lastLog = executionLogsData[executionLogsData.length - 1];
@@ -1598,9 +2395,24 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      document.getElementById(tabId).style.display = 'block';
-      if (event && event.currentTarget) {
-        event.currentTarget.classList.add('active');
+      const targetContent = document.getElementById(tabId);
+      if (targetContent) targetContent.style.display = 'block';
+
+      // Highlight matching tab button
+      const matchingBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => {
+        const onclickAttr = b.getAttribute('onclick') || '';
+        return onclickAttr.includes(`'${tabId}'`) || onclickAttr.includes(`"${tabId}"`);
+      });
+      if (matchingBtn) matchingBtn.classList.add('active');
+
+      // Highlight matching metric card
+      document.querySelectorAll('.metric-card').forEach(c => c.classList.remove('active-tab-card'));
+      if (tabId === 'buy-tab') {
+        document.getElementById('metric-card-buy')?.classList.add('active-tab-card');
+      } else if (tabId === 'sell-signals-tab') {
+        document.getElementById('metric-card-sell')?.classList.add('active-tab-card');
+      } else if (tabId === 'holdings-tab') {
+        document.getElementById('metric-card-holdings')?.classList.add('active-tab-card');
       }
     }
 
