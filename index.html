@@ -915,6 +915,10 @@
         if (data && data.success && Array.isArray(data.slots) && data.slots.length === 10) {
           strategySlots = data.slots;
           localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
+          if (data.activeSlotId) {
+            currentActiveStrategySlotIndex = data.activeSlotId - 1;
+            localStorage.setItem(ACTIVE_STRATEGY_KEY, String(currentActiveStrategySlotIndex));
+          }
           if (window.latestMetricsCacheData && window.latestMetricsCacheData.length > 0) {
             evaluateStrategyForDashboard();
           }
@@ -1071,6 +1075,19 @@
       localStorage.setItem(ACTIVE_STRATEGY_KEY, String(idx));
       closeStrategyDetailModal();
       evaluateStrategyForDashboard();
+
+      // Cloud Synchronize active strategy slot so other computers & mobile see the exact same active strategy!
+      try {
+        fetch(GAS_WEBAPP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            action: 'set_active_strategy_slot',
+            slotId: idx + 1,
+            pin: userPin
+          })
+        }).catch(() => {});
+      } catch(e) {}
     }
 
     // Rule Evaluation Helpers
@@ -1570,7 +1587,10 @@
         kosdaqMetricsData = data.kosdaqMetrics || [];
         sellSignalsData = data.sellSignals || [];
 
-        // Extract latest date metrics for display in renderAllStocks (from 60-day rolling DB)
+        if (data.activeSlotId) {
+          currentActiveStrategySlotIndex = data.activeSlotId - 1;
+          localStorage.setItem(ACTIVE_STRATEGY_KEY, String(currentActiveStrategySlotIndex));
+        }
         let latestMetricsData = allMetricsData;
         if (allMetricsData.length > 200) {
           const latestDate = allMetricsData[allMetricsData.length - 1].Date || allMetricsData[allMetricsData.length - 1].date;

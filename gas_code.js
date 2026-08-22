@@ -88,7 +88,8 @@ function doGet(e) {
       }
     }
     
-    return ContentService.createTextOutput(JSON.stringify({ success: true, slots: slots }))
+    const activeSlotId = PropertiesService.getScriptProperties().getProperty("ACTIVE_STRATEGY_SLOT_ID") || "1";
+    return ContentService.createTextOutput(JSON.stringify({ success: true, slots: slots, activeSlotId: parseInt(activeSlotId, 10) }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
@@ -109,6 +110,9 @@ function doGet(e) {
   if (action === "all" || action === "all_metrics" || action === "kospi_metrics") result.allMetrics = getSheetData(ss.getSheetByName("KOSPI200_All_Metrics"));
   if (action === "all" || action === "kosdaq_metrics") result.kosdaqMetrics = getSheetData(ss.getSheetByName("KOSDAQ150_All_Metrics"));
 
+  const activeSlotId = PropertiesService.getScriptProperties().getProperty("ACTIVE_STRATEGY_SLOT_ID") || "1";
+  result.activeSlotId = parseInt(activeSlotId, 10);
+
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -117,6 +121,13 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const authPin = getAuthPin();
+
+    if (data.action === "set_active_strategy_slot") {
+      const slotId = String(data.slotId || "1");
+      PropertiesService.getScriptProperties().setProperty("ACTIVE_STRATEGY_SLOT_ID", slotId);
+      return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success", activeSlotId: parseInt(slotId, 10) }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
 
     if (data.action === "save_strategy_slots") {
       setupSheets();
