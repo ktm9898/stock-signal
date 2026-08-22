@@ -1278,28 +1278,47 @@
       const todayWatchlist = Array.from(todayWatchlistMap.values());
 
       // Combine official buyCandidatesData (from Google Sheets) + real-time evaluated candidates + today's watchlist
-      const combinedBuyMap = new Map();
-      if (activeSlot.id === 1) {
-        (buyCandidatesData || []).forEach(item => {
-          const tk = formatTicker(item.Ticker || item.ticker || item.code);
-          combinedBuyMap.set(tk, {
-            ...item,
-            Stage: item.Stage || item.stage || '전략매수'
-          });
-        });
-      }
+      const finalBuyList = [];
+      const seenBuyMap = new Map();
+
+      // Official Google Sheet Buy Signals (Always preserved and displayed)
+      (buyCandidatesData || []).forEach(item => {
+        const tk = formatTicker(item.Ticker || item.ticker || item.code);
+        const dt = formatShortDate(item.Date || item.date || item.Timestamp);
+        const key = `${tk}_${dt}`;
+        const itemObj = {
+          ...item,
+          Stage: item.Stage || item.stage || '전략매수'
+        };
+        seenBuyMap.set(key, itemObj);
+        finalBuyList.push(itemObj);
+      });
+
+      // Real-time evaluated signals for the currently active strategy (with ★)
       evaluatedBuyCandidates.forEach(item => {
         const tk = formatTicker(item.Ticker || item.ticker || item.code);
-        combinedBuyMap.set(tk, item);
-      });
-      todayWatchlist.forEach(item => {
-        const tk = formatTicker(item.Ticker || item.ticker || item.code);
-        if (!combinedBuyMap.has(tk)) {
-          combinedBuyMap.set(tk, item);
+        const dt = formatShortDate(item.Date || item.date || item.Timestamp);
+        const key = `${tk}_${dt}`;
+        if (seenBuyMap.has(key)) {
+          const existing = seenBuyMap.get(key);
+          existing.Stage = '전략매수 ★';
+          existing.Reason = item.Reason || existing.Reason;
+        } else {
+          seenBuyMap.set(key, item);
+          finalBuyList.push(item);
         }
       });
 
-      const finalBuyList = Array.from(combinedBuyMap.values());
+      // Today's Watchlist / 진입대기
+      todayWatchlist.forEach(item => {
+        const tk = formatTicker(item.Ticker || item.ticker || item.code);
+        const dt = formatShortDate(item.Date || item.date || item.Timestamp);
+        const key = `${tk}_${dt}`;
+        if (!seenBuyMap.has(key) && !finalBuyList.some(b => formatTicker(b.Ticker || b.ticker || b.code) === tk)) {
+          seenBuyMap.set(key, item);
+          finalBuyList.push(item);
+        }
+      });
 
       // 3. Evaluate Holdings & Sell Alerts
       const evaluatedHoldingsStatus = [];
@@ -1835,22 +1854,14 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       const uniqueList = [];
       list.forEach(item => {
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
-        const adx = Number(item.ADX || item.adx);
-        const mdi = Number(item.Minus_DI || item.minus_di || item.minusDi);
-        const rsi = Number(item.RSI || item.rsi);
-        const price = Number(item.ClosePrice || item.price || 0);
+        const dt = formatShortDate(item.Date || item.date || item.Timestamp);
+        const stage = String(item.Stage || item.stage || '');
 
         const alreadyExists = uniqueList.some(prev => {
           const prevTicker = formatTicker(prev.Ticker || prev.ticker || prev.code);
-          if (prevTicker !== ticker) return false;
-          const prevAdx = Number(prev.ADX || prev.adx);
-          const prevMdi = Number(prev.Minus_DI || prev.minus_di || prev.minusDi);
-          const prevRsi = Number(prev.RSI || prev.rsi);
-          const prevPrice = Number(prev.ClosePrice || prev.price || 0);
-          return Math.abs(prevAdx - adx) < 0.01 &&
-                 Math.abs(prevMdi - mdi) < 0.01 &&
-                 Math.abs(prevRsi - rsi) < 0.01 &&
-                 prevPrice === price;
+          const prevDt = formatShortDate(prev.Date || prev.date || prev.Timestamp);
+          const prevStage = String(prev.Stage || prev.stage || '');
+          return prevTicker === ticker && prevDt === dt && prevStage === stage;
         });
 
         if (!alreadyExists) {
