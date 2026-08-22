@@ -559,3 +559,26 @@ function triggerGitHubScreener() {
     UrlFetchApp.fetch(url, options);
   } catch (err) {}
 }
+
+/**
+ * 수동 실행용 헬퍼 함수: 현재 활성 전략을 시트 N열에 기록하고 동기화합니다.
+ */
+function syncActiveStrategyToSheet(slotId) {
+  const targetId = slotId ? parseInt(slotId, 10) : parseInt(PropertiesService.getScriptProperties().getProperty("ACTIVE_STRATEGY_SLOT_ID") || "1", 10);
+  PropertiesService.getScriptProperties().setProperty("ACTIVE_STRATEGY_SLOT_ID", String(targetId));
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  setupSheets();
+  const sheet = ss.getSheetByName("Strategy_Slots");
+  if (sheet) {
+    sheet.getRange("N1").setValue("IsActive").setFontWeight("bold").setBackground("#dbeafe");
+    const lastRow = sheet.getLastRow();
+    if (lastRow > 1) {
+      const activeFlags = [];
+      for (let i = 2; i <= lastRow; i++) {
+        const rowId = parseInt(sheet.getRange(i, 1).getValue(), 10);
+        activeFlags.push([rowId === targetId ? "적용중 (ACTIVE)" : ""]);
+      }
+      sheet.getRange(2, 14, activeFlags.length, 1).setValues(activeFlags);
+    }
+  }
+}
