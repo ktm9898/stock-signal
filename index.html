@@ -1109,8 +1109,8 @@
         case 'lte_value': return currVal <= ruleVal;
         case 'gt_value': return currVal > ruleVal;
         case 'lt_value': return currVal < ruleVal;
-        case 'cross_above_value': return (!isNaN(prevVal) ? (prevVal <= ruleVal && currVal > ruleVal) : (currVal > ruleVal));
-        case 'cross_below_value': return (!isNaN(prevVal) ? (prevVal >= ruleVal && currVal < ruleVal) : (currVal < ruleVal));
+        case 'cross_above_value': return !isNaN(prevVal) && prevVal <= ruleVal && currVal > ruleVal;
+        case 'cross_below_value': return !isNaN(prevVal) && prevVal >= ruleVal && currVal < ruleVal;
         case 'turn_up': return !isNaN(prevVal) && prevVal <= 0 && currVal > 0;
         case 'turn_down': return !isNaN(prevVal) && prevVal >= 0 && currVal < 0;
         case 'gt_indicator': return !isNaN(targetVal) && currVal > targetVal;
@@ -1118,9 +1118,9 @@
         case 'gte_indicator': return !isNaN(targetVal) && currVal >= targetVal;
         case 'lte_indicator': return !isNaN(targetVal) && currVal <= targetVal;
         case 'cross_above_indicator':
-          return !isNaN(targetVal) && (!isNaN(prevVal) && !isNaN(prevTargetVal) ? (prevVal <= prevTargetVal && currVal > targetVal) : (currVal > targetVal));
+          return !isNaN(targetVal) && !isNaN(prevVal) && !isNaN(prevTargetVal) && (prevVal <= prevTargetVal && currVal > targetVal);
         case 'cross_below_indicator':
-          return !isNaN(targetVal) && (!isNaN(prevVal) && !isNaN(prevTargetVal) ? (prevVal >= prevTargetVal && currVal < targetVal) : (currVal < targetVal));
+          return !isNaN(targetVal) && !isNaN(prevVal) && !isNaN(prevTargetVal) && (prevVal >= prevTargetVal && currVal < targetVal);
         default: return false;
       }
     }
@@ -1165,11 +1165,37 @@
 
       // Map second-to-latest row for previous indicator comparison
       const prevRowMap = new Map();
+      if (window.REAL_PRELOADED_DATA) {
+        Object.keys(window.REAL_PRELOADED_DATA).forEach(t => {
+          const rows = window.REAL_PRELOADED_DATA[t];
+          if (Array.isArray(rows) && rows.length >= 2) {
+            const rPrev = rows[rows.length - 2];
+            const tk = formatTicker(t);
+            if (Array.isArray(rPrev)) {
+              prevRowMap.set(tk, {
+                Date: rPrev[0],
+                ClosePrice: rPrev[4],
+                ADX: rPrev[6],
+                Plus_DI: rPrev[7],
+                Minus_DI: rPrev[8],
+                RSI: rPrev[9],
+                BB_Pct: rPrev[10],
+                b_band_pct: rPrev[10],
+                VolumeRatio: rPrev[14]
+              });
+            } else {
+              prevRowMap.set(tk, rPrev);
+            }
+          }
+        });
+      }
       combinedStocks.forEach(item => {
         const tk = formatTicker(item.Ticker || item.ticker || item.code);
-        const hist = allHistory.filter(h => formatTicker(h.Ticker || h.ticker || h.code) === tk);
-        if (hist.length >= 2) {
-          prevRowMap.set(tk, hist[hist.length - 2]);
+        if (!prevRowMap.has(tk)) {
+          const hist = allHistory.filter(h => formatTicker(h.Ticker || h.ticker || h.code) === tk);
+          if (hist.length >= 2) {
+            prevRowMap.set(tk, hist[hist.length - 2]);
+          }
         }
       });
 
@@ -1202,7 +1228,13 @@
         });
       }
 
-      const finalBuyList = isCustomStrategy ? evaluatedBuyCandidates : buyCandidatesData;
+      // For Slot 1 (Original Trend Strategy), if Google Sheet has official Buy_Candidates, prioritize it
+      let finalBuyList = evaluatedBuyCandidates;
+      if (activeSlot.id === 1 && buyCandidatesData && buyCandidatesData.length > 0) {
+        finalBuyList = buyCandidatesData;
+      } else if (!isCustomStrategy) {
+        finalBuyList = buyCandidatesData;
+      }
 
       // 2. Evaluate Holdings & Sell Alerts
       const evaluatedHoldingsStatus = [];
@@ -1412,11 +1444,25 @@
           document.getElementById('sync-time').textContent = `최근 갱신: ${formatShortDate(lastLog.Timestamp || lastLog.date)}`;
         }
 
+        loadPreloadedRealData();
+
         return { success: true };
       } catch (err) {
         console.error("Failed to load data from GAS:", err);
         return { success: false, message: err.message };
       }
+    }
+
+    async function loadPreloadedRealData() {
+      if (window.REAL_PRELOADED_DATA) return;
+      try {
+        const res = await fetch(`data/stocks_350_real.json?t=${Date.now()}`);
+        if (res.ok) {
+          const d = await res.json();
+          window.REAL_PRELOADED_DATA = d.preloaded_data || {};
+          evaluateStrategyForDashboard();
+        }
+      } catch(e) {}
     }
 
     function showIndicatorHelp(type) {
