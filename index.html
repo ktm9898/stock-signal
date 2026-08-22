@@ -1567,6 +1567,7 @@
               Plus_DI: item.Plus_DI || item.plus_di,
               RSI: item.RSI || item.rsi,
               b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
+              VolumeRatio: item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr)),
               ClosePrice: item.ClosePrice || item.price || item.close,
               Reason: `[${activeSlot.name}] 실시간 전략 매수 조건 충족`
             });
@@ -1613,6 +1614,7 @@
               Plus_DI: item.Plus_DI || item.plus_di,
               RSI: item.RSI || item.rsi,
               b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
+              VolumeRatio: item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr)),
               ClosePrice: item.ClosePrice || item.price || item.close,
               Reason: watchReason
             });
