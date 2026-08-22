@@ -1044,7 +1044,7 @@
     let strategySlots = [...DEFAULT_STRATEGY_PRESETS];
     let currentActiveStrategySlotIndex = 0;
 
-    function initStrategySlots() {
+    function initStrategySlotsForDashboard() {
       let slots = DEFAULT_STRATEGY_PRESETS;
       try {
         const cached = localStorage.getItem(LOCAL_SLOTS_KEY);
@@ -1062,6 +1062,7 @@
       strategySlots = slots;
       fetchGoogleSheetSlotsForDashboard();
     }
+    const initStrategySlots = initStrategySlotsForDashboard;
 
     async function fetchGoogleSheetSlotsForDashboard() {
       try {
