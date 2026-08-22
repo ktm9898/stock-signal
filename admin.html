@@ -927,6 +927,21 @@
 
   <script>
     async function initDataViewer() {
+      if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length < 10) {
+        try {
+          const res = await fetch(`data/stocks_350_real.json?t=${Date.now()}`);
+          if (res.ok) {
+            const d = await res.json();
+            REAL_PRELOADED_DATA = d.preloaded_data || {};
+            if (d.stocks && d.stocks.length > 0) {
+              ALL_350_STOCKS = d.stocks;
+            }
+          }
+        } catch(e) {
+          console.warn("stocks_350_real.json load warning:", e);
+        }
+      }
+
       if (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0) {
         try {
           const resStock = await fetch('data/stocks_350.json');
@@ -935,18 +950,6 @@
           }
         } catch(e) {
           console.warn("stocks_350.json load warning:", e);
-        }
-      }
-
-      if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length < 10) {
-        try {
-          const res = await fetch(`data/stocks_350_real.json?t=${Date.now()}`);
-          if (res.ok) {
-            const d = await res.json();
-            REAL_PRELOADED_DATA = d.preloaded_data || {};
-          }
-        } catch(e) {
-          console.warn("stocks_350_real.json load warning:", e);
         }
       }
 
@@ -1457,6 +1460,7 @@
             if (res.ok) {
               const d = await res.json();
               REAL_PRELOADED_DATA = d.preloaded_data || {};
+              if (d.stocks && d.stocks.length > 0) ALL_350_STOCKS = d.stocks;
             }
           } catch(e) {
             console.warn("stocks_350_real.json load warning:", e);
@@ -2586,6 +2590,7 @@
           if (res.ok) {
             const d = await res.json();
             REAL_PRELOADED_DATA = d.preloaded_data || {};
+            if (d.stocks && d.stocks.length > 0) ALL_350_STOCKS = d.stocks;
           }
         } catch(e) {}
       }

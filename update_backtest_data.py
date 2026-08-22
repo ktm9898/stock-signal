@@ -162,6 +162,13 @@ def update_backtest_database():
     target_ticker_set = set(target_tickers)
     existing_ticker_set = set([k for k in preloaded_data.keys() if k not in ("KOSPI", "KOSDAQ")])
 
+    # Always ensure data/stocks_350.json metadata file is in sync
+    try:
+        with open(STOCKS_350_PATH, "w", encoding="utf-8") as f:
+            json.dump(target_stocks_meta, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[WARN] Could not update {STOCKS_350_PATH}: {e}")
+
     # Detect rebalanced additions and removals
     new_tickers = target_ticker_set - existing_ticker_set
     removed_tickers = existing_ticker_set - target_ticker_set
@@ -260,6 +267,10 @@ def update_backtest_database():
     if os.path.exists(STOCKS_350_REAL_PATH):
         os.remove(STOCKS_350_REAL_PATH)
     os.rename(temp_path, STOCKS_350_REAL_PATH)
+
+    # Synchronize data/stocks_350.json metadata list
+    with open(STOCKS_350_PATH, "w", encoding="utf-8") as f:
+        json.dump(target_stocks_meta, f, ensure_ascii=False, indent=2)
 
     final_size_mb = os.path.getsize(STOCKS_350_REAL_PATH) / (1024 * 1024)
     print(f"[DONE] Saved updated dataset to {STOCKS_350_REAL_PATH} ({final_size_mb:.2f} MB)")
