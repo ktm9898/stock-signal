@@ -97,22 +97,21 @@ def get_kospi200_tickers():
                 for td in tds:
                     a = td.find("a")
                     if a and 'code=' in a.get('href', ''):
-                        match = re.search(r'code=(\d+)', a['href'])
+                        match = re.search(r'code=(\d{6})', a['href'])
                         if match:
-                            clean_t = match.group(1).zfill(6)
+                            clean_t = match.group(1)
                             if clean_t not in seen:
                                 seen.add(clean_t)
                                 items.append({"ticker": clean_t, "name": a.text.strip(), "market": "KOSPI200"})
             else:
-                matches = re.findall(r'href="/item/main\.naver\?code=(\d+)"[^>]*>(.*?)</a>', res.text)
+                matches = re.findall(r'href="/item/main\.naver\?code=(\d{6})"[^>]*>(.*?)</a>', res.text)
                 for code, name in matches:
-                    clean_t = code.zfill(6)
                     name_clean = name.strip()
-                    if clean_t not in seen and name_clean:
-                        seen.add(clean_t)
-                        items.append({"ticker": clean_t, "name": name_clean, "market": "KOSPI200"})
-        if len(items) >= 100:
-            return items
+                    if code not in seen and name_clean:
+                        seen.add(code)
+                        items.append({"ticker": code, "name": name_clean, "market": "KOSPI200"})
+        if len(items) >= 200:
+            return items[:200]
     except Exception as e:
         print(f"[ERROR] Naver Finance KOSPI 200 fallback failed: {e}")
 
@@ -128,25 +127,28 @@ def get_kospi200_tickers():
                 links = soup.find_all("a", class_="tltle")
                 for a in links:
                     href = a.get("href", "")
-                    match = re.search(r'code=(\d+)', href)
+                    match = re.search(r'code=(\d{6})', href)
                     if match:
-                        clean_t = match.group(1).zfill(6)
+                        clean_t = match.group(1)
                         name = a.text.strip()
                         if clean_t not in seen and name:
                             seen.add(clean_t)
                             items.append({"ticker": clean_t, "name": name, "market": "KOSPI200"})
+                            if len(items) >= 200:
+                                return items[:200]
             else:
-                matches = re.findall(r'href="/item/main\.naver\?code=(\d+)"[^>]*>(.*?)</a>', res.text)
+                matches = re.findall(r'href="/item/main\.naver\?code=(\d{6})"[^>]*>(.*?)</a>', res.text)
                 for code, name in matches:
-                    clean_t = code.zfill(6)
                     name_clean = name.strip()
-                    if clean_t not in seen and name_clean:
-                        seen.add(clean_t)
-                        items.append({"ticker": clean_t, "name": name_clean, "market": "KOSPI200"})
+                    if code not in seen and name_clean:
+                        seen.add(code)
+                        items.append({"ticker": code, "name": name_clean, "market": "KOSPI200"})
+                        if len(items) >= 200:
+                            return items[:200]
     except Exception as e:
         print(f"[ERROR] Naver Market Sum KOSPI fallback failed: {e}")
 
-    return items
+    return items[:200]
 
 def get_kosdaq150_tickers():
     """Retrieve KOSDAQ 150 list of tickers and names (PyKRX index/ETF, Naver market sum fallbacks)."""
@@ -165,8 +167,8 @@ def get_kosdaq150_tickers():
                         if clean_t not in seen:
                             seen.add(clean_t)
                             items.append({"ticker": clean_t, "name": name, "market": "KOSDAQ150"})
-                    if len(items) >= 100:
-                        return items
+                    if len(items) >= 150:
+                        return items[:150]
     except Exception as e:
         print(f"[WARN] PyKRX KOSDAQ 150 index failed: {e}")
 
@@ -181,8 +183,8 @@ def get_kosdaq150_tickers():
                     if clean_t not in seen:
                         seen.add(clean_t)
                         items.append({"ticker": clean_t, "name": name, "market": "KOSDAQ150"})
-                if len(items) >= 100:
-                    return items
+                if len(items) >= 150:
+                    return items[:150]
     except Exception as e:
         print(f"[WARN] PyKRX ETF 229200 portfolio failed: {e}")
 
@@ -190,7 +192,7 @@ def get_kosdaq150_tickers():
     print("[INFO] Using Naver Market Sum fallback to fetch KOSDAQ 150 list...")
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     try:
-        for page in range(1, 4):
+        for page in range(1, 5):
             url = f"https://finance.naver.com/sise/sise_market_sum.naver?sosok=1&page={page}"
             res = requests.get(url, headers=headers, timeout=5)
             res.encoding = 'euc-kr'
@@ -199,25 +201,28 @@ def get_kosdaq150_tickers():
                 links = soup.find_all("a", class_="tltle")
                 for a in links:
                     href = a.get("href", "")
-                    match = re.search(r'code=(\d+)', href)
+                    match = re.search(r'code=(\d{6})', href)
                     if match:
-                        clean_t = match.group(1).zfill(6)
+                        clean_t = match.group(1)
                         name = a.text.strip()
                         if clean_t not in seen and name:
                             seen.add(clean_t)
                             items.append({"ticker": clean_t, "name": name, "market": "KOSDAQ150"})
+                            if len(items) >= 150:
+                                return items[:150]
             else:
-                matches = re.findall(r'href="/item/main\.naver\?code=(\d+)"[^>]*>(.*?)</a>', res.text)
+                matches = re.findall(r'href="/item/main\.naver\?code=(\d{6})"[^>]*>(.*?)</a>', res.text)
                 for code, name in matches:
-                    clean_t = code.zfill(6)
                     name_clean = name.strip()
-                    if clean_t not in seen and name_clean:
-                        seen.add(clean_t)
-                        items.append({"ticker": clean_t, "name": name_clean, "market": "KOSDAQ150"})
+                    if code not in seen and name_clean:
+                        seen.add(code)
+                        items.append({"ticker": code, "name": name_clean, "market": "KOSDAQ150"})
+                        if len(items) >= 150:
+                            return items[:150]
     except Exception as e:
         print(f"[ERROR] Naver Market Sum KOSDAQ 150 fallback failed: {e}")
 
-    return items
+    return items[:150]
 
 def get_ohlcv_data(ticker, start_date, end_date):
     """Retrieve OHLCV DataFrame for a ticker (Naver FChart XML 1st, Naver siseJson 2nd, PyKRX 3rd)."""

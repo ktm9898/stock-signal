@@ -15,8 +15,13 @@ import requests
 import pandas as pd
 import numpy as np
 
-# Import unified indicator calculation formula from data_loader
-from data_loader import calculate_full_indicators
+# Import unified indicator calculation formula and ticker scrapers from data_loader
+from data_loader import (
+    calculate_full_indicators,
+    get_kospi200_tickers,
+    get_kosdaq150_tickers,
+    fetch_stock_5y_ohlcv
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
@@ -32,7 +37,8 @@ def fetch_candles_and_indicators(ticker_or_symbol, candle_count=120):
     Fetch the latest N candles for a stock or benchmark index from Naver FChart XML,
     and compute rolling technical indicators.
     """
-    url = f"https://fchart.stock.naver.com/sise.nhn?symbol={ticker_or_symbol}&timeframe=day&count={candle_count}&requestType=0"
+    clean_sym = str(ticker_or_symbol).zfill(6) if str(ticker_or_symbol).isdigit() else str(ticker_or_symbol)
+    url = f"https://fchart.stock.naver.com/sise.nhn?symbol={clean_sym}&timeframe=day&count={candle_count}&requestType=0"
     try:
         res = requests.get(url, headers=HEADERS, timeout=8)
         xml_text = res.content.decode('euc-kr', errors='ignore')
@@ -54,7 +60,7 @@ def fetch_candles_and_indicators(ticker_or_symbol, candle_count=120):
                         "종가": float(cp),
                         "거래량": float(vol)
                     })
-        if len(rows) < 30:
+        if len(rows) < 1:
             return None
 
         df = pd.DataFrame(rows)
@@ -66,9 +72,13 @@ def fetch_candles_and_indicators(ticker_or_symbol, candle_count=120):
 def convert_df_to_array_rows(df):
     """Convert indicator DataFrame to ultra-compact row array format."""
     result_rows = []
-    is_index = False
     for i in range(len(df)):
         d_val = df['Date'].iloc[i]
+        if isinstance(d_val, pd.Timestamp):
+            d_val = d_val.strftime("%Y-%m-%d")
+        else:
+            d_val = str(d_val)[:10]
+
         o_val = float(df['시가'].iloc[i])
         h_val = float(df['고가'].iloc[i])
         l_val = float(df['저가'].iloc[i])
@@ -117,7 +127,13 @@ def convert_df_to_array_rows(df):
     return result_rows
 
 def update_backtest_database():
-    """Perform incremental update on data/stocks_350_real.json."""
+    """
+    Perform intelligent incremental update on data/stocks_350_real.json.
+    - Synchronizes constituent stock universe with live KOSPI 200 & KOSDAQ 150.
+    - Auto-downloads full 5-year history for newly added index constituents.
+    - Prunes dropped stocks to maintain clean 350-stock target universe.
+    - Incrementally updates recent trading days for existing constituents.
+    """
     if not os.path.exists(STOCKS_350_REAL_PATH):
         print(f"[ERROR] Target dataset not found: {STOCKS_350_REAL_PATH}")
         return False
@@ -126,37 +142,71 @@ def update_backtest_database():
     with open(STOCKS_350_REAL_PATH, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    stocks_meta = data.get("stocks", [])
+    existing_stocks_meta = data.get("stocks", [])
     preloaded_data = data.get("preloaded_data", {})
-    
-    # Load fallback metadata if needed
-    if not stocks_meta and os.path.exists(STOCKS_350_PATH):
-        try:
-            with open(STOCKS_350_PATH, "r", encoding="utf-8") as f:
-                stocks_meta = json.load(f)
-        except Exception:
-            pass
 
-    all_symbols = list(preloaded_data.keys())
-    if "KOSPI" not in all_symbols:
-        all_symbols.append("KOSPI")
-    if "KOSDAQ" not in all_symbols:
-        all_symbols.append("KOSDAQ")
+    # 1. Fetch current live constituent universe (KOSPI 200 + KOSDAQ 150)
+    print("[INFO] Checking live index constituents (KOSPI 200 + KOSDAQ 150)...")
+    kospi_items = get_kospi200_tickers()
+    kosdaq_items = get_kosdaq150_tickers()
 
-    print(f"[INFO] Found {len(all_symbols)} symbols (350 stocks + benchmarks) in backtest database.")
+    target_stocks_meta = []
+    if len(kospi_items) >= 100 and len(kosdaq_items) >= 75:
+        target_stocks_meta = kospi_items[:200] + kosdaq_items[:150]
+        print(f" -> Live target constituents: KOSPI 200 ({len(kospi_items[:200])}), KOSDAQ 150 ({len(kosdaq_items[:150])}) = Total {len(target_stocks_meta)} stocks.")
+    else:
+        print("[WARN] Live constituent fetch returned incomplete list. Keeping existing metadata as fallback.")
+        target_stocks_meta = existing_stocks_meta
 
-    # Quick pre-check on benchmark/leading ticker to avoid 353 unnecessary network requests
-    sample_ticker = "005930" if "005930" in preloaded_data else all_symbols[0]
+    target_tickers = [s['ticker'] for s in target_stocks_meta]
+    target_ticker_set = set(target_tickers)
+    existing_ticker_set = set([k for k in preloaded_data.keys() if k not in ("KOSPI", "KOSDAQ")])
+
+    # Detect rebalanced additions and removals
+    new_tickers = target_ticker_set - existing_ticker_set
+    removed_tickers = existing_ticker_set - target_ticker_set
+
+    if new_tickers:
+        print(f"[INFO] [NEW CONSTITUENTS] Detected {len(new_tickers)} NEW index constituent(s): {', '.join(sorted(list(new_tickers)))}")
+        end_date = datetime.datetime.now().strftime("%Y%m%d")
+        start_date = (datetime.datetime.now() - datetime.timedelta(days=365 * 5 + 30)).strftime("%Y%m%d")
+        
+        for new_t in new_tickers:
+            name = next((s['name'] for s in target_stocks_meta if s['ticker'] == new_t), new_t)
+            print(f"  -> Fetching full 5-year history for new constituent: {name} ({new_t})...")
+            try:
+                df_new = fetch_stock_5y_ohlcv(new_t, start_date, end_date)
+                if df_new is not None and len(df_new) >= 1:
+                    df_new = calculate_full_indicators(df_new)
+                    df_new['Date'] = df_new.index if 'Date' not in df_new.columns else df_new['Date']
+                    preloaded_data[new_t] = convert_df_to_array_rows(df_new)
+                    print(f"     Successfully loaded {len(preloaded_data[new_t])} historical candles for {name}.")
+                else:
+                    preloaded_data[new_t] = []
+            except Exception as err:
+                print(f"     [WARN] Failed to fetch full 5Y data for {new_t}: {err}")
+                preloaded_data[new_t] = []
+
+    if removed_tickers:
+        print(f"[INFO] [PRUNE DROPPED] Pruning {len(removed_tickers)} dropped constituent(s) to maintain clean 350-stock universe: {', '.join(sorted(list(removed_tickers)))}")
+        for rem_t in removed_tickers:
+            preloaded_data.pop(rem_t, None)
+
+    # 2. Incremental update for all active targets + benchmarks
+    all_active_symbols = list(set(target_tickers + ["KOSPI", "KOSDAQ"]))
+    print(f"[INFO] Syncing daily candles across {len(all_active_symbols)} active symbols...")
+
+    # Quick pre-check on leading ticker to avoid unnecessary full network calls
+    sample_ticker = "005930" if "005930" in preloaded_data else all_active_symbols[0]
     sample_history = preloaded_data.get(sample_ticker, [])
     last_known_date = sample_history[-1][0] if sample_history else "2021-01-01"
     print(f"[INFO] Current dataset last trading date: {last_known_date}")
 
-    print(f"[INFO] Pre-checking latest market candles for {sample_ticker}...")
     sample_df = fetch_candles_and_indicators(sample_ticker, candle_count=30)
     if sample_df is not None and len(sample_df) > 0:
         latest_market_date = sample_df['Date'].iloc[-1]
-        if latest_market_date <= last_known_date:
-            print(f"[INFO] Fast-Exit: Market data is already up-to-date ({last_known_date}). Skipping full symbol sync.")
+        if latest_market_date <= last_known_date and not new_tickers:
+            print(f"[INFO] Fast-Exit: Market data is already up-to-date ({last_known_date}) and no index changes. Skipping sync.")
             return True
 
     updated_count = 0
@@ -171,13 +221,12 @@ def update_backtest_database():
             return symbol, None, []
 
         new_array_rows = convert_df_to_array_rows(df)
-        # Filter for rows that are strictly newer than existing last date
         append_candidates = [r for r in new_array_rows if r[0] > sym_last_date]
         return symbol, sym_last_date, append_candidates
 
     print("[INFO] Fetching latest candles in parallel (16 threads)...")
     with ThreadPoolExecutor(max_workers=16) as executor:
-        results = list(executor.map(process_symbol, all_symbols))
+        results = list(executor.map(process_symbol, all_active_symbols))
 
     for symbol, sym_last_date, new_rows in results:
         if new_rows:
@@ -187,22 +236,20 @@ def update_backtest_database():
             
             existing = preloaded_data.get(symbol, [])
             combined = existing + new_rows
-            # Maintain rolling window of MAX_WINDOW_DAYS
             if len(combined) > MAX_WINDOW_DAYS:
                 combined = combined[-MAX_WINDOW_DAYS:]
             preloaded_data[symbol] = combined
 
-    if not new_dates_added:
-        print(f"[INFO] Backtest dataset is already 100% up-to-date. (Last date: {last_known_date})")
-        return True
-
-    sorted_new_dates = sorted(list(new_dates_added))
-    print(f"[SUCCESS] Added {len(sorted_new_dates)} new trading day(s): {', '.join(sorted_new_dates)}")
-    print(f"[INFO] Updated {updated_count} symbols successfully.")
+    if new_dates_added:
+        sorted_new_dates = sorted(list(new_dates_added))
+        print(f"[SUCCESS] Added {len(sorted_new_dates)} new trading day(s): {', '.join(sorted_new_dates)}")
+        print(f"[INFO] Updated {updated_count} symbols successfully.")
+    else:
+        print("[INFO] No new dates added for existing symbols.")
 
     # Save to JSON
     payload = {
-        "stocks": stocks_meta,
+        "stocks": target_stocks_meta,
         "preloaded_data": preloaded_data
     }
 

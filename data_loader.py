@@ -46,11 +46,11 @@ def ensure_data_dir():
         os.makedirs(DATA_DIR, exist_ok=True)
 
 def get_kospi200_tickers():
-    """Retrieve KOSPI 200 list of tickers and names."""
+    """Retrieve KOSPI 200 list of tickers and names (PyKRX index 1028, ETF 069500, Naver fallbacks)."""
     items = []
     seen = set()
     
-    # 1. Try PyKRX Index 1028
+    # 1. Try PyKRX Index 1028 (KOSPI 200)
     try:
         if stock:
             tickers = stock.get_index_portfolio_deposit_file("1028")
@@ -64,9 +64,9 @@ def get_kospi200_tickers():
                 if len(items) >= 100:
                     return items
     except Exception as e:
-        print(f"[WARN] PyKRX index 1028 failed: {e}")
+        print(f"[WARN] PyKRX get_index_portfolio_deposit_file(1028) failed: {e}")
 
-    # 2. Try PyKRX KODEX 200 ETF (069500)
+    # 2. Try PyKRX KODEX 200 ETF (069500) Portfolio
     try:
         if stock:
             tickers = stock.get_etf_portfolio_deposit_file("069500")
@@ -80,32 +80,81 @@ def get_kospi200_tickers():
                 if len(items) >= 100:
                     return items
     except Exception as e:
-        print(f"[WARN] PyKRX ETF 069500 failed: {e}")
+        print(f"[WARN] PyKRX ETF 069500 portfolio failed: {e}")
 
-    # 3. Fallback: Naver Market Sum Top 200
+    # 3. Fallback: Naver Finance KOSPI 200 Scraping (entryJongmok)
+    print("[INFO] Using Naver Finance fallback to fetch KOSPI 200 list...")
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     try:
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        for page in range(1, 21):
+            url = f"https://finance.naver.com/sise/entryJongmok.naver?page={page}"
+            res = requests.get(url, headers=headers, timeout=5)
+            res.encoding = 'euc-kr'
+            if BeautifulSoup:
+                soup = BeautifulSoup(res.text, "html.parser")
+                tds = soup.find_all("td", class_="ctg")
+                for td in tds:
+                    a = td.find("a")
+                    if a and 'code=' in a.get('href', ''):
+                        match = re.search(r'code=(\d{6})', a['href'])
+                        if match:
+                            clean_t = match.group(1)
+                            if clean_t not in seen:
+                                seen.add(clean_t)
+                                items.append({"ticker": clean_t, "name": a.text.strip(), "market": "KOSPI200"})
+            else:
+                matches = re.findall(r'href="/item/main\.naver\?code=(\d{6})"[^>]*>(.*?)</a>', res.text)
+                for code, name in matches:
+                    name_clean = name.strip()
+                    if code not in seen and name_clean:
+                        seen.add(code)
+                        items.append({"ticker": code, "name": name_clean, "market": "KOSPI200"})
+        if len(items) >= 200:
+            return items[:200]
+    except Exception as e:
+        print(f"[ERROR] Naver Finance KOSPI 200 fallback failed: {e}")
+
+    # 4. Fallback: Naver Market Sum Top 200 (sosok=0 for KOSPI)
+    try:
+        print("[INFO] Using Naver Market Sum fallback to fetch KOSPI 200...")
         for page in range(1, 5):
             url = f"https://finance.naver.com/sise/sise_market_sum.naver?sosok=0&page={page}"
             res = requests.get(url, headers=headers, timeout=5)
             res.encoding = 'euc-kr'
-            matches = re.findall(r'href="/item/main\.naver\?code=(\d+)">(.*?)</a>', res.text)
-            for code, name in matches:
-                clean_t = code.zfill(6)
-                if clean_t not in seen:
-                    seen.add(clean_t)
-                    items.append({"ticker": clean_t, "name": name.strip(), "market": "KOSPI200"})
+            if BeautifulSoup:
+                soup = BeautifulSoup(res.text, "html.parser")
+                links = soup.find_all("a", class_="tltle")
+                for a in links:
+                    href = a.get("href", "")
+                    match = re.search(r'code=(\d{6})', href)
+                    if match:
+                        clean_t = match.group(1)
+                        name = a.text.strip()
+                        if clean_t not in seen and name:
+                            seen.add(clean_t)
+                            items.append({"ticker": clean_t, "name": name, "market": "KOSPI200"})
+                            if len(items) >= 200:
+                                return items[:200]
+            else:
+                matches = re.findall(r'href="/item/main\.naver\?code=(\d{6})"[^>]*>(.*?)</a>', res.text)
+                for code, name in matches:
+                    name_clean = name.strip()
+                    if code not in seen and name_clean:
+                        seen.add(code)
+                        items.append({"ticker": code, "name": name_clean, "market": "KOSPI200"})
+                        if len(items) >= 200:
+                            return items[:200]
     except Exception as e:
         print(f"[ERROR] Naver Market Sum KOSPI fallback failed: {e}")
 
-    return items
+    return items[:200]
 
 def get_kosdaq150_tickers():
-    """Retrieve KOSDAQ 150 list of tickers and names."""
+    """Retrieve KOSDAQ 150 list of tickers and names (PyKRX index/ETF, Naver market sum fallbacks)."""
     items = []
     seen = set()
     
-    # 1. Try PyKRX Index 2203 / 2011
+    # 1. Try PyKRX Index 2203 / 2011 (KOSDAQ 150)
     try:
         if stock:
             for idx_code in ["2203", "2011"]:
@@ -117,12 +166,12 @@ def get_kosdaq150_tickers():
                         if clean_t not in seen:
                             seen.add(clean_t)
                             items.append({"ticker": clean_t, "name": name, "market": "KOSDAQ150"})
-                    if len(items) >= 100:
-                        return items
+                    if len(items) >= 150:
+                        return items[:150]
     except Exception as e:
         print(f"[WARN] PyKRX KOSDAQ 150 index failed: {e}")
 
-    # 2. Try PyKRX KODEX KOSDAQ 150 ETF (229200)
+    # 2. Try PyKRX KODEX KOSDAQ 150 ETF (229200) Portfolio
     try:
         if stock:
             tickers = stock.get_etf_portfolio_deposit_file("229200")
@@ -133,32 +182,50 @@ def get_kosdaq150_tickers():
                     if clean_t not in seen:
                         seen.add(clean_t)
                         items.append({"ticker": clean_t, "name": name, "market": "KOSDAQ150"})
-                if len(items) >= 100:
-                    return items
+                if len(items) >= 150:
+                    return items[:150]
     except Exception as e:
-        print(f"[WARN] PyKRX ETF 229200 failed: {e}")
+        print(f"[WARN] PyKRX ETF 229200 portfolio failed: {e}")
 
-    # 3. Fallback: Naver Market Sum Top 150
+    # 3. Fallback: Naver Market Sum Top 150 (sosok=1 for KOSDAQ)
+    print("[INFO] Using Naver Market Sum fallback to fetch KOSDAQ 150 list...")
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     try:
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        for page in range(1, 4):
+        for page in range(1, 5):
             url = f"https://finance.naver.com/sise/sise_market_sum.naver?sosok=1&page={page}"
             res = requests.get(url, headers=headers, timeout=5)
             res.encoding = 'euc-kr'
-            matches = re.findall(r'href="/item/main\.naver\?code=(\d+)">(.*?)</a>', res.text)
-            for code, name in matches:
-                clean_t = code.zfill(6)
-                if clean_t not in seen:
-                    seen.add(clean_t)
-                    items.append({"ticker": clean_t, "name": name.strip(), "market": "KOSDAQ150"})
+            if BeautifulSoup:
+                soup = BeautifulSoup(res.text, "html.parser")
+                links = soup.find_all("a", class_="tltle")
+                for a in links:
+                    href = a.get("href", "")
+                    match = re.search(r'code=(\d{6})', href)
+                    if match:
+                        clean_t = match.group(1)
+                        name = a.text.strip()
+                        if clean_t not in seen and name:
+                            seen.add(clean_t)
+                            items.append({"ticker": clean_t, "name": name, "market": "KOSDAQ150"})
+                            if len(items) >= 150:
+                                return items[:150]
+            else:
+                matches = re.findall(r'href="/item/main\.naver\?code=(\d{6})"[^>]*>(.*?)</a>', res.text)
+                for code, name in matches:
+                    name_clean = name.strip()
+                    if code not in seen and name_clean:
+                        seen.add(code)
+                        items.append({"ticker": code, "name": name_clean, "market": "KOSDAQ150"})
+                        if len(items) >= 150:
+                            return items[:150]
     except Exception as e:
         print(f"[ERROR] Naver Market Sum KOSDAQ 150 fallback failed: {e}")
 
-    return items
+    return items[:150]
 
 def fetch_stock_5y_ohlcv(ticker, start_date, end_date):
     """Fetch 5-year daily candle data using Naver FChart XML (count=1300 ~ 5 years) and PyKRX fallback."""
-    clean_ticker = str(ticker).zfill(6)
+    clean_ticker = str(ticker).zfill(6) if str(ticker).isdigit() else str(ticker)
     
     # Method 1: Naver FChart XML (Adjusted Prices - 1300 candles = ~5.2 years of trading days)
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
@@ -184,7 +251,7 @@ def fetch_stock_5y_ohlcv(ticker, start_date, end_date):
                         '종가': float(close_p),
                         '거래량': float(vol)
                     })
-        if len(rows) >= 50:
+        if len(rows) >= 1:
             df = pd.DataFrame(rows)
             df = df.dropna(subset=['Date']).sort_values('Date').reset_index(drop=True)
             df.set_index('Date', inplace=True)
@@ -360,21 +427,121 @@ def build_5y_history_cache(force_refresh=False):
 
     return combined_df
 
-def load_5y_history_cache():
-    """Load cached 5-year dataset."""
-    if os.path.exists(CACHE_FILE):
+def convert_df_to_array_rows(df):
+    """Convert indicator DataFrame to ultra-compact row array format."""
+    result_rows = []
+    for i in range(len(df)):
+        d_val = df['Date'].iloc[i]
+        if isinstance(d_val, pd.Timestamp):
+            d_val = d_val.strftime("%Y-%m-%d")
+        else:
+            d_val = str(d_val)[:10]
+
+        o_val = float(df['시가'].iloc[i])
+        h_val = float(df['고가'].iloc[i])
+        l_val = float(df['저가'].iloc[i])
+        c_val = float(df['종가'].iloc[i])
+        v_val = float(df['거래량'].iloc[i])
+
+        o_num = round(o_val, 2) if (o_val < 5000 and '.' in str(o_val)) else int(round(o_val))
+        h_num = round(h_val, 2) if (h_val < 5000 and '.' in str(h_val)) else int(round(h_val))
+        l_num = round(l_val, 2) if (l_val < 5000 and '.' in str(l_val)) else int(round(l_val))
+        c_num = round(c_val, 2) if (c_val < 5000 and '.' in str(c_val)) else int(round(c_val))
+        v_num = int(round(v_val))
+
+        adx_val = float(df['adx'].iloc[i]) if ('adx' in df and not np.isnan(df['adx'].iloc[i])) else 0.0
+        pdi_val = float(df['plus_di'].iloc[i]) if ('plus_di' in df and not np.isnan(df['plus_di'].iloc[i])) else 0.0
+        mdi_val = float(df['minus_di'].iloc[i]) if ('minus_di' in df and not np.isnan(df['minus_di'].iloc[i])) else 0.0
+        rsi_val = float(df['rsi'].iloc[i]) if ('rsi' in df and not np.isnan(df['rsi'].iloc[i])) else 0.0
+        
+        bb_col = 'b_band_pct' if 'b_band_pct' in df else 'bb_pct'
+        bb_raw = float(df[bb_col].iloc[i]) if (bb_col in df and not np.isnan(df[bb_col].iloc[i])) else 0.5
+
+        macd_raw = float(df['macd'].iloc[i]) if ('macd' in df and not np.isnan(df['macd'].iloc[i])) else 0.0
+        macd_val = round(macd_raw, 1) if abs(macd_raw) < 100 else int(round(macd_raw))
+
+        stoch_k_val = float(df['stoch_k'].iloc[i]) if ('stoch_k' in df and not np.isnan(df['stoch_k'].iloc[i])) else 50.0
+        disp_val = float(df['disparity20'].iloc[i]) if ('disparity20' in df and not np.isnan(df['disparity20'].iloc[i])) else 100.0
+        vr_val = float(df['volume_ratio'].iloc[i]) if ('volume_ratio' in df and not np.isnan(df['volume_ratio'].iloc[i])) else 100.0
+
+        result_rows.append([
+            d_val,
+            o_num,
+            h_num,
+            l_num,
+            c_num,
+            v_num,
+            round(adx_val, 1),
+            round(pdi_val, 1),
+            round(mdi_val, 1),
+            round(rsi_val, 1),
+            round(bb_raw, 2),
+            macd_val,
+            round(stoch_k_val, 1),
+            round(disp_val, 1),
+            round(vr_val, 1)
+        ])
+    return result_rows
+
+def build_stocks_350_real_json(output_path=None):
+    """
+    Build complete 5-year historical backtest dataset for KOSPI 200 & KOSDAQ 150 (350 stocks) + benchmarks.
+    Saves to data/stocks_350_real.json.
+    """
+    ensure_data_dir()
+    if not output_path:
+        output_path = os.path.join(DATA_DIR, "stocks_350_real.json")
+
+    print("[INFO] Fetching 350 stock universe (KOSPI 200 + KOSDAQ 150)...")
+    kospi_items = get_kospi200_tickers()
+    kosdaq_items = get_kosdaq150_tickers()
+
+    # Limit to exact target sizes if needed (200 KOSPI, 150 KOSDAQ)
+    kospi_items = kospi_items[:200]
+    kosdaq_items = kosdaq_items[:150]
+    all_stocks = kospi_items + kosdaq_items
+
+    print(f" -> Stock universe: KOSPI 200 ({len(kospi_items)}), KOSDAQ 150 ({len(kosdaq_items)}) = Total {len(all_stocks)} stocks.")
+
+    end_date = datetime.datetime.now().strftime("%Y%m%d")
+    start_date = (datetime.datetime.now() - datetime.timedelta(days=365 * 5 + 30)).strftime("%Y%m%d")
+
+    # Symbols to fetch: 350 stocks + KOSPI & KOSDAQ benchmarks
+    fetch_targets = [s['ticker'] for s in all_stocks] + ["KOSPI", "KOSDAQ"]
+    preloaded_data = {}
+
+    def fetch_symbol_data(symbol):
         try:
-            return pd.read_parquet(CACHE_FILE)
-        except Exception:
+            df = fetch_stock_5y_ohlcv(symbol, start_date, end_date)
+            if df is not None and len(df) >= 30:
+                df = calculate_full_indicators(df)
+                df['Date'] = df.index if 'Date' not in df.columns else df['Date']
+                array_rows = convert_df_to_array_rows(df)
+                return symbol, array_rows
+        except Exception as e:
             pass
-    if os.path.exists(CACHE_CSV):
-        try:
-            return pd.read_csv(CACHE_CSV)
-        except Exception:
-            pass
-    return build_5y_history_cache()
+        return symbol, None
+
+    print(f"[INFO] Concurrently downloading 5-year daily candles & computing indicators for {len(fetch_targets)} targets...")
+    with ThreadPoolExecutor(max_workers=16) as executor:
+        results = list(executor.map(fetch_symbol_data, fetch_targets))
+        for symbol, rows in results:
+            if rows and len(rows) > 0:
+                preloaded_data[symbol] = rows
+
+    print(f"[INFO] Successfully compiled 5Y data for {len(preloaded_data)} / {len(fetch_targets)} targets.")
+
+    payload = {
+        "stocks": all_stocks,
+        "preloaded_data": preloaded_data
+    }
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False)
+
+    print(f"[SUCCESS] Saved dataset to {output_path} ({os.path.getsize(output_path) / 1024 / 1024:.2f} MB)")
+    return payload
 
 if __name__ == "__main__":
-    df = build_5y_history_cache(force_refresh=True)
-    if df is not None:
-        print(f"[DONE] Total rows in 5Y database: {len(df):,}")
+    payload = build_stocks_350_real_json()
+
