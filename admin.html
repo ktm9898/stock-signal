@@ -1387,11 +1387,91 @@
       renderRules();
     }
 
+    const INDICATOR_CONFIG = {
+      adx: {
+        name: "ADX (추세강도)",
+        guide: "0~100 (25 이상 추세)",
+        step: "1",
+        defaultBuy: { condition_type: "gte_value", value: 25.0 },
+        defaultSell: { condition_type: "lte_value", value: 20.0 }
+      },
+      minus_di: {
+        name: "-DI (하락추세선)",
+        guide: "0~100",
+        step: "1",
+        defaultBuy: { condition_type: "cross_below_indicator", target_indicator: "adx", value: 0 },
+        defaultSell: { condition_type: "gte_value", value: 30.0 }
+      },
+      plus_di: {
+        name: "+DI (상승추세선)",
+        guide: "0~100",
+        step: "1",
+        defaultBuy: { condition_type: "gte_value", value: 25.0 },
+        defaultSell: { condition_type: "cross_below_indicator", target_indicator: "minus_di", value: 0 }
+      },
+      rsi: {
+        name: "RSI",
+        guide: "0~100 (30 이하 과매도 / 70 이상 과매수)",
+        step: "1",
+        defaultBuy: { condition_type: "lte_value", value: 30.0 },
+        defaultSell: { condition_type: "gte_value", value: 65.0 }
+      },
+      bb_pct: {
+        name: "볼린저 %b",
+        guide: "0.0~1.0 (0.0 하단 / 0.5 중심 / 1.0 상단)",
+        step: "0.05",
+        defaultBuy: { condition_type: "lte_value", value: 0.2 },
+        defaultSell: { condition_type: "gte_value", value: 0.9 }
+      },
+      macd: {
+        name: "MACD",
+        guide: "0 기준선",
+        step: "1",
+        defaultBuy: { condition_type: "gt_value", value: 0.0 },
+        defaultSell: { condition_type: "lt_value", value: 0.0 }
+      },
+      macd_osc: {
+        name: "MACD 오실레이터",
+        guide: "0 기준선",
+        step: "1",
+        defaultBuy: { condition_type: "gt_value", value: 0.0 },
+        defaultSell: { condition_type: "lt_value", value: 0.0 }
+      },
+      stoch_k: {
+        name: "스토캐스틱 %K",
+        guide: "0~100 (20 이하 과매도 / 80 이상 과매수)",
+        step: "1",
+        defaultBuy: { condition_type: "lte_value", value: 20.0 },
+        defaultSell: { condition_type: "gte_value", value: 80.0 }
+      },
+      stoch_d: {
+        name: "스토캐스틱 %D",
+        guide: "0~100 (20 이하 과매도 / 80 이상 과매수)",
+        step: "1",
+        defaultBuy: { condition_type: "lte_value", value: 20.0 },
+        defaultSell: { condition_type: "gte_value", value: 80.0 }
+      },
+      disparity20: {
+        name: "이격도 (20일)",
+        guide: "% (100% 기준선)",
+        step: "0.5",
+        defaultBuy: { condition_type: "lte_value", value: 95.0 },
+        defaultSell: { condition_type: "gte_value", value: 105.0 }
+      },
+      volume_ratio: {
+        name: "거래량비율 (20일)",
+        guide: "% (100% 평균 거래량)",
+        step: "10",
+        defaultBuy: { condition_type: "gte_value", value: 150.0 },
+        defaultSell: { condition_type: "lte_value", value: 80.0 }
+      }
+    };
+
     function addConditionGroup(type) {
       const groups = type === 'buy' ? currentBuyGroups : currentSellGroups;
       const defaultRule = type === 'buy'
         ? { indicator: "rsi", condition_type: "lte_value", value: 30.0 }
-        : { indicator: "rsi", condition_type: "gte_value", value: 70.0 };
+        : { indicator: "rsi", condition_type: "gte_value", value: 65.0 };
 
       groups.push({
         id: `${type}_g_${Date.now()}`,
@@ -1421,7 +1501,7 @@
 
       const defaultRule = type === 'buy'
         ? { indicator: "adx", condition_type: "gte_value", value: 25.0 }
-        : { indicator: "rsi", condition_type: "gte_value", value: 60.0 };
+        : { indicator: "rsi", condition_type: "gte_value", value: 65.0 };
 
       groups[groupIndex].rules.push(defaultRule);
       renderRules();
@@ -1438,8 +1518,26 @@
     function updateGroupRule(type, groupIndex, ruleIndex, key, val) {
       const groups = type === 'buy' ? currentBuyGroups : currentSellGroups;
       if (groups[groupIndex] && groups[groupIndex].rules && groups[groupIndex].rules[ruleIndex]) {
-        groups[groupIndex].rules[ruleIndex][key] = (key === 'value' ? (parseFloat(val) || 0) : val);
-        if (key === 'condition_type' || key === 'indicator' || key === 'target_indicator') {
+        const rule = groups[groupIndex].rules[ruleIndex];
+
+        if (key === 'indicator') {
+          rule.indicator = val;
+          const meta = INDICATOR_CONFIG[val];
+          if (meta) {
+            const def = type === 'buy' ? meta.defaultBuy : meta.defaultSell;
+            if (def) {
+              rule.condition_type = def.condition_type;
+              rule.value = def.value;
+              if (def.target_indicator) rule.target_indicator = def.target_indicator;
+              else delete rule.target_indicator;
+            }
+          }
+          renderRules();
+          return;
+        }
+
+        rule[key] = (key === 'value' ? (parseFloat(val) || 0) : val);
+        if (key === 'condition_type' || key === 'target_indicator') {
           renderRules();
         }
       }
@@ -1456,6 +1554,7 @@
             const rulesHtml = hasRules ? group.rules.map((rule, rIdx) => {
               const isCross = rule.condition_type.includes('indicator');
               const isTurn = rule.condition_type.includes('turn');
+              const meta = INDICATOR_CONFIG[rule.indicator] || {};
 
               return `
                 <div class="rule-box" style="margin-bottom: 6px;">
@@ -1474,7 +1573,7 @@
                       ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === (rule.target_indicator || 'adx') ? 'selected' : ''}>${opt.name}</option>`).join('')}
                     </select>
                   ` : (isTurn ? `` : `
-                    <input type="number" step="0.1" class="form-input" style="width: 85px;" value="${rule.value !== undefined ? rule.value : 0}" oninput="updateGroupRule('buy', ${gIdx}, ${rIdx}, 'value', this.value)">
+                    <input type="number" step="${meta.step || '0.1'}" class="form-input" style="width: 85px;" value="${rule.value !== undefined ? rule.value : 0}" title="${meta.guide || ''}" oninput="updateGroupRule('buy', ${gIdx}, ${rIdx}, 'value', this.value)">
                   `)}
 
                   <button class="btn-del-rule" onclick="deleteRuleFromGroup('buy', ${gIdx}, ${rIdx})" title="항목 삭제"><i class="fa-solid fa-xmark"></i></button>
@@ -1524,6 +1623,7 @@
             const rulesHtml = hasRules ? group.rules.map((rule, rIdx) => {
               const isCross = rule.condition_type.includes('indicator');
               const isTurn = rule.condition_type.includes('turn');
+              const meta = INDICATOR_CONFIG[rule.indicator] || {};
 
               return `
                 <div class="rule-box" style="margin-bottom: 6px;">
@@ -1542,7 +1642,7 @@
                       ${INDICATOR_OPTIONS.map(opt => `<option value="${opt.id}" ${opt.id === (rule.target_indicator || 'plus_di') ? 'selected' : ''}>${opt.name}</option>`).join('')}
                     </select>
                   ` : (isTurn ? `` : `
-                    <input type="number" step="0.1" class="form-input" style="width: 85px;" value="${rule.value !== undefined ? rule.value : 0}" oninput="updateGroupRule('sell', ${gIdx}, ${rIdx}, 'value', this.value)">
+                    <input type="number" step="${meta.step || '0.1'}" class="form-input" style="width: 85px;" value="${rule.value !== undefined ? rule.value : 0}" title="${meta.guide || ''}" oninput="updateGroupRule('sell', ${gIdx}, ${rIdx}, 'value', this.value)">
                   `)}
 
                   <button class="btn-del-rule" onclick="deleteRuleFromGroup('sell', ${gIdx}, ${rIdx})" title="항목 삭제"><i class="fa-solid fa-xmark"></i></button>
