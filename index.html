@@ -147,6 +147,22 @@
       display: flex; align-items: baseline; justify-content: center; text-align: center; width: 100%;
       margin-top: 6px;
     }
+    .metric-num-box {
+      position: relative;
+      display: inline-flex;
+      align-items: baseline;
+      justify-content: center;
+    }
+    .metric-sub-badge {
+      position: absolute;
+      left: 100%;
+      margin-left: 6px;
+      bottom: 3px;
+      white-space: nowrap;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-sub);
+    }
     .metric-icon {
       position: absolute;
       right: 14px;
@@ -608,12 +624,31 @@
         font-size: 1.35rem;
         font-weight: 800;
         display: flex;
-        align-items: baseline;
+        flex-direction: column;
+        align-items: center;
         justify-content: center;
         text-align: center;
         width: 100%;
-        flex-wrap: wrap;
         margin: 0;
+      }
+      .metric-num-box {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+      }
+      .metric-sub-badge {
+        position: static;
+        margin-left: 0;
+        margin-top: 1px;
+        font-size: 0.68rem;
+        font-weight: 600;
+        color: var(--text-sub);
+        display: block;
+        text-align: center;
+        width: 100%;
       }
       .metric-icon { display: none; }
 
@@ -730,10 +765,12 @@
       <div class="metric-card clickable active-tab-card" id="metric-card-buy" onclick="switchTab('buy-tab')" title="매수 신호 목록으로 이동">
         <div class="metric-title">매수 신호 <i class="fa-solid fa-arrow-right" style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
         <div class="metric-value">
-          <span id="count-buy" style="color: var(--accent-green);">0</span>
-          <span id="count-watch-wrapper" style="font-size: 0.85rem; font-weight: 600; color: var(--text-sub); margin-left: 6px; display: none;">
-            (<span class="label-desktop">관심 </span><span id="count-watch" style="color:#d97706; font-weight:700;">0</span>)
-          </span>
+          <div class="metric-num-box">
+            <span id="count-buy" style="color: var(--accent-green);">0</span>
+            <span id="count-watch-wrapper" class="metric-sub-badge" style="display: none;">
+              (<span class="label-desktop">관심 </span><span id="count-watch" style="color:#d97706; font-weight:700;">0</span>)
+            </span>
+          </div>
         </div>
         <div class="metric-icon"><i class="fa-solid fa-bullseye"></i></div>
       </div>
@@ -741,7 +778,9 @@
       <div class="metric-card clickable" id="metric-card-sell" onclick="switchTab('sell-signals-tab')" title="매도 신호 목록으로 이동">
         <div class="metric-title">매도 신호 <i class="fa-solid fa-arrow-right" style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
         <div class="metric-value">
-          <span id="count-sell" style="color: var(--accent-red);">0</span>
+          <div class="metric-num-box">
+            <span id="count-sell" style="color: var(--accent-red);">0</span>
+          </div>
         </div>
         <div class="metric-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
       </div>
@@ -749,10 +788,12 @@
       <div class="metric-card clickable" id="metric-card-holdings" onclick="switchTab('holdings-tab')" title="보유 종목 목록으로 이동">
         <div class="metric-title">보유 종목 <i class="fa-solid fa-arrow-right" style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
         <div class="metric-value">
-          <span id="count-holdings" style="color: var(--accent-cyan);">0</span>
-          <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-sub); margin-left: 6px;">
-            (<span class="label-desktop">수익 </span><span id="count-profit" style="color:var(--accent-red); font-weight:700;">0</span><span class="label-desktop"> / 손실 </span><span class="label-mobile"> / </span><span id="count-loss" style="color:var(--accent-blue); font-weight:700;">0</span>)
-          </span>
+          <div class="metric-num-box">
+            <span id="count-holdings" style="color: var(--accent-cyan);">0</span>
+            <span class="metric-sub-badge">
+              (<span class="label-desktop">수익 </span><span id="count-profit" style="color:var(--accent-red); font-weight:700;">0</span><span class="label-desktop"> / 손실 </span><span class="label-mobile"> / </span><span id="count-loss" style="color:var(--accent-blue); font-weight:700;">0</span>)
+            </span>
+          </div>
         </div>
         <div class="metric-icon"><i class="fa-solid fa-briefcase"></i></div>
       </div>
@@ -1789,7 +1830,7 @@
       const watchEl = document.getElementById('count-watch');
       if (watchEl) watchEl.textContent = watchCount;
       const watchWrap = document.getElementById('count-watch-wrapper');
-      if (watchWrap) watchWrap.style.display = watchCount > 0 ? 'inline' : 'none';
+      if (watchWrap) watchWrap.style.display = watchCount > 0 ? '' : 'none';
 
       document.getElementById('count-sell').textContent = finalSellList.length;
       document.getElementById('count-holdings').textContent = holdingsData.length;
