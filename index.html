@@ -1217,14 +1217,14 @@
               Date: item.Date || item.date || item.Timestamp || (executionLogsData.length > 0 ? executionLogsData[executionLogsData.length - 1].Timestamp : new Date().toISOString()),
               Name: item.Name || item.name,
               Ticker: tk,
-              Stage: '전략매수',
+              Stage: '전략매수 ★',
               ADX: item.ADX || item.adx,
               Minus_DI: item.Minus_DI || item.minus_di,
               Plus_DI: item.Plus_DI || item.plus_di,
               RSI: item.RSI || item.rsi,
               b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
               ClosePrice: item.ClosePrice || item.price || item.close,
-              Reason: `[${activeSlot.name}] 매수 조건 충족`
+              Reason: `[${activeSlot.name}] 실시간 전략 매수 조건 충족`
             });
           }
         });
@@ -1277,11 +1277,46 @@
       });
       const todayWatchlist = Array.from(todayWatchlistMap.values());
 
-      // 3. Construct Unified Final Buy List (Identical logic for all slots 1~10)
-      const finalBuyList = [...evaluatedBuyCandidates];
-      todayWatchlist.forEach(w => {
-        if (!finalBuyList.some(b => formatTicker(b.Ticker || b.ticker || b.code) === formatTicker(w.Ticker || w.ticker || w.code))) {
-          finalBuyList.push(w);
+      // 3. Construct Unified Final Buy List
+      const finalBuyList = [];
+      const seenBuyMap = new Map();
+
+      // 1) Official Google Sheet Buy Signals (Preserved as '전략매수')
+      (buyCandidatesData || []).forEach(item => {
+        const tk = formatTicker(item.Ticker || item.ticker || item.code);
+        const dt = formatShortDate(item.Date || item.date || item.Timestamp);
+        const key = `${tk}_${dt}`;
+        const itemObj = {
+          ...item,
+          Stage: '전략매수'
+        };
+        seenBuyMap.set(key, itemObj);
+        finalBuyList.push(itemObj);
+      });
+
+      // 2) Real-time evaluated signals for currently active strategy (with '전략매수 ★')
+      evaluatedBuyCandidates.forEach(item => {
+        const tk = formatTicker(item.Ticker || item.ticker || item.code);
+        const dt = formatShortDate(item.Date || item.date || item.Timestamp);
+        const key = `${tk}_${dt}`;
+        if (seenBuyMap.has(key)) {
+          const existing = seenBuyMap.get(key);
+          existing.Stage = '전략매수 ★';
+          existing.Reason = item.Reason || existing.Reason;
+        } else {
+          seenBuyMap.set(key, item);
+          finalBuyList.push(item);
+        }
+      });
+
+      // 3) Today's Watchlist / 진입대기 (with '관심종목')
+      todayWatchlist.forEach(item => {
+        const tk = formatTicker(item.Ticker || item.ticker || item.code);
+        const dt = formatShortDate(item.Date || item.date || item.Timestamp);
+        const key = `${tk}_${dt}`;
+        if (!seenBuyMap.has(key) && !finalBuyList.some(b => formatTicker(b.Ticker || b.ticker || b.code) === tk)) {
+          seenBuyMap.set(key, item);
+          finalBuyList.push(item);
         }
       });
 
