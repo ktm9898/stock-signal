@@ -2325,7 +2325,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;">${formatDec(item.Plus_DI || item.plus_di || item.plusDi)}</td>
             <td style="text-align:center;"><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${formatDec(item.RSI || item.rsi)}</span></td>
             <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
-            <td style="text-align:center;"><strong style="color: ${vrColor}">${vrStr}</strong></td>
+            <td style="text-align:center;"><span style="color: ${vrColor}">${vrStr}</span></td>
             <td style="text-align:right; padding-right: 14px;">${(item.ClosePrice || item.price) ? Number(item.ClosePrice || item.price).toLocaleString() + ' 원' : '-'}</td>
             <td style="text-align:center;"><button class="btn-buy-reg" style="padding: 4px 10px; font-size: 0.8rem;" onclick="quickRegister('${name}', '${ticker}', ${item.ClosePrice || item.price || 0})"><i class="fa-solid fa-plus"></i> 매수</button></td>
           </tr>
@@ -2390,7 +2390,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;"><span style="color: ${macdColor}">${macdOsc}</span></td>
             <td style="text-align:center;">${stochK} / ${stochD}</td>
             <td style="text-align:center;"><span style="color: ${Number(disparity) <= 95 ? 'var(--accent-green)' : (Number(disparity) >= 105 ? '#f87171' : 'inherit')}">${disparity}%</span></td>
-            <td style="text-align:center;"><strong style="color: ${Number(vr) >= 150 ? 'var(--accent-warning)' : 'inherit'}">${vr}%</strong></td>
+            <td style="text-align:center;"><span style="color: ${Number(vr) >= 150 ? 'var(--accent-warning)' : 'inherit'}">${vr}%</span></td>
             <td style="text-align:right; padding-right: 14px;">${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
             <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 세부 지표 확인">${statusText}</span></td>
           </tr>
@@ -2471,7 +2471,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;"><span style="color: ${macdColor}">${macdOsc}</span></td>
             <td style="text-align:center;">${stochK} / ${stochD}</td>
             <td style="text-align:center;"><span style="color: ${Number(disparity) <= 95 ? 'var(--accent-green)' : (Number(disparity) >= 105 ? '#f87171' : 'inherit')}">${disparity}%</span></td>
-            <td style="text-align:center;"><strong style="color: ${Number(vr) >= 150 ? 'var(--accent-warning)' : 'inherit'}">${vr}%</strong></td>
+            <td style="text-align:center;"><span style="color: ${Number(vr) >= 150 ? 'var(--accent-warning)' : 'inherit'}">${vr}%</span></td>
             <td style="text-align:right; padding-right: 14px;">${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
             <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 세부 지표 확인">${statusText}</span></td>
           </tr>
@@ -2577,7 +2577,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;">${pdi}</td>
             <td style="text-align:center;"><span style="color: ${Number(rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
             <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
-            <td style="text-align:center;"><strong style="color: ${vrColor}">${vrStr}</strong></td>
+            <td style="text-align:center;"><span style="color: ${vrColor}">${vrStr}</span></td>
             <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${displayName}', '${statusText}', '${escapedDetails}', '${badgeClass}')" title="클릭 시 감시 사유 확인">${statusText}</span></td>
             <td style="text-align:center;"><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${rawTicker !== '-' ? rawTicker : rawName}')" title="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
           </tr>
@@ -2670,7 +2670,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;">${pdi}</td>
             <td style="text-align:center;"><span style="color: ${Number(rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
             <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
-            <td style="text-align:center;"><strong style="color: ${vrColor}">${vrStr}</strong></td>
+            <td style="text-align:center;"><span style="color: ${vrColor}">${vrStr}</span></td>
             <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${item.Name || item.name}', '${level}', '${escapedDetails}', '${badgeClass}')" title="클릭 시 감시 사유 확인">${level}</span></td>
           </tr>
         `;
