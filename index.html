@@ -434,6 +434,25 @@
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: #f8fafc; }
 
+    /* Exact Fixed Column Widths for KOSPI 200 & KOSDAQ 150 Tables */
+    .stocks-metric-table {
+      width: 100% !important;
+      min-width: 860px !important;
+      table-layout: fixed !important;
+    }
+    .stocks-metric-table .col-stock-name { width: 140px; }
+    .stocks-metric-table .col-ind-adx { width: 58px; }
+    .stocks-metric-table .col-ind-mdi { width: 58px; }
+    .stocks-metric-table .col-ind-pdi { width: 58px; }
+    .stocks-metric-table .col-ind-rsi { width: 58px; }
+    .stocks-metric-table .col-ind-bb { width: 58px; }
+    .stocks-metric-table .col-ind-macd { width: 68px; }
+    .stocks-metric-table .col-ind-stoch { width: 88px; }
+    .stocks-metric-table .col-ind-disp { width: 68px; }
+    .stocks-metric-table .col-ind-vr { width: 62px; }
+    .stocks-metric-table .col-price { width: 88px; }
+    .stocks-metric-table .col-status { width: 68px; }
+
     /* Badges & Action Buttons */
     .badge {
       display: inline-block; padding: 4px 10px; border-radius: 16px;
@@ -894,20 +913,20 @@
         <input type="text" id="all-stocks-search" placeholder="🔍 종목 검색..." class="form-input" style="max-width: 180px; padding: 5px 10px; font-size: 0.82rem;" oninput="filterAllStocksTable()">
       </div>
       <div class="table-container">
-        <table>
+        <table class="stocks-metric-table">
           <colgroup>
-            <col style="width: 15%;">
-            <col style="width: 7.5%;">
-            <col style="width: 7.5%;">
-            <col style="width: 7.5%;">
-            <col style="width: 7.5%;">
-            <col style="width: 7.5%;">
-            <col style="width: 9%;">
-            <col style="width: 11%;">
-            <col style="width: 8.5%;">
-            <col style="width: 7.5%;">
-            <col style="width: 11.5%;">
-            <col style="width: 8%;">
+            <col class="col-stock-name">
+            <col class="col-ind-adx">
+            <col class="col-ind-mdi">
+            <col class="col-ind-pdi">
+            <col class="col-ind-rsi">
+            <col class="col-ind-bb">
+            <col class="col-ind-macd">
+            <col class="col-ind-stoch">
+            <col class="col-ind-disp">
+            <col class="col-ind-vr">
+            <col class="col-price">
+            <col class="col-status">
           </colgroup>
           <thead>
             <tr>
@@ -939,20 +958,20 @@
         <input type="text" id="kosdaq-stocks-search" placeholder="🔍 종목 검색..." class="form-input" style="max-width: 180px; padding: 5px 10px; font-size: 0.82rem;" oninput="filterKosdaqStocksTable()">
       </div>
       <div class="table-container">
-        <table>
+        <table class="stocks-metric-table">
           <colgroup>
-            <col style="width: 15%;">
-            <col style="width: 7.5%;">
-            <col style="width: 7.5%;">
-            <col style="width: 7.5%;">
-            <col style="width: 7.5%;">
-            <col style="width: 7.5%;">
-            <col style="width: 9%;">
-            <col style="width: 11%;">
-            <col style="width: 8.5%;">
-            <col style="width: 7.5%;">
-            <col style="width: 11.5%;">
-            <col style="width: 8%;">
+            <col class="col-stock-name">
+            <col class="col-ind-adx">
+            <col class="col-ind-mdi">
+            <col class="col-ind-pdi">
+            <col class="col-ind-rsi">
+            <col class="col-ind-bb">
+            <col class="col-ind-macd">
+            <col class="col-ind-stoch">
+            <col class="col-ind-disp">
+            <col class="col-ind-vr">
+            <col class="col-price">
+            <col class="col-status">
           </colgroup>
           <thead>
             <tr>
@@ -2588,10 +2607,26 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
     }
 
     function switchTab(tabId) {
+      // Capture previous horizontal scroll position if switching between KOSPI and KOSDAQ
+      let prevScrollLeft = 0;
+      if (tabId === 'all-stocks-tab' || tabId === 'kosdaq-stocks-tab') {
+        const fromTabId = tabId === 'all-stocks-tab' ? 'kosdaq-stocks-tab' : 'all-stocks-tab';
+        const fromContainer = document.querySelector(`#${fromTabId} .table-container`);
+        if (fromContainer) prevScrollLeft = fromContainer.scrollLeft;
+      }
+
       document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       const targetContent = document.getElementById(tabId);
       if (targetContent) targetContent.style.display = 'block';
+
+      // Restore horizontal scroll position so switching between KOSPI and KOSDAQ never jumps
+      if (tabId === 'all-stocks-tab' || tabId === 'kosdaq-stocks-tab') {
+        const toContainer = document.querySelector(`#${tabId} .table-container`);
+        if (toContainer && prevScrollLeft > 0) {
+          toContainer.scrollLeft = prevScrollLeft;
+        }
+      }
 
       // Highlight matching tab button
       const matchingBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => {
