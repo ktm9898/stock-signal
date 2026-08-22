@@ -824,34 +824,30 @@
 
   <!-- Strategy Detail & Switcher Modal -->
   <div class="modal-overlay" id="strategy-detail-modal">
-    <div class="modal-content" style="max-width: 540px; padding: 22px; max-height: 88vh; overflow-y: auto;">
-      <div class="modal-header" style="margin-bottom: 14px; align-items: flex-start;">
-        <div>
-          <div style="font-size: 0.72rem; font-weight: 700; color: #2563eb; letter-spacing: 0.5px; margin-bottom: 2px;">QUANT STRATEGY PRESET</div>
-          <div class="modal-title" style="font-size: 1.15rem;">퀀트 전략 선택 및 상세 조건</div>
-        </div>
+    <div class="modal-content" style="max-width: 500px; padding: 22px; max-height: 88vh; overflow-y: auto;">
+      <div class="modal-header" style="margin-bottom: 16px; align-items: center;">
+        <div class="modal-title" style="font-size: 1.15rem; font-weight: 700; color: #0f172a;">퀀트 전략 설정</div>
         <button class="close-btn" onclick="closeStrategyDetailModal()">&times;</button>
       </div>
 
       <!-- Strategy Slot Selector -->
       <div class="form-group" style="margin-bottom: 14px;">
-        <label class="form-label" style="font-weight: 600; color: #334155;">적용할 전략 슬롯 선택</label>
-        <select class="form-input" id="modal-strategy-slot-select" onchange="onModalStrategySlotChange(this.value)" style="font-weight: 600; font-size: 0.92rem; background: #ffffff;">
+        <select class="form-input" id="modal-strategy-slot-select" onchange="onModalStrategySlotChange(this.value)" style="font-weight: 600; font-size: 0.92rem; background: #ffffff; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 8px;">
           <!-- Dynamic options 1~10 -->
         </select>
       </div>
 
       <!-- Selected Strategy Card -->
-      <div id="modal-strategy-info-card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
-        <!-- Dynamic content: Name, Memo, Buy Rules, Sell Rules, SL/TP -->
+      <div id="modal-strategy-info-card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+        <!-- Dynamic content -->
       </div>
 
       <!-- Action Buttons -->
       <div style="display: flex; gap: 8px;">
-        <a href="admin.html" class="btn-admin-nav" style="flex: 1; justify-content: center; padding: 10px; font-size: 0.88rem; text-decoration: none;">
+        <a href="admin.html" class="btn-admin-nav" style="flex: 1; justify-content: center; padding: 10px; font-size: 0.88rem; text-decoration: none; border-radius: 8px;">
           <i class="fa-solid fa-sliders"></i> 퀀트 랩에서 편집
         </a>
-        <button class="btn-buy-reg" style="flex: 1.2; padding: 10px; font-size: 0.88rem;" onclick="applySelectedModalStrategy()">
+        <button class="btn-buy-reg" style="flex: 1.2; padding: 10px; font-size: 0.88rem; border-radius: 8px;" onclick="applySelectedModalStrategy()">
           <i class="fa-solid fa-check"></i> 이 전략 적용하기
         </button>
       </div>
@@ -878,7 +874,7 @@
       {
         id: 1,
         name: "기존 전략 1번 (추세 원형)",
-        memo: "ADX 30 이상에서 -DI가 ADX를 하향 돌파할 때 진입하는 오리지널 추세 추종 전략",
+        memo: "ADX 30 이상 & -DI 하향돌파 진입 (RSI 65 청산)",
         isEmpty: false,
         market: "ALL",
         period: "5Y",
@@ -907,12 +903,12 @@
             ]
           }
         ],
-        updatedAt: "2026.08.22 17:00"
+        updatedAt: "2026.08.22"
       },
       {
         id: 2,
         name: "사용자 하이브리드 (올웨더 복합)",
-        memo: "스나이퍼 바닥반등 OR ADX 33 돌파 복합 포트폴리오 (RSI 55 청산, 손절/익절 없음)",
+        memo: "스나이퍼 바닥 OR ADX 33 돌파 복합 (RSI 55 청산)",
         isEmpty: false,
         market: "ALL",
         period: "5Y",
@@ -925,7 +921,7 @@
         buyRules: [
           {
             id: "bg_1",
-            name: "매수 조건 1 (스나이퍼 바닥)",
+            name: "매수 조건 1",
             rules: [
               { indicator: "rsi", condition_type: "lte_value", value: 24.0 },
               { indicator: "bb_pct", condition_type: "lte_value", value: 0.05 },
@@ -934,7 +930,7 @@
           },
           {
             id: "bg_2",
-            name: "매수 조건 2 (추세전환 돌파)",
+            name: "매수 조건 2",
             rules: [
               { indicator: "adx", condition_type: "gte_value", value: 33.0 },
               { indicator: "minus_di", condition_type: "cross_below_indicator", target_indicator: "adx", value: 0 },
@@ -951,12 +947,12 @@
             ]
           }
         ],
-        updatedAt: "2026.08.22 17:35"
+        updatedAt: "2026.08.22"
       },
       {
         id: 3,
         name: "고승률 스나이퍼 (바닥 반등)",
-        memo: "RSI 24 이하 & 볼린저 0.05 이하 & 거래량 100% 이상 바닥 투매 포착 후 반등 익절",
+        memo: "RSI 24 & 볼린저 0.05 바닥 매수 (RSI 55 청산)",
         isEmpty: false,
         market: "ALL",
         period: "5Y",
@@ -986,12 +982,12 @@
             ]
           }
         ],
-        updatedAt: "2026.08.22 16:30"
+        updatedAt: "2026.08.22"
       },
       {
         id: 4,
         name: "초정밀 스나이퍼 (극단적 바닥)",
-        memo: "RSI 22 이하 & 볼린저 0.04 이하 극단적 언더슈팅 바닥만 엄선 공략 (건당 +4.4% 수익)",
+        memo: "RSI 22 & 볼린저 0.04 극단적 바닥 매수 (RSI 55 청산)",
         isEmpty: false,
         market: "ALL",
         period: "5Y",
@@ -1021,12 +1017,12 @@
             ]
           }
         ],
-        updatedAt: "2026.08.22 16:35"
+        updatedAt: "2026.08.22"
       },
       {
         id: 5,
         name: "추세전환 골디락스 (주도주 돌파)",
-        memo: "ADX 32 이상에서 -DI 하향돌파 & 거래량 1.2배 터지는 주도주 추세 전환 포착",
+        memo: "ADX 32 & 거래량 120% 주도주 돌파 매수 (RSI 65 청산)",
         isEmpty: false,
         market: "ALL",
         period: "5Y",
@@ -1056,12 +1052,12 @@
             ]
           }
         ],
-        updatedAt: "2026.08.22 17:15"
+        updatedAt: "2026.08.22"
       },
       {
         id: 6,
-        name: "수익 극대화 스나이퍼 (RSI 60 청산)",
-        memo: "스나이퍼 바닥 매수 후 RSI 60 과열권까지 길게 홀딩하여 이익을 극대화하는 세팅",
+        name: "수익 극대화 스나이퍼",
+        memo: "스나이퍼 바닥 매수 후 RSI 60 청산",
         isEmpty: false,
         market: "ALL",
         period: "5Y",
@@ -1091,12 +1087,12 @@
             ]
           }
         ],
-        updatedAt: "2026.08.22 16:40"
+        updatedAt: "2026.08.22"
       },
       {
         id: 7,
-        name: "액티브 업그레이드형 (거래량 필터)",
-        memo: "기존 1번에 5일 평균 거래량(100%) 필터를 추가하여 소외 잡주를 털어낸 액티브 세팅",
+        name: "액티브 업그레이드형",
+        memo: "ADX 30 & 거래량 100% 필터 매수 (RSI 65 청산)",
         isEmpty: false,
         market: "ALL",
         period: "5Y",
@@ -1126,26 +1122,26 @@
             ]
           }
         ],
-        updatedAt: "2026.08.22 17:20"
+        updatedAt: "2026.08.22"
       },
       {
         id: 8,
         name: "전략 8 (비어있음)",
-        memo: "전략 8에 대한 설명이나 아이디어를 남겨보세요.",
+        memo: "",
         isEmpty: true,
         updatedAt: "-"
       },
       {
         id: 9,
         name: "전략 9 (비어있음)",
-        memo: "전략 9에 대한 설명이나 아이디어를 남겨보세요.",
+        memo: "",
         isEmpty: true,
         updatedAt: "-"
       },
       {
         id: 10,
         name: "전략 10 (비어있음)",
-        memo: "전략 10에 대한 설명이나 아이디어를 남겨보세요.",
+        memo: "",
         isEmpty: true,
         updatedAt: "-"
       }
@@ -1262,9 +1258,9 @@
       if (slot.isEmpty || !slot.buyRules || slot.buyRules.length === 0) {
         card.innerHTML = `
           <div style="text-align:center; padding:20px; color:#64748b;">
-            <i class="fa-regular fa-folder-open" style="font-size:1.8rem; margin-bottom:8px; display:block; color:#94a3b8;"></i>
-            <strong>설정된 전략이 없습니다.</strong>
-            <div style="font-size:0.8rem; margin-top:4px;">퀀트 랩에서 이 슬롯에 새로운 퀀트 전략을 저장할 수 있습니다.</div>
+            <i class="fa-regular fa-folder-open" style="font-size:1.6rem; margin-bottom:6px; display:block; color:#94a3b8;"></i>
+            <strong>비어있는 전략 슬롯입니다.</strong>
+            <div style="font-size:0.8rem; margin-top:4px; color:#94a3b8;">퀀트 랩에서 이 슬롯에 새로운 전략을 저장할 수 있습니다.</div>
           </div>
         `;
         return;
@@ -1292,13 +1288,13 @@
       // Format Sell Rules
       const sellGroupsHtml = (slot.sellRules || []).map((g, gIdx) => {
         const rulesList = (g.rules || []).map(r => `
-          <span style="display:inline-block; background:#ffffff; border:1px solid #fecaca; border-radius:6px; padding:3px 8px; font-size:0.82rem; font-weight:600; color:#dc2626; margin:2px;">
+          <span style="display:inline-block; background:#ffffff; border:1px solid #cbd5e1; border-radius:6px; padding:3px 8px; font-size:0.82rem; font-weight:600; color:#1e293b; margin:2px;">
             ${formatRuleShort(r)}
           </span>
         `).join('');
         return `
           <div style="margin-bottom:6px;">
-            <div style="font-size:0.75rem; font-weight:700; color:#dc2626; margin-bottom:2px;">
+            <div style="font-size:0.75rem; font-weight:700; color:#334155; margin-bottom:2px;">
               ${g.name || `매도 조건 ${gIdx + 1}`}
             </div>
             <div style="display:flex; flex-wrap:wrap; gap:4px;">
@@ -1310,39 +1306,38 @@
 
       const stopLossText = slot.stopLoss ? `-${slot.stopLoss}%` : "없음";
       const takeProfitText = slot.takeProfit ? `+${slot.takeProfit}%` : "없음";
-      const cooldownText = slot.cooldownDays ? `${slot.cooldownDays}일` : "없음 (0일)";
+      const cooldownText = slot.cooldownDays ? `${slot.cooldownDays}일` : "없음";
 
       card.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
           <div>
             <div style="font-weight:700; font-size:1.05rem; color:#0f172a;">${slot.name}</div>
-            <div style="font-size:0.82rem; color:#64748b; margin-top:2px;">${slot.memo || '설명 없음'}</div>
+            ${slot.memo ? `<div style="font-size:0.82rem; color:#64748b; margin-top:2px;">${slot.memo}</div>` : ''}
           </div>
-          <span style="font-size:0.72rem; color:#94a3b8; white-space:nowrap;">${slot.updatedAt || '-'}</span>
         </div>
 
         <div style="border-top:1px solid #e2e8f0; padding-top:10px; margin-bottom:10px;">
-          <div style="font-size:0.82rem; font-weight:700; color:#334155; margin-bottom:6px;"><i class="fa-solid fa-bullseye" style="color:#059669;"></i> 매수 진입 룰 (Buy Conditions)</div>
+          <div style="font-size:0.82rem; font-weight:700; color:#334155; margin-bottom:6px;">매수 전략</div>
           ${buyGroupsHtml}
         </div>
 
         <div style="border-top:1px solid #e2e8f0; padding-top:10px; margin-bottom:10px;">
-          <div style="font-size:0.82rem; font-weight:700; color:#334155; margin-bottom:6px;"><i class="fa-solid fa-triangle-exclamation" style="color:#dc2626;"></i> 매도 청산 룰 (Sell Conditions)</div>
+          <div style="font-size:0.82rem; font-weight:700; color:#334155; margin-bottom:6px;">매도 전략</div>
           ${sellGroupsHtml}
         </div>
 
         <div style="border-top:1px solid #e2e8f0; padding-top:10px; display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; text-align:center;">
           <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:6px;">
             <div style="font-size:0.7rem; color:#64748b;">손절선</div>
-            <div style="font-weight:700; font-size:0.9rem; color:#dc2626;">${stopLossText}</div>
+            <div style="font-weight:700; font-size:0.88rem; color:#dc2626;">${stopLossText}</div>
           </div>
           <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:6px;">
             <div style="font-size:0.7rem; color:#64748b;">익절선</div>
-            <div style="font-weight:700; font-size:0.9rem; color:#059669;">${takeProfitText}</div>
+            <div style="font-weight:700; font-size:0.88rem; color:#059669;">${takeProfitText}</div>
           </div>
           <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:6px;">
             <div style="font-size:0.7rem; color:#64748b;">쿨다운</div>
-            <div style="font-weight:700; font-size:0.9rem; color:#0284c7;">${cooldownText}</div>
+            <div style="font-weight:700; font-size:0.88rem; color:#0284c7;">${cooldownText}</div>
           </div>
         </div>
       `;
@@ -1359,7 +1354,7 @@
 
     // Rule Evaluation Helpers
     function checkSingleRule(rule, row, prevRow) {
-      if (!rule || !rule.indicator) return true;
+      if (!rule || !rule.indicator) return false;
       const ind = rule.indicator;
       const cond = rule.condition_type;
       const targetInd = rule.target_indicator;
@@ -1369,8 +1364,8 @@
         if (!r) return NaN;
         switch (indicatorKey) {
           case 'adx': return parseFloat(r.ADX !== undefined && r.ADX !== null ? r.ADX : r.adx);
-          case 'minus_di': return parseFloat(r.Minus_DI !== undefined && r.Minus_DI !== null ? r.Minus_DI : r.minus_di);
-          case 'plus_di': return parseFloat(r.Plus_DI !== undefined && r.Plus_DI !== null ? r.Plus_DI : r.plus_di);
+          case 'minus_di': return parseFloat(r.Minus_DI !== undefined && r.Minus_DI !== null ? r.Minus_DI : (r.minus_di !== undefined ? r.minus_di : r.minusDi));
+          case 'plus_di': return parseFloat(r.Plus_DI !== undefined && r.Plus_DI !== null ? r.Plus_DI : (r.plus_di !== undefined ? r.plus_di : r.plusDi));
           case 'rsi': return parseFloat(r.RSI !== undefined && r.RSI !== null ? r.RSI : r.rsi);
           case 'bb_pct': return parseFloat(r.b_band_pct !== undefined && r.b_band_pct !== null && r.b_band_pct !== '-' ? r.b_band_pct : (r.BB_Pct !== undefined ? r.BB_Pct : r['BB_%b']));
           case 'macd': return parseFloat(r.macd !== undefined && r.macd !== null ? r.macd : r.MACD);
@@ -1378,7 +1373,7 @@
           case 'stoch_k': return parseFloat(r.stoch_k !== undefined && r.stoch_k !== null ? r.stoch_k : r.Stoch_K);
           case 'stoch_d': return parseFloat(r.stoch_d !== undefined && r.stoch_d !== null ? r.stoch_d : r.Stoch_D);
           case 'disparity20': return parseFloat(r.disparity20 !== undefined && r.disparity20 !== null ? r.disparity20 : r.Disparity20);
-          case 'volume_ratio': return parseFloat(r.volume_ratio !== undefined && r.volume_ratio !== null ? r.volume_ratio : (r.VolumeRatio !== undefined ? r.VolumeRatio : r.VR));
+          case 'volume_ratio': return parseFloat(r.VolumeRatio !== undefined && r.VolumeRatio !== null && r.VolumeRatio !== '-' ? r.VolumeRatio : (r.volume_ratio !== undefined ? r.volume_ratio : r.VR));
           default: return NaN;
         }
       }
@@ -1386,7 +1381,7 @@
       const currVal = getIndicatorValue(ind, row);
       if (isNaN(currVal)) return false;
 
-      const prevVal = prevRow ? getIndicatorValue(ind, prevRow) : currVal;
+      const prevVal = prevRow ? getIndicatorValue(ind, prevRow) : NaN;
       const targetVal = targetInd ? getIndicatorValue(targetInd, row) : ruleVal;
       const prevTargetVal = (targetInd && prevRow) ? getIndicatorValue(targetInd, prevRow) : ruleVal;
 
@@ -1395,19 +1390,19 @@
         case 'lte_value': return currVal <= ruleVal;
         case 'gt_value': return currVal > ruleVal;
         case 'lt_value': return currVal < ruleVal;
-        case 'cross_above_value': return prevVal <= ruleVal && currVal > ruleVal;
-        case 'cross_below_value': return prevVal >= ruleVal && currVal < ruleVal;
-        case 'turn_up': return prevVal <= 0 && currVal > 0;
-        case 'turn_down': return prevVal >= 0 && currVal < 0;
+        case 'cross_above_value': return (!isNaN(prevVal) ? (prevVal <= ruleVal && currVal > ruleVal) : (currVal > ruleVal));
+        case 'cross_below_value': return (!isNaN(prevVal) ? (prevVal >= ruleVal && currVal < ruleVal) : (currVal < ruleVal));
+        case 'turn_up': return !isNaN(prevVal) && prevVal <= 0 && currVal > 0;
+        case 'turn_down': return !isNaN(prevVal) && prevVal >= 0 && currVal < 0;
         case 'gt_indicator': return !isNaN(targetVal) && currVal > targetVal;
         case 'lt_indicator': return !isNaN(targetVal) && currVal < targetVal;
         case 'gte_indicator': return !isNaN(targetVal) && currVal >= targetVal;
         case 'lte_indicator': return !isNaN(targetVal) && currVal <= targetVal;
         case 'cross_above_indicator':
-          return !isNaN(targetVal) && !isNaN(prevVal) && !isNaN(prevTargetVal) && prevVal <= prevTargetVal && currVal > targetVal;
+          return !isNaN(targetVal) && (!isNaN(prevVal) && !isNaN(prevTargetVal) ? (prevVal <= prevTargetVal && currVal > targetVal) : (currVal > targetVal));
         case 'cross_below_indicator':
-          return !isNaN(targetVal) && !isNaN(prevVal) && !isNaN(prevTargetVal) && prevVal >= prevTargetVal && currVal < targetVal;
-        default: return true;
+          return !isNaN(targetVal) && (!isNaN(prevVal) && !isNaN(prevTargetVal) ? (prevVal >= prevTargetVal && currVal < targetVal) : (currVal < targetVal));
+        default: return false;
       }
     }
 
@@ -1480,26 +1475,6 @@
               ClosePrice: item.ClosePrice || item.price || item.close,
               Reason: `[${activeSlot.name}] 전략 매수 조건 충족`
             });
-          } else {
-            // Check for '진입대기 (관심종목)'
-            const rawStatus = String(item.Status || item.status || '');
-            const rsiVal = parseFloat(item.RSI || item.rsi);
-            const adxVal = parseFloat(item.ADX || item.adx);
-            if (rawStatus.includes('관심종목') || (!isNaN(rsiVal) && rsiVal <= 30) || (!isNaN(adxVal) && adxVal >= 28)) {
-              evaluatedBuyCandidates.push({
-                Date: item.Date || item.date || item.Timestamp || new Date().toISOString(),
-                Name: item.Name || item.name,
-                Ticker: tk,
-                Stage: '진입대기',
-                ADX: item.ADX || item.adx,
-                Minus_DI: item.Minus_DI || item.minus_di,
-                Plus_DI: item.Plus_DI || item.plus_di,
-                RSI: item.RSI || item.rsi,
-                b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
-                ClosePrice: item.ClosePrice || item.price || item.close,
-                Reason: `지표 접근 중 (RSI: ${item.RSI || item.rsi}, ADX: ${item.ADX || item.adx}) - 진입 대기`
-              });
-            }
           }
         });
       }
@@ -1592,8 +1567,7 @@
       renderKosdaqStocks(latestKosdaq);
 
       // Update Metric Card Numbers
-      const buyRealCount = finalBuyList.filter(item => String(item.Stage || item.stage || '').includes('전략매수')).length;
-      document.getElementById('count-buy').textContent = buyRealCount > 0 ? buyRealCount : finalBuyList.length;
+      document.getElementById('count-buy').textContent = finalBuyList.length;
       document.getElementById('count-sell').textContent = evaluatedSellSignals.length;
       document.getElementById('count-holdings').textContent = holdingsData.length;
       document.getElementById('count-profit').textContent = profitCount;

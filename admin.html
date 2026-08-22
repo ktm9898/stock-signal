@@ -2529,7 +2529,7 @@
       {
         id: 1,
         name: "기존 전략 1번 (추세 원형)",
-        memo: "ADX 30 이상에서 -DI가 ADX를 하향 돌파할 때 진입하는 오리지널 추세 추종 전략",
+        memo: "ADX 30 이상 & -DI 하향돌파 진입 (RSI 65 청산)",
         isEmpty: false,
         market: "ALL",
         period: "5Y",
@@ -2558,12 +2558,12 @@
             ]
           }
         ],
-        updatedAt: "2026.08.22 17:00"
+        updatedAt: "2026.08.22"
       },
       {
         id: 2,
         name: "사용자 하이브리드 (올웨더 복합)",
-        memo: "스나이퍼 바닥반등 OR ADX 33 돌파 복합 포트폴리오 (RSI 55 청산, 손절/익절 없음)",
+        memo: "스나이퍼 바닥 OR ADX 33 돌파 복합 (RSI 55 청산)",
         isEmpty: false,
         market: "ALL",
         period: "5Y",
@@ -2576,7 +2576,7 @@
         buyRules: [
           {
             id: "bg_1",
-            name: "매수 조건 1 (스나이퍼 바닥)",
+            name: "매수 조건 1",
             rules: [
               { indicator: "rsi", condition_type: "lte_value", value: 24.0 },
               { indicator: "bb_pct", condition_type: "lte_value", value: 0.05 },
@@ -2585,7 +2585,7 @@
           },
           {
             id: "bg_2",
-            name: "매수 조건 2 (추세전환 돌파)",
+            name: "매수 조건 2",
             rules: [
               { indicator: "adx", condition_type: "gte_value", value: 33.0 },
               { indicator: "minus_di", condition_type: "cross_below_indicator", target_indicator: "adx", value: 0 },
@@ -2602,12 +2602,12 @@
             ]
           }
         ],
-        updatedAt: "2026.08.22 17:35"
+        updatedAt: "2026.08.22"
       },
       {
         id: 3,
         name: "고승률 스나이퍼 (바닥 반등)",
-        memo: "RSI 24 이하 & 볼린저 0.05 이하 & 거래량 100% 이상 바닥 투매 포착 후 반등 익절",
+        memo: "RSI 24 & 볼린저 0.05 바닥 매수 (RSI 55 청산)",
         isEmpty: false,
         market: "ALL",
         period: "5Y",
@@ -2637,12 +2637,12 @@
             ]
           }
         ],
-        updatedAt: "2026.08.22 16:30"
+        updatedAt: "2026.08.22"
       },
       {
         id: 4,
         name: "초정밀 스나이퍼 (극단적 바닥)",
-        memo: "RSI 22 이하 & 볼린저 0.04 이하 극단적 언더슈팅 바닥만 엄선 공략 (건당 +4.4% 수익)",
+        memo: "RSI 22 & 볼린저 0.04 극단적 바닥 매수 (RSI 55 청산)",
         isEmpty: false,
         market: "ALL",
         period: "5Y",
@@ -2672,12 +2672,12 @@
             ]
           }
         ],
-        updatedAt: "2026.08.22 16:35"
+        updatedAt: "2026.08.22"
       },
       {
         id: 5,
         name: "추세전환 골디락스 (주도주 돌파)",
-        memo: "ADX 32 이상에서 -DI 하향돌파 & 거래량 1.2배 터지는 주도주 추세 전환 포착",
+        memo: "ADX 32 & 거래량 120% 주도주 돌파 매수 (RSI 65 청산)",
         isEmpty: false,
         market: "ALL",
         period: "5Y",
@@ -2707,12 +2707,12 @@
             ]
           }
         ],
-        updatedAt: "2026.08.22 17:15"
+        updatedAt: "2026.08.22"
       },
       {
         id: 6,
-        name: "수익 극대화 스나이퍼 (RSI 60 청산)",
-        memo: "스나이퍼 바닥 매수 후 RSI 60 과열권까지 길게 홀딩하여 이익을 극대화하는 세팅",
+        name: "수익 극대화 스나이퍼",
+        memo: "스나이퍼 바닥 매수 후 RSI 60 청산",
         isEmpty: false,
         market: "ALL",
         period: "5Y",
@@ -2742,12 +2742,12 @@
             ]
           }
         ],
-        updatedAt: "2026.08.22 16:40"
+        updatedAt: "2026.08.22"
       },
       {
         id: 7,
-        name: "액티브 업그레이드형 (거래량 필터)",
-        memo: "기존 1번에 5일 평균 거래량(100%) 필터를 추가하여 소외 잡주를 털어낸 액티브 세팅",
+        name: "액티브 업그레이드형",
+        memo: "ADX 30 & 거래량 100% 필터 매수 (RSI 65 청산)",
         isEmpty: false,
         market: "ALL",
         period: "5Y",
@@ -2777,26 +2777,26 @@
             ]
           }
         ],
-        updatedAt: "2026.08.22 17:20"
+        updatedAt: "2026.08.22"
       },
       {
         id: 8,
         name: "전략 8 (비어있음)",
-        memo: "전략 8에 대한 설명이나 아이디어를 남겨보세요.",
+        memo: "",
         isEmpty: true,
         updatedAt: "-"
       },
       {
         id: 9,
         name: "전략 9 (비어있음)",
-        memo: "전략 9에 대한 설명이나 아이디어를 남겨보세요.",
+        memo: "",
         isEmpty: true,
         updatedAt: "-"
       },
       {
         id: 10,
         name: "전략 10 (비어있음)",
-        memo: "전략 10에 대한 설명이나 아이디어를 남겨보세요.",
+        memo: "",
         isEmpty: true,
         updatedAt: "-"
       }
