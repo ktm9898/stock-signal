@@ -2525,6 +2525,7 @@
     const GAS_WEBAPP_URL_ADMIN = "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
     const GAS_WEBAPP_URL = GAS_WEBAPP_URL_ADMIN;
     const LOCAL_SLOTS_KEY = "quant_strategy_slots_v1";
+    const ACTIVE_STRATEGY_KEY = "active_dashboard_strategy_index";
 
     function getStoredPin() {
       return localStorage.getItem('stock_signal_pin') || sessionStorage.getItem('stock_signal_pin') || '';
@@ -2532,16 +2533,75 @@
 
     const DEFAULT_STRATEGY_PRESETS = Array.from({ length: 10 }, (_, i) => ({
       id: i + 1,
-      name: `전략 ${i + 1} (비어있음)`,
-      memo: "",
-      isEmpty: true,
+      name: i === 0 ? "기존 전략 1번 (추세 원형)" : `전략 ${i + 1}`,
+      memo: i === 0 ? "ADX 30 이상 추세 구간에서 -DI 하향 돌파 시 진입하는 1단계 추세 추종 전략" : "",
+      isEmpty: i > 0,
+      market: "ALL",
+      period: "5Y",
+      startDate: "",
+      endDate: "",
+      stopLoss: null,
+      takeProfit: null,
+      tradeAmount: 1000000,
+      buyRules: i === 0 ? [
+        {
+          group_id: 1,
+          rules: [
+            { indicator: 'adx', condition_type: 'gte_value', value: 30 },
+            { indicator: 'minus_di', condition_type: 'cross_below_indicator', target_indicator: 'adx', value: '' }
+          ]
+        }
+      ] : [],
+      sellRules: i === 0 ? [
+        {
+          group_id: 1,
+          rules: [
+            { indicator: 'rsi', condition_type: 'gte_value', value: 65 }
+          ]
+        }
+      ] : [],
       updatedAt: "-"
     }));
 
     let strategySlots = JSON.parse(JSON.stringify(DEFAULT_STRATEGY_PRESETS));
 
+    function applySlotToEditor(slot) {
+      if (!slot || slot.isEmpty || !slot.buyRules || slot.buyRules.length === 0) return;
+
+      currentBuyGroups = normalizeRulesToGroups(slot.buyRules, 'buy');
+      currentSellGroups = normalizeRulesToGroups(slot.sellRules || [], 'sell');
+      renderRules();
+
+      if (slot.market && document.getElementById('opt-backtest-market')) {
+        document.getElementById('opt-backtest-market').value = slot.market;
+      }
+      if (slot.period && document.getElementById('opt-backtest-period')) {
+        document.getElementById('opt-backtest-period').value = slot.period;
+        if (typeof toggleCustomDateInputs === 'function') toggleCustomDateInputs(slot.period);
+      }
+      if (slot.startDate && document.getElementById('opt-start-date')) {
+        document.getElementById('opt-start-date').value = formatToDateOnly(slot.startDate, '2021-01-04');
+      }
+      if (slot.endDate && document.getElementById('opt-end-date')) {
+        document.getElementById('opt-end-date').value = formatToDateOnly(slot.endDate, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-20');
+      }
+      if (slot.stopLoss !== undefined && document.getElementById('opt-stop-loss')) {
+        document.getElementById('opt-stop-loss').value = slot.stopLoss !== null ? slot.stopLoss : "";
+      }
+      if (slot.takeProfit !== undefined && document.getElementById('opt-take-profit')) {
+        document.getElementById('opt-take-profit').value = slot.takeProfit !== null ? slot.takeProfit : "";
+      }
+      if (document.getElementById('opt-cooldown-days')) {
+        document.getElementById('opt-cooldown-days').value = (slot.cooldownDays !== undefined && slot.cooldownDays !== null) ? slot.cooldownDays : "";
+      }
+      if (slot.tradeAmount && document.getElementById('opt-initial-capital')) {
+        document.getElementById('opt-initial-capital').value = slot.tradeAmount;
+      }
+    }
+
     function initStrategySlots() {
       let slots = JSON.parse(JSON.stringify(DEFAULT_STRATEGY_PRESETS));
+      let activeIdx = 0;
       try {
         const local = localStorage.getItem(LOCAL_SLOTS_KEY);
         if (local) {
@@ -2550,9 +2610,21 @@
             slots = parsed;
           }
         }
+        const savedActive = localStorage.getItem(ACTIVE_STRATEGY_KEY);
+        if (savedActive !== null) {
+          const parsedIdx = parseInt(savedActive, 10);
+          if (parsedIdx >= 0 && parsedIdx < 10) activeIdx = parsedIdx;
+        }
       } catch(e) {}
 
       strategySlots = slots;
+
+      // Automatically load the locally cached active strategy immediately on startup!
+      const initialActiveSlot = strategySlots[activeIdx] || strategySlots[0];
+      if (initialActiveSlot && !initialActiveSlot.isEmpty && initialActiveSlot.buyRules && initialActiveSlot.buyRules.length > 0) {
+        applySlotToEditor(initialActiveSlot);
+      }
+
       fetchGoogleSheetSlots();
     }
 
@@ -2563,6 +2635,21 @@
         if (data && data.success && Array.isArray(data.slots) && data.slots.length === 10) {
           strategySlots = data.slots;
           localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
+
+          let activeIdx = 0;
+          if (data.activeSlotId) {
+            activeIdx = data.activeSlotId - 1;
+            localStorage.setItem(ACTIVE_STRATEGY_KEY, String(activeIdx));
+          } else {
+            const savedActive = localStorage.getItem(ACTIVE_STRATEGY_KEY);
+            if (savedActive !== null) activeIdx = parseInt(savedActive, 10) || 0;
+          }
+
+          // Automatically sync and apply latest active strategy from Google Sheets!
+          const activeSlot = strategySlots[activeIdx] || strategySlots[0];
+          if (activeSlot && !activeSlot.isEmpty && activeSlot.buyRules && activeSlot.buyRules.length > 0) {
+            applySlotToEditor(activeSlot);
+          }
         }
       } catch (err) {
         console.warn("Google Sheets Sync Fallback to localStorage:", err);
@@ -2687,27 +2774,7 @@
         return;
       }
 
-      currentBuyGroups = normalizeRulesToGroups(slot.buyRules, 'buy');
-      currentSellGroups = normalizeRulesToGroups(slot.sellRules, 'sell');
-      renderRules();
-
-      if (slot.market) document.getElementById('opt-backtest-market').value = slot.market;
-      if (slot.period) {
-        document.getElementById('opt-backtest-period').value = slot.period;
-        toggleCustomDateInputs(slot.period);
-      }
-      if (slot.startDate) {
-        document.getElementById('opt-start-date').value = formatToDateOnly(slot.startDate, '2021-01-04');
-      }
-      if (slot.endDate) {
-        document.getElementById('opt-end-date').value = formatToDateOnly(slot.endDate, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-20');
-      }
-      if (slot.stopLoss !== undefined) document.getElementById('opt-stop-loss').value = slot.stopLoss !== null ? slot.stopLoss : "";
-      if (slot.takeProfit !== undefined) document.getElementById('opt-take-profit').value = slot.takeProfit !== null ? slot.takeProfit : "";
-      if (slot.cooldownDays !== undefined) document.getElementById('opt-cooldown-days').value = slot.cooldownDays !== null ? slot.cooldownDays : "";
-      else if (document.getElementById('opt-cooldown-days')) document.getElementById('opt-cooldown-days').value = "";
-      if (slot.tradeAmount) document.getElementById('opt-initial-capital').value = slot.tradeAmount;
-
+      applySlotToEditor(slot);
       closeLoadModal();
       alert(`[전략 ${idx + 1}: ${slot.name}] 설정을 불러왔습니다!`);
     }
