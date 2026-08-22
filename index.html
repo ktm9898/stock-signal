@@ -1228,13 +1228,8 @@
         });
       }
 
-      // For Slot 1 (Original Trend Strategy), if Google Sheet has official Buy_Candidates, prioritize it
-      let finalBuyList = evaluatedBuyCandidates;
-      if (activeSlot.id === 1 && buyCandidatesData && buyCandidatesData.length > 0) {
-        finalBuyList = buyCandidatesData;
-      } else if (!isCustomStrategy) {
-        finalBuyList = buyCandidatesData;
-      }
+      // Unified evaluation for all slots (1~10)
+      const finalBuyList = isCustomStrategy ? evaluatedBuyCandidates : (buyCandidatesData || []);
 
       // 2. Evaluate Holdings & Sell Alerts
       const evaluatedHoldingsStatus = [];
