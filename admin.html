@@ -641,7 +641,7 @@
           <div style="font-size: 0.80rem; font-weight: 700; color: #334155; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
             <i class="fa-solid fa-shield-halved" style="color: #64748b;"></i> 손절 / 익절 청산 조건
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
             <div>
               <label style="display: block; font-size: 0.76rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
                 손절선 (-%)
@@ -653,6 +653,12 @@
                 익절선 (+%)
               </label>
               <input type="number" id="opt-take-profit" class="form-input" placeholder="예: 15 (+15% 도달 시 청산)" style="width: 100%;">
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.76rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                손절 후 재매수 금지 (일)
+              </label>
+              <input type="number" id="opt-cooldown-days" class="form-input" placeholder="예: 20 (20일간 재매수 방지)" style="width: 100%;">
             </div>
           </div>
         </div>
@@ -1365,11 +1371,19 @@
       if (stopLossEl) stopLossEl.value = 20;
       const takeProfitEl = document.getElementById('opt-take-profit');
       if (takeProfitEl) takeProfitEl.value = "";
+      const cooldownEl = document.getElementById('opt-cooldown-days');
+      if (cooldownEl) cooldownEl.value = 20;
       renderRules();
     }
 
     function resetSellRules() {
       currentSellGroups = [];
+      const stopLossEl = document.getElementById('opt-stop-loss');
+      if (stopLossEl) stopLossEl.value = "";
+      const takeProfitEl = document.getElementById('opt-take-profit');
+      if (takeProfitEl) takeProfitEl.value = "";
+      const cooldownEl = document.getElementById('opt-cooldown-days');
+      if (cooldownEl) cooldownEl.value = "";
       renderRules();
     }
 
@@ -1633,6 +1647,7 @@
         const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 1000000;
         const stopLossVal = parseFloat(document.getElementById('opt-stop-loss').value) || null;
         const takeProfitVal = parseFloat(document.getElementById('opt-take-profit').value) || null;
+        const cooldownDaysVal = document.getElementById('opt-cooldown-days')?.value ? parseInt(document.getElementById('opt-cooldown-days').value, 10) : 0;
 
         const badge = document.getElementById('report-strat-name');
         if (badge) {
@@ -1697,12 +1712,21 @@
           let entryPrice = 0;
           let entryDate = "";
           let entrySignalDate = "";
+          let lastStopLossDate = "";
 
           for (let i = 0; i < rows.length - 1; i++) {
             const curr = rows[i];
             const nextDay = rows[i + 1];
 
-            const isBuySignal = evaluateBuyCondition(curr, rows[i - 1]);
+            let isCooldown = false;
+            if (cooldownDaysVal > 0 && lastStopLossDate) {
+              const diffDays = Math.round((new Date(curr.date) - new Date(lastStopLossDate)) / (1000 * 60 * 60 * 24));
+              if (diffDays < cooldownDaysVal) {
+                isCooldown = true;
+              }
+            }
+
+            const isBuySignal = !isCooldown && evaluateBuyCondition(curr, rows[i - 1]);
 
             if (!inPosition) {
               if (isBuySignal && nextDay.open > 0) {
@@ -1721,6 +1745,7 @@
               if (stopLossVal !== null && paperReturnPct <= -Math.abs(stopLossVal)) {
                 isExit = true;
                 triggerType = "STOP_LOSS";
+                lastStopLossDate = nextDay.date;
               } else if (takeProfitVal !== null && paperReturnPct >= Math.abs(takeProfitVal)) {
                 isExit = true;
                 triggerType = "TAKE_PROFIT";
@@ -2473,6 +2498,7 @@
 
       const stopLossVal = document.getElementById('opt-stop-loss').value ? parseFloat(document.getElementById('opt-stop-loss').value) : null;
       const takeProfitVal = document.getElementById('opt-take-profit').value ? parseFloat(document.getElementById('opt-take-profit').value) : null;
+      const cooldownDaysVal = document.getElementById('opt-cooldown-days')?.value ? parseInt(document.getElementById('opt-cooldown-days').value, 10) : null;
       const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 1000000;
 
       const now = new Date();
@@ -2489,6 +2515,7 @@
         endDate: formatToDateOnly(document.getElementById('opt-end-date')?.value, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-20'),
         stopLoss: stopLossVal,
         takeProfit: takeProfitVal,
+        cooldownDays: cooldownDaysVal,
         tradeAmount: tradeAmount,
         buyRules: JSON.parse(JSON.stringify(currentBuyGroups)),
         sellRules: JSON.parse(JSON.stringify(currentSellGroups)),
@@ -2569,6 +2596,8 @@
       }
       if (slot.stopLoss !== undefined) document.getElementById('opt-stop-loss').value = slot.stopLoss !== null ? slot.stopLoss : "";
       if (slot.takeProfit !== undefined) document.getElementById('opt-take-profit').value = slot.takeProfit !== null ? slot.takeProfit : "";
+      if (slot.cooldownDays !== undefined) document.getElementById('opt-cooldown-days').value = slot.cooldownDays !== null ? slot.cooldownDays : "";
+      else if (document.getElementById('opt-cooldown-days')) document.getElementById('opt-cooldown-days').value = "";
       if (slot.tradeAmount) document.getElementById('opt-initial-capital').value = slot.tradeAmount;
 
       closeLoadModal();
@@ -2638,11 +2667,12 @@
       } catch(e) {}
     }
 
-    function simulateTradesForRules(buyRules, sellRules, buyOp, sellOp, stopLoss, takeProfit, market, startDateStr, endDateStr, tradeAmount) {
+    function simulateTradesForRules(buyRules, sellRules, buyOp, sellOp, stopLoss, takeProfit, cooldownDays, market, startDateStr, endDateStr, tradeAmount) {
       if (!REAL_PRELOADED_DATA) return [];
       const allExecutedTrades = [];
       const feeRate = 0.0015 + 0.0010;
       const tickers = Object.keys(REAL_PRELOADED_DATA);
+      const cooldownVal = cooldownDays ? parseInt(cooldownDays, 10) : 0;
 
       const normalizedBuyGroups = normalizeRulesToGroups(buyRules, 'buy');
       const normalizedSellGroups = normalizeRulesToGroups(sellRules, 'sell');
@@ -2664,12 +2694,21 @@
         let entryPrice = 0;
         let entryDate = "";
         let entrySignalDate = "";
+        let lastStopLossDate = "";
 
         for (let i = 0; i < rows.length - 1; i++) {
           const curr = rows[i];
           const nextDay = rows[i + 1];
 
-          const isBuySignal = normalizedBuyGroups.length > 0 && normalizedBuyGroups.some(group => 
+          let isCooldown = false;
+          if (cooldownVal > 0 && lastStopLossDate) {
+            const diffDays = Math.round((new Date(curr.date) - new Date(lastStopLossDate)) / (1000 * 60 * 60 * 24));
+            if (diffDays < cooldownVal) {
+              isCooldown = true;
+            }
+          }
+
+          const isBuySignal = !isCooldown && normalizedBuyGroups.length > 0 && normalizedBuyGroups.some(group => 
             group.rules && group.rules.length > 0 && group.rules.every(r => checkSingleRule(r, curr, rows[i - 1]))
           );
 
@@ -2693,6 +2732,7 @@
             if (stopLoss !== null && stopLoss !== undefined && stopLoss !== "" && paperReturnPct <= -Math.abs(Number(stopLoss))) {
               isExit = true;
               triggerType = "STOP_LOSS";
+              lastStopLossDate = nextDay.date;
             } else if (takeProfit !== null && takeProfit !== undefined && takeProfit !== "" && paperReturnPct >= Math.abs(Number(takeProfit))) {
               isExit = true;
               triggerType = "TAKE_PROFIT";
@@ -2772,7 +2812,7 @@
 
       const selectedSlots = Array.from(checks).map(c => parseInt(c.value)).map(idx => strategySlots[idx]).filter(s => s && !s.isEmpty && s.buyRules);
       if (selectedSlots.length === 0) {
-        alert("선택된 슬롯 중 저장된 유효한 전략이 없습니다.");
+        alert("선택된 전략 중 유효한 전략 설정이 없습니다.");
         return;
       }
 
@@ -2837,6 +2877,7 @@
           slot.sellOperator || 'OR', 
           slot.stopLoss, 
           slot.takeProfit, 
+          slot.cooldownDays,
           slotMarket, 
           startDateStr, 
           endDateStr, 
