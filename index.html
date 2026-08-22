@@ -139,11 +139,11 @@
       position: absolute;
       top: 10px;
       left: 14px;
-      font-size: 0.80rem; font-weight: 600; color: var(--text-sub); white-space: nowrap;
-      display: flex; align-items: center; gap: 3px;
+      font-size: 0.90rem; font-weight: 700; color: #334155; white-space: nowrap;
+      display: flex; align-items: center; gap: 4px;
     }
     .metric-value {
-      font-size: 2.1rem; font-weight: 800; color: #0f172a; line-height: 1;
+      font-size: 2.25rem; font-weight: 800; color: #0f172a; line-height: 1;
       display: flex; align-items: baseline; justify-content: center; text-align: center; width: 100%;
       margin-top: 6px;
     }
@@ -159,7 +159,7 @@
       margin-left: 6px;
       bottom: 3px;
       white-space: nowrap;
-      font-size: 0.82rem;
+      font-size: 0.88rem;
       font-weight: 600;
       color: var(--text-sub);
     }
@@ -612,7 +612,9 @@
       }
       .metric-title {
         position: static;
-        font-size: 0.70rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: #334155;
         margin-bottom: 0;
         display: flex;
         align-items: center;
@@ -621,7 +623,7 @@
         width: 100%;
       }
       .metric-value {
-        font-size: 1.35rem;
+        font-size: 1.45rem;
         font-weight: 800;
         display: flex;
         flex-direction: column;
@@ -643,7 +645,7 @@
         position: static;
         margin-left: 0;
         margin-top: 1px;
-        font-size: 0.68rem;
+        font-size: 0.72rem;
         font-weight: 600;
         color: var(--text-sub);
         display: block;
@@ -655,13 +657,13 @@
       .label-desktop { display: none !important; }
       .label-mobile { display: inline !important; }
 
-      /* Mobile App Bottom Fixed Navigation Bar (Toss / Native App Style: 4 Tabs) */
+      /* Mobile App Bottom Fixed Navigation Bar (2 Market Tabs) */
       .tabs {
         position: fixed !important;
         bottom: 0 !important;
         left: 0 !important;
         width: 100% !important;
-        height: 56px !important;
+        height: 52px !important;
         background: rgba(255, 255, 255, 0.98) !important;
         backdrop-filter: blur(12px) !important;
         border-top: 1px solid #e2e8f0 !important;
@@ -670,34 +672,38 @@
         display: flex !important;
         justify-content: space-around !important;
         align-items: center !important;
-        padding: 2px !important;
+        padding: 4px 8px !important;
+        gap: 8px !important;
         margin: 0 !important;
         box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06) !important;
+        box-sizing: border-box !important;
       }
       .tab-btn {
         flex: 1 1 0px !important;
         min-width: 0 !important;
         display: flex !important;
-        flex-direction: column !important;
+        flex-direction: row !important;
         align-items: center !important;
         justify-content: center !important;
-        gap: 2px !important;
-        font-size: 0.65rem !important;
-        padding: 4px 0 !important;
-        border-radius: 6px !important;
-        border: none !important;
-        background: transparent !important;
+        gap: 6px !important;
+        font-size: 0.90rem !important;
+        font-weight: 700 !important;
+        padding: 8px 0 !important;
+        border-radius: 8px !important;
+        border: 1px solid #e2e8f0 !important;
+        background: #f8fafc !important;
         color: #64748b !important;
         white-space: nowrap !important;
       }
       .tab-btn i {
-        font-size: 1.05rem !important;
+        font-size: 0.95rem !important;
       }
       .tab-btn.active {
         color: #2563eb !important;
         background: #eff6ff !important;
+        border-color: #bfdbfe !important;
         font-weight: 700 !important;
-        box-shadow: none !important;
+        box-shadow: 0 1px 3px rgba(37, 99, 235, 0.1) !important;
       }
 
       .mobile-strategy-bar {
@@ -799,7 +805,7 @@
       </div>
     </div>
 
-    <!-- Navigation & Strategy Row (PC: Strategy on Left, 5 Tabs on Right) -->
+    <!-- Navigation & Strategy Row (PC: Strategy on Left, Market Tabs on Right) -->
     <div class="nav-control-row">
       <!-- Desktop Strategy Bar on Left -->
       <div class="desktop-strategy-bar" onclick="openStrategyDetailModal()" title="클릭하여 전략 선택 및 조건 확인">
@@ -807,20 +813,8 @@
         <span class="desktop-strategy-name" id="current-strategy-name-desktop">전략 1. 기존 전략 1번</span>
       </div>
 
-      <!-- 5 Standalone Tabs Aligned to Right on PC -->
+      <!-- Market Tabs Aligned to Right on PC -->
       <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('buy-tab')">
-          <i class="fa-solid fa-cart-shopping"></i>
-          <span>매수 신호</span>
-        </button>
-        <button class="tab-btn" onclick="switchTab('sell-signals-tab')">
-          <i class="fa-solid fa-triangle-exclamation"></i>
-          <span>매도 신호</span>
-        </button>
-        <button class="tab-btn" onclick="switchTab('holdings-tab')">
-          <i class="fa-solid fa-briefcase"></i>
-          <span>보유 종목</span>
-        </button>
         <button class="tab-btn" onclick="switchTab('all-stocks-tab')">
           <i class="fa-solid fa-list-ul"></i>
           <span>코스피200</span>
