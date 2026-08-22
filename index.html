@@ -137,17 +137,15 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
+      width: 100%;
     }
     .metric-title {
       font-size: 0.78rem; font-weight: 600; color: var(--text-sub); white-space: nowrap; margin-bottom: 2px;
-      display: flex; align-items: center; justify-content: center; text-align: center; gap: 3px;
+      display: flex; align-items: center; justify-content: flex-start; text-align: left; gap: 3px;
     }
     .metric-value {
       font-size: 1.35rem; font-weight: 700; color: #0f172a; line-height: 1.2;
-      display: flex; align-items: baseline; justify-content: center; text-align: center;
+      display: flex; align-items: baseline; justify-content: center; text-align: center; width: 100%;
     }
     .metric-icon {
       width: 32px; height: 32px; border-radius: 8px; background: #eff6ff;
@@ -582,12 +580,11 @@
         margin-bottom: 12px;
       }
       .metric-card {
-        padding: 8px 4px;
+        padding: 8px 6px;
         border-radius: 10px;
         flex-direction: column;
-        align-items: center;
+        align-items: flex-start;
         justify-content: center;
-        text-align: center;
         gap: 2px;
       }
       .metric-title {
@@ -595,8 +592,9 @@
         margin-bottom: 2px;
         display: flex;
         align-items: center;
-        justify-content: center;
-        text-align: center;
+        justify-content: flex-start;
+        text-align: left;
+        width: 100%;
       }
       .metric-value {
         font-size: 1.15rem;
@@ -604,6 +602,7 @@
         align-items: baseline;
         justify-content: center;
         text-align: center;
+        width: 100%;
         flex-wrap: wrap;
       }
       .metric-icon { display: none; }
