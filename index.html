@@ -494,7 +494,12 @@
       <div class="metric-card clickable active-tab-card" id="metric-card-buy" onclick="switchTab('buy-tab')" title="매수 신호 목록으로 이동">
         <div>
           <div class="metric-title">매수 신호 <i class="fa-solid fa-arrow-right" style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
-          <div class="metric-value" id="count-buy" style="color: var(--accent-green);">0</div>
+          <div class="metric-value">
+            <span id="count-buy" style="color: var(--accent-green);">0</span>
+            <span id="count-watch-wrapper" style="font-size: 0.78rem; font-weight: 500; color: var(--text-sub); margin-left: 4px; display: none;">
+              (<span class="label-desktop">관심 </span><span id="count-watch" style="color:#d97706; font-weight:700;">0</span>)
+            </span>
+          </div>
         </div>
         <div class="metric-icon"><i class="fa-solid fa-bullseye"></i></div>
       </div>
@@ -1275,13 +1280,15 @@
 
       // Combine official buyCandidatesData (from Google Sheets) + real-time evaluated candidates + today's watchlist
       const combinedBuyMap = new Map();
-      (buyCandidatesData || []).forEach(item => {
-        const tk = formatTicker(item.Ticker || item.ticker || item.code);
-        combinedBuyMap.set(tk, {
-          ...item,
-          Stage: item.Stage || item.stage || '전략매수'
+      if (activeSlot.id === 1) {
+        (buyCandidatesData || []).forEach(item => {
+          const tk = formatTicker(item.Ticker || item.ticker || item.code);
+          combinedBuyMap.set(tk, {
+            ...item,
+            Stage: item.Stage || item.stage || '전략매수'
+          });
         });
-      });
+      }
       evaluatedBuyCandidates.forEach(item => {
         const tk = formatTicker(item.Ticker || item.ticker || item.code);
         combinedBuyMap.set(tk, item);
@@ -1396,8 +1403,16 @@
       renderAllStocks(latestKospi);
       renderKosdaqStocks(latestKosdaq);
 
-      // Update Metric Card Numbers
-      document.getElementById('count-buy').textContent = finalBuyList.length;
+      // Update Metric Card Numbers (Count genuine buy signals separately from watchlist)
+      const genuineBuyCount = finalBuyList.filter(item => !String(item.Stage || item.stage || '').includes('관심종목')).length;
+      const watchCount = finalBuyList.length - genuineBuyCount;
+
+      document.getElementById('count-buy').textContent = genuineBuyCount;
+      const watchEl = document.getElementById('count-watch');
+      if (watchEl) watchEl.textContent = watchCount;
+      const watchWrap = document.getElementById('count-watch-wrapper');
+      if (watchWrap) watchWrap.style.display = watchCount > 0 ? 'inline' : 'none';
+
       document.getElementById('count-sell').textContent = finalSellList.length;
       document.getElementById('count-holdings').textContent = holdingsData.length;
       document.getElementById('count-profit').textContent = profitCount;
