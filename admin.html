@@ -823,16 +823,16 @@
               <table style="width: 100%; border-collapse: collapse; font-size: 0.80rem;">
                 <thead>
                   <tr style="background: #f8fafc; color: #475569; border-bottom: 1px solid var(--border-color); font-weight: 700;">
-                    <th style="padding: 10px 12px; text-align: left;">전략 구분</th>
-                    <th style="padding: 10px 12px; text-align: center;">전략 수익률 (지수)</th>
-                    <th style="padding: 10px 12px; text-align: center;">연평균 (CAGR)</th>
-                    <th style="padding: 10px 12px; text-align: center;">총 순수익</th>
-                    <th style="padding: 10px 12px; text-align: center;">평잔 수익률</th>
-                    <th style="padding: 10px 12px; text-align: center;">투자금 평잔</th>
-                    <th style="padding: 10px 12px; text-align: center;">매매 승률 (승/패)</th>
-                    <th style="padding: 10px 12px; text-align: center;">손익비</th>
-                    <th style="padding: 10px 12px; text-align: center;">포트폴리오 MDD</th>
-                    <th style="padding: 10px 12px; text-align: center;">건당 평균수익 (거래수)</th>
+                    <th style="padding: 8px 10px; text-align: left;">전략 구분</th>
+                    <th style="padding: 8px 10px; text-align: center;">전략 수익률</th>
+                    <th style="padding: 8px 10px; text-align: center;">CAGR</th>
+                    <th style="padding: 8px 10px; text-align: center;">총 순수익</th>
+                    <th style="padding: 8px 10px; text-align: center;">평잔 수익률</th>
+                    <th style="padding: 8px 10px; text-align: center;">투자금 평잔</th>
+                    <th style="padding: 8px 10px; text-align: center;">매매 승률</th>
+                    <th style="padding: 8px 10px; text-align: center;">손익비</th>
+                    <th style="padding: 8px 10px; text-align: center;">MDD</th>
+                    <th style="padding: 8px 10px; text-align: center;">건당 평균수익 (거래수)</th>
                   </tr>
                 </thead>
                 <tbody id="compare-matrix-tbody">
@@ -3811,53 +3811,53 @@
 
         return `
           <tr style="border-bottom:1px solid #f1f5f9;">
-            <td style="padding:10px 12px; font-weight:700; color:#1e293b; white-space:nowrap; text-align:left;">
-              <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${s.color}; margin-right:6px; vertical-align:middle;"></span>
+            <td style="padding:8px 10px; font-weight:700; color:#1e293b; white-space:nowrap; text-align:left;">
+              <span style="display:inline-block; width:9px; height:9px; border-radius:50%; background:${s.color}; margin-right:5px; vertical-align:middle;"></span>
               ${s.name}
             </td>
 
             <!-- 전략 수익률 (지수) - 최우선 배치 -->
-            <td style="padding:10px 12px; text-align:right; font-weight:700; color:${(s.cumRet || 0) >= 0 ? 'var(--accent-red)' : 'var(--primary)'}; ${isBestCumRet ? 'background:#f0fdf4;' : ''}">
-              ${isBestCumRet ? crown : ''}<span style="font-size:0.88rem;">${(s.cumRet || 0) >= 0 ? '+' : ''}${(s.cumRet || 0).toFixed(1)}%</span>
+            <td style="padding:8px 10px; text-align:right; font-weight:700; color:${(s.cumRet || 0) >= 0 ? 'var(--accent-red)' : 'var(--primary)'}; ${isBestCumRet ? 'background:#f0fdf4;' : ''}">
+              ${isBestCumRet ? crown : ''}<span style="font-size:0.86rem;">${(s.cumRet || 0) >= 0 ? '+' : ''}${(s.cumRet || 0).toFixed(1)}%</span>
             </td>
 
             <!-- 연평균 (CAGR) -->
-            <td style="padding:10px 12px; text-align:right; font-weight:700; color:${(s.cagr || 0) >= 0 ? 'var(--accent-red)' : 'var(--primary)'}; ${isBestCagr ? 'background:#f0fdf4;' : ''}">
+            <td style="padding:8px 10px; text-align:right; font-weight:700; color:${(s.cagr || 0) >= 0 ? 'var(--accent-red)' : 'var(--primary)'}; ${isBestCagr ? 'background:#f0fdf4;' : ''}">
               ${isBestCagr ? crown : ''}<span>${(s.cagr || 0) >= 0 ? '+' : ''}${(s.cagr || 0).toFixed(1)}%</span>
             </td>
 
             <!-- 총 순수익 -->
-            <td style="padding:10px 12px; text-align:right; font-weight:600; color:${s.totalNetReturnAmount >= 0 ? 'var(--accent-red)' : 'var(--primary)'}; ${isBestNetProfit ? 'background:#f0fdf4;' : ''}">
+            <td style="padding:8px 10px; text-align:right; font-weight:600; color:${s.totalNetReturnAmount >= 0 ? 'var(--accent-red)' : 'var(--primary)'}; ${isBestNetProfit ? 'background:#f0fdf4;' : ''}">
               ${isBestNetProfit ? crown : ''}<span style="font-weight:700;">${s.totalNetReturnAmount >= 0 ? '+' : ''}${s.totalNetReturnAmount.toLocaleString()}원</span>
             </td>
 
             <!-- 평잔 수익률 -->
-            <td style="padding:10px 12px; text-align:right; font-weight:700; color:${s.returnOnAvgCapital >= 0 ? 'var(--accent-red)' : 'var(--primary)'}; ${isBestReturnOnCapital ? 'background:#f0fdf4;' : ''}">
+            <td style="padding:8px 10px; text-align:right; font-weight:700; color:${s.returnOnAvgCapital >= 0 ? 'var(--accent-red)' : 'var(--primary)'}; ${isBestReturnOnCapital ? 'background:#f0fdf4;' : ''}">
               ${isBestReturnOnCapital ? crown : ''}<span>${s.returnOnAvgCapital >= 0 ? '+' : ''}${s.returnOnAvgCapital.toFixed(1)}%</span>
             </td>
 
             <!-- 투자금 평잔 -->
-            <td style="padding:10px 12px; text-align:right; color:#2563eb; font-weight:600;">
+            <td style="padding:8px 10px; text-align:right; color:#2563eb; font-weight:600;">
               ${Math.round(s.averageCapitalBalance).toLocaleString()}원
             </td>
 
-            <!-- 매매 승률 (오른쪽 정렬) -->
-            <td style="padding:10px 12px; text-align:right; font-weight:600; ${isBestWinRate ? 'background:#f0fdf4;' : ''}">
-              ${isBestWinRate ? crown : ''}<span style="color:var(--accent-green); font-weight:700;">${s.winRate.toFixed(1)}%</span> <span style="font-size:0.72rem; color:#64748b; margin-left:2px;">(${s.winTrades}승/${s.lossTrades}패)</span>
+            <!-- 매매 승률 (괄호 제거로 깔끔하게 %만 표시) -->
+            <td style="padding:8px 10px; text-align:right; font-weight:700; ${isBestWinRate ? 'background:#f0fdf4;' : ''}">
+              ${isBestWinRate ? crown : ''}<span style="color:var(--accent-green); font-size:0.86rem;">${s.winRate.toFixed(1)}%</span>
             </td>
 
             <!-- 손익비 -->
-            <td style="padding:10px 12px; text-align:right; font-weight:700; color:#0284c7; ${isBestProfitFactor ? 'background:#f0fdf4;' : ''}">
+            <td style="padding:8px 10px; text-align:right; font-weight:700; color:#0284c7; ${isBestProfitFactor ? 'background:#f0fdf4;' : ''}">
               ${isBestProfitFactor ? crown : ''}<span>${s.profitFactor.toFixed(2)}</span>
             </td>
 
             <!-- 포트폴리오 MDD -->
-            <td style="padding:10px 12px; text-align:right; font-weight:700; color:var(--accent-red); ${isBestMDD ? 'background:#f0fdf4;' : ''}">
+            <td style="padding:8px 10px; text-align:right; font-weight:700; color:var(--accent-red); ${isBestMDD ? 'background:#f0fdf4;' : ''}">
               ${isBestMDD ? crown : ''}<span>${s.portfolioMDD.toFixed(1)}%</span>
             </td>
 
             <!-- 건당 평균수익 (거래수) (오른쪽 정렬) -->
-            <td style="padding:10px 12px; text-align:right; font-size:0.78rem; ${isBestAvgTradeRet ? 'background:#f0fdf4;' : ''}">
+            <td style="padding:8px 10px; text-align:right; font-size:0.78rem; ${isBestAvgTradeRet ? 'background:#f0fdf4;' : ''}">
               ${isBestAvgTradeRet ? crown : ''}<strong style="color:var(--accent-purple);">${s.avgTradeRet >= 0 ? '+' : ''}${s.avgTradeRet.toFixed(2)}%</strong> <span style="color:#64748b; margin-left:2px;">(${s.avgHold}일 / ${s.totalTrades}회)</span>
             </td>
           </tr>
