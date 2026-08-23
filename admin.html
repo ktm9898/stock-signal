@@ -743,7 +743,9 @@
               백테스트 기간
             </label>
             <select id="opt-backtest-period" class="form-select" style="width: 100%; font-weight: 600;" onchange="toggleCustomDateInputs(this.value)">
-              <option value="10Y" selected>최근 10년 (전체)</option>
+              <option value="ALL_HISTORY">전체 기간 (2011~현재)</option>
+              <option value="15Y">최근 15년</option>
+              <option value="10Y" selected>최근 10년</option>
               <option value="5Y">최근 5년</option>
               <option value="3Y">최근 3년</option>
               <option value="1Y">최근 1년</option>
@@ -1067,10 +1069,11 @@
 
   <script>
     let REAL_PRELOADED_DATA = {};
-    let LOADED_MARKETS = { KOSPI200: false, KOSDAQ150: false };
+    let LOADED_CHUNKS = { '2011_2015': false, '2016_2020': false, '2021_2025': false, '2026_current': false };
+    let RAW_CHUNK_DATA = { '2011_2015': {}, '2016_2020': {}, '2021_2025': {}, '2026_current': {} };
     let ALL_350_STOCKS = [];
 
-    async function ensureMarketDataLoaded(targetMarket = 'ALL') {
+    async function ensureMarketDataLoaded(targetMarket = 'ALL', startDateStr = '2011-01-01') {
       // 1. Ensure metadata is loaded
       if (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0) {
         try {
@@ -1081,56 +1084,75 @@
         }
       }
 
+      // Determine required chunk files based on requested start date
+      const requiredChunks = [];
+      requiredChunks.push('2026_current');
+      if (startDateStr <= '2025-12-31') requiredChunks.push('2021_2025');
+      if (startDateStr <= '2020-12-31') requiredChunks.push('2016_2020');
+      if (startDateStr <= '2015-12-31') requiredChunks.push('2011_2015');
+
+      const chunkFiles = {
+        '2011_2015': 'data/history_2011_2015.json',
+        '2016_2020': 'data/history_2016_2020.json',
+        '2021_2025': 'data/history_2021_2025.json',
+        '2026_current': 'data/history_2026_current.json'
+      };
+
       const loadTasks = [];
-      const needKospi = (targetMarket === 'ALL' || targetMarket === 'KOSPI200') && !LOADED_MARKETS.KOSPI200;
-      const needKosdaq = (targetMarket === 'ALL' || targetMarket === 'KOSDAQ150') && !LOADED_MARKETS.KOSDAQ150;
-
-      if (needKospi) {
-        loadTasks.push(
-          fetch(`data/stocks_kospi200_real.json?t=${Date.now()}`)
-            .then(res => res.ok ? res.json() : null)
-            .then(d => {
-              if (d && d.preloaded_data) {
-                Object.assign(REAL_PRELOADED_DATA, d.preloaded_data);
-                LOADED_MARKETS.KOSPI200 = true;
-                if (d.stocks && (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0)) {
-                  ALL_350_STOCKS = d.stocks;
+      for (const chunkKey of requiredChunks) {
+        if (!LOADED_CHUNKS[chunkKey]) {
+          const fileUrl = `${chunkFiles[chunkKey]}?t=${Date.now()}`;
+          loadTasks.push(
+            fetch(fileUrl)
+              .then(res => res.ok ? res.json() : null)
+              .then(d => {
+                if (d && d.preloaded_data) {
+                  RAW_CHUNK_DATA[chunkKey] = d.preloaded_data;
+                  LOADED_CHUNKS[chunkKey] = true;
+                  if (d.stocks && (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0)) {
+                    ALL_350_STOCKS = d.stocks;
+                  }
                 }
-              }
-            })
-            .catch(e => console.warn("KOSPI200 load error:", e))
-        );
-      }
-
-      if (needKosdaq) {
-        loadTasks.push(
-          fetch(`data/stocks_kosdaq150_real.json?t=${Date.now()}`)
-            .then(res => res.ok ? res.json() : null)
-            .then(d => {
-              if (d && d.preloaded_data) {
-                Object.assign(REAL_PRELOADED_DATA, d.preloaded_data);
-                LOADED_MARKETS.KOSDAQ150 = true;
-              }
-            })
-            .catch(e => console.warn("KOSDAQ150 load error:", e))
-        );
+              })
+              .catch(e => console.warn(`Failed to load chunk ${chunkKey}:`, e))
+          );
+        }
       }
 
       if (loadTasks.length > 0) {
         await Promise.all(loadTasks);
       }
 
-      // Fallback to legacy single file if split files not found
-      if (Object.keys(REAL_PRELOADED_DATA).length === 0) {
-        try {
-          const res = await fetch(`data/stocks_350_real.json?t=${Date.now()}`);
-          if (res.ok) {
-            const d = await res.json();
-            REAL_PRELOADED_DATA = d.preloaded_data || {};
-            if (d.stocks && (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0)) {
-              ALL_350_STOCKS = d.stocks;
+      // Assemble unified chronological array per symbol
+      const assembled = {};
+      const chunkOrder = ['2011_2015', '2016_2020', '2021_2025', '2026_current'];
+      for (const chunkKey of chunkOrder) {
+        if (LOADED_CHUNKS[chunkKey] && RAW_CHUNK_DATA[chunkKey]) {
+          const chunkData = RAW_CHUNK_DATA[chunkKey];
+          for (const [sym, rows] of Object.entries(chunkData)) {
+            if (!assembled[sym]) {
+              assembled[sym] = [];
+            }
+            if (rows && rows.length > 0) {
+              assembled[sym].push(...rows);
             }
           }
+        }
+      }
+
+      if (Object.keys(assembled).length > 0) {
+        REAL_PRELOADED_DATA = assembled;
+      }
+
+      // Fallback to legacy split files if chunk files not found
+      if (Object.keys(REAL_PRELOADED_DATA).length === 0) {
+        try {
+          const [kRes, qRes] = await Promise.all([
+            fetch(`data/stocks_kospi200_real.json?t=${Date.now()}`).then(r => r.ok ? r.json() : null),
+            fetch(`data/stocks_kosdaq150_real.json?t=${Date.now()}`).then(r => r.ok ? r.json() : null)
+          ]);
+          if (kRes && kRes.preloaded_data) Object.assign(REAL_PRELOADED_DATA, kRes.preloaded_data);
+          if (qRes && qRes.preloaded_data) Object.assign(REAL_PRELOADED_DATA, qRes.preloaded_data);
         } catch(e) {}
       }
 
@@ -1813,7 +1835,17 @@
       const endStr = typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : "2026-08-21";
       endInput.value = endStr;
 
-      if (val === '10Y') {
+      if (val === 'ALL_HISTORY') {
+        startInput.value = "2011-01-03";
+        startInput.disabled = true;
+        endInput.disabled = true;
+      } else if (val === '15Y') {
+        const d = new Date(endStr);
+        d.setFullYear(d.getFullYear() - 15);
+        startInput.value = formatToDateOnly(d, "2011-08-21");
+        startInput.disabled = true;
+        endInput.disabled = true;
+      } else if (val === '10Y') {
         const d = new Date(endStr);
         d.setFullYear(d.getFullYear() - 10);
         startInput.value = formatToDateOnly(d, "2016-08-21");
@@ -1861,12 +1893,12 @@
         const targetMarketSelect = document.getElementById('opt-backtest-market');
         const targetMarket = targetMarketSelect ? targetMarketSelect.value : 'ALL';
 
-        let startDateStr = formatToDateOnly(document.getElementById('opt-start-date')?.value, '2021-01-04');
-        let endDateStr = formatToDateOnly(document.getElementById('opt-end-date')?.value, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-20');
+        let startDateStr = formatToDateOnly(document.getElementById('opt-start-date')?.value, '2016-08-21');
+        let endDateStr = formatToDateOnly(document.getElementById('opt-end-date')?.value, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-21');
 
-        const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 1000000;
-        const stopLossVal = parseFloat(document.getElementById('opt-stop-loss').value) || null;
-        const takeProfitVal = parseFloat(document.getElementById('opt-take-profit').value) || null;
+        const tradeAmount = parseFloat(document.getElementById('opt-initial-capital')?.value) || 1000000;
+        const stopLossVal = parseFloat(document.getElementById('opt-stop-loss')?.value) || null;
+        const takeProfitVal = parseFloat(document.getElementById('opt-take-profit')?.value) || null;
         const cooldownDaysVal = document.getElementById('opt-cooldown-days')?.value ? parseInt(document.getElementById('opt-cooldown-days').value, 10) : 0;
 
         const badge = document.getElementById('report-strat-name');
@@ -1878,7 +1910,7 @@
 
         resetRecentTradesTableFilter();
 
-        await ensureMarketDataLoaded(targetMarket);
+        await ensureMarketDataLoaded(targetMarket, startDateStr);
 
         if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length === 0) {
           alert("주가 데이터를 로드할 수 없습니다. 데이터 파일이 존재하지 않거나 서버 연결이 불안정합니다.");
@@ -3191,10 +3223,10 @@
     async function executeMultiStrategyCompareDatasets(selectedSlots) {
       const targetMarketSelect = document.getElementById('opt-backtest-market');
       const market = targetMarketSelect ? targetMarketSelect.value : 'ALL';
-      await ensureMarketDataLoaded(market);
+      let startDateStr = formatToDateOnly(document.getElementById('opt-start-date')?.value, '2016-08-21');
+      let endDateStr = formatToDateOnly(document.getElementById('opt-end-date')?.value, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-21');
 
-      let startDateStr = formatToDateOnly(document.getElementById('opt-start-date')?.value, '2021-01-04');
-      let endDateStr = formatToDateOnly(document.getElementById('opt-end-date')?.value, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-20');
+      await ensureMarketDataLoaded(market, startDateStr);
       const tradeAmount = parseFloat(document.getElementById('opt-initial-capital')?.value) || 1000000;
       const stopLossVal = parseFloat(document.getElementById('opt-stop-loss')?.value) || null;
       const takeProfitVal = parseFloat(document.getElementById('opt-take-profit')?.value) || null;
@@ -4059,7 +4091,7 @@
   </div>
 
   <script>
-    const GAS_WEBAPP_URL = "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
+    var GAS_WEBAPP_URL = window.GAS_WEBAPP_URL || "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
 
     function getKSTTodayString() {
       const now = new Date();

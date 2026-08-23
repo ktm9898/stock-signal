@@ -1,22 +1,18 @@
 """
 Historical Backtest Dataset Incremental Updater
-Fetches new daily candles and updates data/stocks_kospi200_real.json and data/stocks_kosdaq150_real.json
-with 100% indicator continuity.
-Preserves all historical candles from 2016-01-01 onwards without truncating, appending new trading days.
+Updates data/history_2026_current.json with 100% indicator continuity.
+Preserves all historical candles without truncating, appending new daily trading candles.
 """
 
 import os
 import sys
 import json
-import re
-import datetime
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 import requests
 import pandas as pd
 import numpy as np
 
-# Import unified indicator calculation formula and ticker scrapers from data_loader
 from data_loader import (
     calculate_full_indicators,
     get_kospi200_tickers,
@@ -26,19 +22,12 @@ from data_loader import (
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
-KOSPI200_REAL_PATH = os.path.join(DATA_DIR, "stocks_kospi200_real.json")
-KOSDAQ150_REAL_PATH = os.path.join(DATA_DIR, "stocks_kosdaq150_real.json")
+CHUNK_2026_CURR_PATH = os.path.join(DATA_DIR, "history_2026_current.json")
 STOCKS_350_PATH = os.path.join(DATA_DIR, "stocks_350.json")
 
-# Generous fetch window (from 2016-01-01 onwards)
-FETCH_CANDLE_COUNT = 3000
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
 def fetch_candles_and_indicators(ticker_or_symbol, candle_count=120):
-    """
-    Fetch the latest N candles for a stock or benchmark index from Naver FChart XML,
-    and compute rolling technical indicators.
-    """
     clean_sym = str(ticker_or_symbol).zfill(6) if str(ticker_or_symbol).isdigit() else str(ticker_or_symbol)
     url = f"https://fchart.stock.naver.com/sise.nhn?symbol={clean_sym}&timeframe=day&count={candle_count}&requestType=0"
     try:
@@ -68,134 +57,95 @@ def fetch_candles_and_indicators(ticker_or_symbol, candle_count=120):
         df = pd.DataFrame(rows)
         df = calculate_full_indicators(df)
         return df
-    except Exception as e:
+    except Exception:
         return None
 
 def convert_df_to_array_rows(df):
-    """Convert indicator DataFrame to ultra-compact row array format."""
-    result_rows = []
-    for i in range(len(df)):
-        d_val = df['Date'].iloc[i]
-        if isinstance(d_val, pd.Timestamp):
-            d_val = d_val.strftime("%Y-%m-%d")
+    array_rows = []
+    for idx, row in df.iterrows():
+        d_val = row.get("Date")
+        if pd.isna(d_val):
+            d_val = str(idx)
         else:
             d_val = str(d_val)[:10]
 
-        o_val = float(df['시가'].iloc[i])
-        h_val = float(df['고가'].iloc[i])
-        l_val = float(df['저가'].iloc[i])
-        c_val = float(df['종가'].iloc[i])
-        v_val = float(df['거래량'].iloc[i])
+        def get_val(k, default=0.0):
+            val = row.get(k)
+            if val is None or pd.isna(val) or np.isinf(val):
+                return default
+            return float(val)
 
-        # Round indices to 2 decimal places, normal stocks to integers
-        o_num = round(o_val, 2) if (o_val < 5000 and '.' in str(o_val)) else int(round(o_val))
-        h_num = round(h_val, 2) if (h_val < 5000 and '.' in str(h_val)) else int(round(h_val))
-        l_num = round(l_val, 2) if (l_val < 5000 and '.' in str(l_val)) else int(round(l_val))
-        c_num = round(c_val, 2) if (c_val < 5000 and '.' in str(c_val)) else int(round(c_val))
-        v_num = int(round(v_val))
+        r_open = round(get_val("시가"), 2)
+        r_high = round(get_val("고가"), 2)
+        r_low = round(get_val("저가"), 2)
+        r_close = round(get_val("종가"), 2)
+        r_vol = round(get_val("거래량"), 0)
 
-        adx_val = float(df['adx'].iloc[i]) if ('adx' in df and not np.isnan(df['adx'].iloc[i])) else 0.0
-        pdi_val = float(df['plus_di'].iloc[i]) if ('plus_di' in df and not np.isnan(df['plus_di'].iloc[i])) else 0.0
-        mdi_val = float(df['minus_di'].iloc[i]) if ('minus_di' in df and not np.isnan(df['minus_di'].iloc[i])) else 0.0
-        rsi_val = float(df['rsi'].iloc[i]) if ('rsi' in df and not np.isnan(df['rsi'].iloc[i])) else 0.0
-        
-        bb_col = 'b_band_pct' if 'b_band_pct' in df else 'bb_pct'
-        bb_raw = float(df[bb_col].iloc[i]) if (bb_col in df and not np.isnan(df[bb_col].iloc[i])) else 0.5
+        r_adx = round(get_val("ADX", 0.0), 2)
+        r_pdi = round(get_val("Plus_DI", 0.0), 2)
+        r_mdi = round(get_val("Minus_DI", 0.0), 2)
+        r_rsi = round(get_val("RSI", 50.0), 2)
+        r_bb = round(get_val("BB_Pct", 0.5), 4)
+        r_macd = round(get_val("MACD", 0.0), 2)
+        r_stoch_k = round(get_val("Slow_K", 50.0), 2)
+        r_disp20 = round(get_val("Disparity20", 100.0), 2)
+        r_vr = round(get_val("Volume_Ratio", 100.0), 2)
 
-        macd_raw = float(df['macd'].iloc[i]) if ('macd' in df and not np.isnan(df['macd'].iloc[i])) else 0.0
-        macd_val = round(macd_raw, 1) if abs(macd_raw) < 100 else int(round(macd_raw))
-
-        stoch_k_val = float(df['stoch_k'].iloc[i]) if ('stoch_k' in df and not np.isnan(df['stoch_k'].iloc[i])) else 50.0
-        disp_val = float(df['disparity20'].iloc[i]) if ('disparity20' in df and not np.isnan(df['disparity20'].iloc[i])) else 100.0
-        vr_val = float(df['volume_ratio'].iloc[i]) if ('volume_ratio' in df and not np.isnan(df['volume_ratio'].iloc[i])) else 100.0
-
-        result_rows.append([
+        array_rows.append([
             d_val,
-            o_num,
-            h_num,
-            l_num,
-            c_num,
-            v_num,
-            round(adx_val, 1),
-            round(pdi_val, 1),
-            round(mdi_val, 1),
-            round(rsi_val, 1),
-            round(bb_raw, 2),
-            macd_val,
-            round(stoch_k_val, 1),
-            round(disp_val, 1),
-            round(vr_val, 1)
+            r_open, r_high, r_low, r_close, r_vol,
+            r_adx, r_pdi, r_mdi, r_rsi, r_bb,
+            r_macd, r_stoch_k, r_disp20, r_vr
         ])
-    return result_rows
+    return array_rows
 
-def sync_dataset_file(file_path, target_stocks_meta, market_label):
+def sync_current_year_chunk():
     """
-    Perform intelligent incremental update on a specific split dataset file (KOSPI 200 or KOSDAQ 150).
-    - Auto-downloads full 10-year history for newly added index constituents.
-    - Prunes dropped stocks to maintain clean constituent universe.
-    - Incrementally updates recent trading days for existing constituents + benchmarks.
+    Incrementally sync data/history_2026_current.json (4MB) with new daily candles.
     """
+    print("[INFO] Checking live index constituents (KOSPI 200 + KOSDAQ 150)...")
+    kospi_items = get_kospi200_tickers()[:200]
+    kosdaq_items = get_kosdaq150_tickers()[:150]
+    all_target_stocks = kospi_items + kosdaq_items
+    all_symbols = [s['ticker'] for s in all_target_stocks] + ["KOSPI", "KOSDAQ"]
+
+    # 1. Update stocks_350.json
+    try:
+        with open(STOCKS_350_PATH, "w", encoding="utf-8") as f:
+            json.dump(all_target_stocks, f, ensure_ascii=False, indent=2)
+        print(f"[INFO] Updated {STOCKS_350_PATH}")
+    except Exception as e:
+        print(f"[WARN] Could not update {STOCKS_350_PATH}: {e}")
+
+    # 2. Load existing 2026_current file
     preloaded_data = {}
-    if os.path.exists(file_path):
+    if os.path.exists(CHUNK_2026_CURR_PATH):
         try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                preloaded_data = data.get("preloaded_data", {})
+            with open(CHUNK_2026_CURR_PATH, "r", encoding="utf-8") as f:
+                d = json.load(f)
+                preloaded_data = d.get("preloaded_data", {})
         except Exception as e:
-            print(f"[WARN] Could not parse {file_path}: {e}")
+            print(f"[WARN] Could not read {CHUNK_2026_CURR_PATH}: {e}")
 
-    target_tickers = [s['ticker'] for s in target_stocks_meta]
-    target_ticker_set = set(target_tickers)
-    existing_ticker_set = set([k for k in preloaded_data.keys() if k not in ("KOSPI", "KOSDAQ")])
-
-    # Detect additions & removals
-    new_tickers = target_ticker_set - existing_ticker_set
-    removed_tickers = existing_ticker_set - target_ticker_set
-
-    if new_tickers:
-        print(f"[INFO] [{market_label}] Detected {len(new_tickers)} NEW constituent(s): {', '.join(sorted(list(new_tickers)))}")
-        for new_t in new_tickers:
-            name = next((s['name'] for s in target_stocks_meta if s['ticker'] == new_t), new_t)
-            print(f"  -> Fetching full 10-year history for: {name} ({new_t})...")
-            try:
-                df_new = fetch_stock_ohlcv(new_t, candle_count=FETCH_CANDLE_COUNT)
-                if df_new is not None and len(df_new) >= 1:
-                    df_new = calculate_full_indicators(df_new)
-                    df_new['Date'] = df_new.index if 'Date' not in df_new.columns else df_new['Date']
-                    preloaded_data[new_t] = convert_df_to_array_rows(df_new)
-                    print(f"     Loaded {len(preloaded_data[new_t])} candles for {name}.")
-                else:
-                    preloaded_data[new_t] = []
-            except Exception as err:
-                print(f"     [WARN] Failed to fetch 10Y data for {new_t}: {err}")
-                preloaded_data[new_t] = []
-
-    if removed_tickers:
-        print(f"[INFO] [{market_label}] Pruning {len(removed_tickers)} dropped constituent(s): {', '.join(sorted(list(removed_tickers)))}")
-        for rem_t in removed_tickers:
-            preloaded_data.pop(rem_t, None)
-
-    # Symbols to sync: constituents + both benchmarks
-    all_active_symbols = list(set(target_tickers + ["KOSPI", "KOSDAQ"]))
-    print(f"[INFO] [{market_label}] Syncing daily candles across {len(all_active_symbols)} symbols...")
-
-    updated_count = 0
-    new_dates_added = set()
+    print(f"[INFO] Syncing daily candles across {len(all_symbols)} active symbols into 2026~current chunk...")
 
     def process_symbol(symbol):
         existing_rows = preloaded_data.get(symbol, [])
-        sym_last_date = existing_rows[-1][0] if existing_rows else "2016-01-01"
+        sym_last_date = existing_rows[-1][0] if existing_rows else "2026-01-01"
 
         df = fetch_candles_and_indicators(symbol, candle_count=120)
         if df is None or len(df) == 0:
-            return symbol, None, []
+            return symbol, sym_last_date, []
 
         new_array_rows = convert_df_to_array_rows(df)
         append_candidates = [r for r in new_array_rows if r[0] > sym_last_date]
         return symbol, sym_last_date, append_candidates
 
-    with ThreadPoolExecutor(max_workers=16) as executor:
-        results = list(executor.map(process_symbol, all_active_symbols))
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        results = list(executor.map(process_symbol, all_symbols))
+
+    updated_count = 0
+    new_dates_added = set()
 
     for symbol, sym_last_date, new_rows in results:
         if new_rows:
@@ -207,69 +157,36 @@ def sync_dataset_file(file_path, target_stocks_meta, market_label):
             combined = existing + new_rows
             preloaded_data[symbol] = combined
         elif symbol not in preloaded_data or not preloaded_data[symbol]:
-            # Initial fetch if symbol had no rows
-            df_full = fetch_stock_ohlcv(symbol, candle_count=FETCH_CANDLE_COUNT)
+            df_full = fetch_stock_ohlcv(symbol, candle_count=500)
             if df_full is not None and len(df_full) >= 1:
                 df_full = calculate_full_indicators(df_full)
                 df_full['Date'] = df_full.index if 'Date' not in df_full.columns else df_full['Date']
+                df_full = df_full[df_full['Date'].astype(str) >= '2026-01-01'].copy()
                 preloaded_data[symbol] = convert_df_to_array_rows(df_full)
                 updated_count += 1
 
     if new_dates_added:
         sorted_new_dates = sorted(list(new_dates_added))
-        print(f"[SUCCESS] [{market_label}] Added {len(sorted_new_dates)} new trading day(s): {', '.join(sorted_new_dates)}")
+        print(f"[SUCCESS] Added {len(sorted_new_dates)} new trading day(s): {', '.join(sorted_new_dates)}")
     else:
-        print(f"[INFO] [{market_label}] No new dates to append.")
+        print("[INFO] No new dates to append (dataset is up-to-date).")
 
-    # Save to JSON with compact formatting
     payload = {
-        "stocks": target_stocks_meta,
+        "stocks": all_target_stocks,
         "preloaded_data": preloaded_data
     }
 
-    temp_path = file_path + ".tmp"
+    temp_path = CHUNK_2026_CURR_PATH + ".tmp"
     with open(temp_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, separators=(',', ':'))
 
-    if os.path.exists(file_path):
-        os.remove(file_path)
-    os.rename(temp_path, file_path)
+    if os.path.exists(CHUNK_2026_CURR_PATH):
+        os.remove(CHUNK_2026_CURR_PATH)
+    os.rename(temp_path, CHUNK_2026_CURR_PATH)
 
-    final_size_mb = os.path.getsize(file_path) / (1024 * 1024)
-    print(f"[DONE] Saved {market_label} dataset to {file_path} ({final_size_mb:.2f} MB)")
-    return True
-
-def update_backtest_database():
-    """
-    Perform intelligent incremental update on both KOSPI 200 & KOSDAQ 150 split datasets.
-    """
-    print("[INFO] Checking live index constituents (KOSPI 200 + KOSDAQ 150)...")
-    kospi_items = get_kospi200_tickers()[:200]
-    kosdaq_items = get_kosdaq150_tickers()[:150]
-
-    all_target_stocks = kospi_items + kosdaq_items
-    print(f" -> Live target constituents: KOSPI 200 ({len(kospi_items)}), KOSDAQ 150 ({len(kosdaq_items)}) = Total {len(all_target_stocks)} stocks.")
-
-    # 1. Update metadata stocks_350.json
-    try:
-        with open(STOCKS_350_PATH, "w", encoding="utf-8") as f:
-            json.dump(all_target_stocks, f, ensure_ascii=False, indent=2)
-        print(f"[INFO] Updated {STOCKS_350_PATH}")
-    except Exception as e:
-        print(f"[WARN] Could not update {STOCKS_350_PATH}: {e}")
-
-    # 2. Update KOSPI 200 dataset
-    print("\n--- Updating KOSPI 200 10-Year Dataset ---")
-    sync_dataset_file(KOSPI200_REAL_PATH, kospi_items, "KOSPI 200")
-
-    # 3. Update KOSDAQ 150 dataset
-    print("\n--- Updating KOSDAQ 150 10-Year Dataset ---")
-    sync_dataset_file(KOSDAQ150_REAL_PATH, kosdaq_items, "KOSDAQ 150")
-
-    print("\n[ALL COMPLETE] Incremental update finished successfully.")
+    final_size_mb = os.path.getsize(CHUNK_2026_CURR_PATH) / (1024 * 1024)
+    print(f"[DONE] Saved 2026~current dataset ({final_size_mb:.2f} MB)")
     return True
 
 if __name__ == "__main__":
-    success = update_backtest_database()
-    if not success:
-        sys.exit(1)
+    sync_current_year_chunk()

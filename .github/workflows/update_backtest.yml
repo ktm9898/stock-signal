@@ -36,10 +36,10 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add data/stocks_kospi200_real.json data/stocks_kosdaq150_real.json data/stocks_350.json
+          git add data/history_*.json data/stocks_350.json
           if git diff --staged --quiet; then
             echo "No new data changes to commit."
           else
-            git commit -m "chore(data): auto-update 10Y backtest dual datasets [skip ci]"
+            git commit -m "chore(data): auto-update backtest dataset chunk [skip ci]"
             git push origin main
           fi

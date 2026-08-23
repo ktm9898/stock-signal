@@ -38,6 +38,7 @@ except ImportError:
     BeautifulSoup = None
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+STOCKS_350_PATH = os.path.join(DATA_DIR, "stocks_350.json")
 CACHE_FILE = os.path.join(DATA_DIR, "history_5y.parquet")
 CACHE_CSV = os.path.join(DATA_DIR, "history_5y.csv")
 
@@ -381,61 +382,62 @@ def fetch_stock_5y_ohlcv(ticker, start_date=None, end_date=None):
     """Backward-compatible alias for fetching 5-year OHLCV candles."""
     return fetch_stock_ohlcv(ticker, candle_count=1300, start_date=start_date, end_date=end_date)
 
+CHUNK_2011_2015_PATH = os.path.join(DATA_DIR, "history_2011_2015.json")
+CHUNK_2016_2020_PATH = os.path.join(DATA_DIR, "history_2016_2020.json")
+CHUNK_2021_2025_PATH = os.path.join(DATA_DIR, "history_2021_2025.json")
+CHUNK_2026_CURR_PATH = os.path.join(DATA_DIR, "history_2026_current.json")
+
 KOSPI200_REAL_PATH = os.path.join(DATA_DIR, "stocks_kospi200_real.json")
 KOSDAQ150_REAL_PATH = os.path.join(DATA_DIR, "stocks_kosdaq150_real.json")
-STOCKS_350_PATH = os.path.join(DATA_DIR, "stocks_350.json")
-LEGACY_STOCKS_350_REAL_PATH = os.path.join(DATA_DIR, "stocks_350_real.json")
 
-def load_all_preloaded_data():
+def load_all_preloaded_data(start_year=2011):
     """
-    Unified loader that loads and merges KOSPI 200 and KOSDAQ 150 datasets.
+    Unified loader that loads and merges 5-year partitioned chunk datasets
+    (2011~2015, 2016~2020, 2021~2025, 2026~current).
     Returns: dict with 'stocks' list and 'preloaded_data' dict containing all tickers and benchmarks.
     """
     merged_stocks = []
     merged_preloaded = {}
     seen_tickers = set()
 
-    # Load KOSPI 200 dataset
-    if os.path.exists(KOSPI200_REAL_PATH):
-        try:
+    chunks = [
+        (2011, CHUNK_2011_2015_PATH),
+        (2016, CHUNK_2016_2020_PATH),
+        (2021, CHUNK_2021_2025_PATH),
+        (2026, CHUNK_2026_CURR_PATH)
+    ]
+
+    for year_from, path in chunks:
+        if os.path.exists(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    d = json.load(f)
+                    for s in d.get("stocks", []):
+                        if s["ticker"] not in seen_tickers:
+                            seen_tickers.add(s["ticker"])
+                            merged_stocks.append(s)
+                    for k, v in d.get("preloaded_data", {}).items():
+                        if k not in merged_preloaded:
+                            merged_preloaded[k] = list(v)
+                        else:
+                            merged_preloaded[k].extend(v)
+            except Exception as e:
+                print(f"[WARN] Failed to load {path}: {e}")
+
+    # Fallback to legacy split files if chunk files not found
+    if not merged_preloaded:
+        if os.path.exists(KOSPI200_REAL_PATH):
             with open(KOSPI200_REAL_PATH, "r", encoding="utf-8") as f:
                 d = json.load(f)
-                for s in d.get("stocks", []):
-                    if s["ticker"] not in seen_tickers:
-                        seen_tickers.add(s["ticker"])
-                        merged_stocks.append(s)
+                merged_stocks.extend(d.get("stocks", []))
                 merged_preloaded.update(d.get("preloaded_data", {}))
-        except Exception as e:
-            print(f"[WARN] Failed to load {KOSPI200_REAL_PATH}: {e}")
-
-    # Load KOSDAQ 150 dataset
-    if os.path.exists(KOSDAQ150_REAL_PATH):
-        try:
+        if os.path.exists(KOSDAQ150_REAL_PATH):
             with open(KOSDAQ150_REAL_PATH, "r", encoding="utf-8") as f:
                 d = json.load(f)
-                for s in d.get("stocks", []):
-                    if s["ticker"] not in seen_tickers:
-                        seen_tickers.add(s["ticker"])
-                        merged_stocks.append(s)
-                for k, v in d.get("preloaded_data", {}).items():
-                    if k not in merged_preloaded or k in ("KOSPI", "KOSDAQ"):
-                        merged_preloaded[k] = v
-        except Exception as e:
-            print(f"[WARN] Failed to load {KOSDAQ150_REAL_PATH}: {e}")
+                merged_stocks.extend(d.get("stocks", []))
+                merged_preloaded.update(d.get("preloaded_data", {}))
 
-    # Fallback to legacy stocks_350_real.json if split files not found
-    if not merged_preloaded and os.path.exists(LEGACY_STOCKS_350_REAL_PATH):
-        try:
-            with open(LEGACY_STOCKS_350_REAL_PATH, "r", encoding="utf-8") as f:
-                d = json.load(f)
-                return d
-        except Exception as e:
-            print(f"[WARN] Failed to load legacy dataset: {e}")
-
-    return {
-        "stocks": merged_stocks,
-        "preloaded_data": merged_preloaded
-    }
+    return {"stocks": merged_stocks, "preloaded_data": merged_preloaded}
 
 def build_10y_split_datasets(candle_count=2600):
     """
