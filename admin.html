@@ -871,7 +871,7 @@
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
               <div id="trade-log-count-box" style="font-size: 0.75rem; color: var(--text-sub);">
-                표시 <span id="trade-log-count" style="font-weight: 700; color: #2563eb;">50</span>건 <span id="trade-log-total-count" style="color:#64748b; font-size:0.72rem;">(총 0건)</span>
+                표시 <span id="trade-log-count" style="font-weight: 700; color: #2563eb;">50</span>건
               </div>
               <button id="btn-full-trades" class="btn-sm-action" onclick="resetRecentTradesTableFilter()" style="font-size:0.75rem; background:#f1f5f9; color:#334155; border:1px solid var(--border-subtle);" title="차트 날짜 필터를 해제하고 가장 최신 50건으로 초기화">
                 <i class="fa-solid fa-rotate-left" style="margin-right:3px;"></i> 초기화
@@ -2194,14 +2194,10 @@
         renderRecentTradesTable(tradesUpToDate.slice(0, 50));
         const countEl = document.getElementById('trade-log-count');
         if (countEl) countEl.textContent = Math.min(50, tradesUpToDate.length);
-        const totalCountEl = document.getElementById('trade-log-total-count');
-        if (totalCountEl) totalCountEl.textContent = `(총 ${tradesUpToDate.length.toLocaleString()}건)`;
       } else {
         renderRecentTradesTableNoData(dateStr);
         const countEl = document.getElementById('trade-log-count');
         if (countEl) countEl.textContent = 0;
-        const totalCountEl = document.getElementById('trade-log-total-count');
-        if (totalCountEl) totalCountEl.textContent = `(총 0건)`;
       }
       const titleEl = document.getElementById('recent-trades-title');
       if (titleEl) titleEl.innerHTML = `<span style="color:#2563eb; font-weight:700;">${dateStr}</span> 체결 일지`;
@@ -2219,8 +2215,6 @@
         renderRecentTradesTable(cachedExecutedTrades.slice(0, 50));
         const countEl = document.getElementById('trade-log-count');
         if (countEl) countEl.textContent = Math.min(50, cachedExecutedTrades.length);
-        const totalCountEl = document.getElementById('trade-log-total-count');
-        if (totalCountEl) totalCountEl.textContent = `(총 ${cachedExecutedTrades.length.toLocaleString()}건)`;
       }
       const titleEl = document.getElementById('recent-trades-title');
       if (titleEl) titleEl.textContent = '최근 매매 체결 일지';
@@ -2304,8 +2298,6 @@
       if (compBadge) compBadge.style.display = 'none';
       const countEl = document.getElementById('trade-log-count');
       if (countEl) countEl.textContent = Math.min(50, trades.length);
-      const totalCountEl = document.getElementById('trade-log-total-count');
-      if (totalCountEl) totalCountEl.textContent = `(총 ${trades.length.toLocaleString()}건)`;
 
       const targetMarketSelect = document.getElementById('opt-backtest-market');
       const targetMarket = targetMarketSelect ? targetMarketSelect.value : 'ALL';
