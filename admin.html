@@ -356,6 +356,23 @@
     }
     .btn-execute:hover { background: #1d4ed8; }
 
+    @keyframes btnSpinAnim {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .pure-btn-spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2.5px solid rgba(255, 255, 255, 0.35);
+      border-top-color: #ffffff;
+      border-radius: 50%;
+      animation: btnSpinAnim 0.65s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+      box-sizing: border-box;
+    }
+
     /* 6 KPI Cards In 1 Row */
     .kpi-grid-6 {
       display: grid;
@@ -733,7 +750,7 @@
 
           <div>
             <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">시작일</label>
-            <input type="date" id="opt-start-date" class="form-input" value="2016-01-15" disabled style="width: 100%; font-size: 0.78rem;">
+            <input type="date" id="opt-start-date" class="form-input" value="2016-08-21" disabled style="width: 100%; font-size: 0.78rem;">
           </div>
 
           <div>
@@ -1794,23 +1811,27 @@
       endInput.value = endStr;
 
       if (val === '10Y') {
-        startInput.value = "2016-01-15";
+        const d = new Date(endStr);
+        d.setFullYear(d.getFullYear() - 10);
+        startInput.value = formatToDateOnly(d, "2016-08-21");
         startInput.disabled = true;
         endInput.disabled = true;
       } else if (val === '5Y') {
-        startInput.value = "2021-01-04";
+        const d = new Date(endStr);
+        d.setFullYear(d.getFullYear() - 5);
+        startInput.value = formatToDateOnly(d, "2021-08-21");
         startInput.disabled = true;
         endInput.disabled = true;
       } else if (val === '3Y') {
         const d = new Date(endStr);
         d.setFullYear(d.getFullYear() - 3);
-        startInput.value = formatToDateOnly(d, "2023-08-20");
+        startInput.value = formatToDateOnly(d, "2023-08-21");
         startInput.disabled = true;
         endInput.disabled = true;
       } else if (val === '1Y') {
         const d = new Date(endStr);
         d.setFullYear(d.getFullYear() - 1);
-        startInput.value = formatToDateOnly(d, "2025-08-20");
+        startInput.value = formatToDateOnly(d, "2025-08-21");
         startInput.disabled = true;
         endInput.disabled = true;
       } else if (val === 'CUSTOM') {
@@ -1823,7 +1844,7 @@
       const btn = document.getElementById('btn-run-backtest');
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = `<i class="fa-solid fa-rotate fa-spin" style="margin-right: 6px;"></i> 백테스트 시뮬레이션 계산 중...`;
+        btn.innerHTML = `<span class="pure-btn-spinner"></span> 백테스트 시뮬레이션 계산 중...`;
       }
       await new Promise(resolve => setTimeout(resolve, 50));
 
@@ -2692,15 +2713,19 @@
       if (slot.market && document.getElementById('opt-backtest-market')) {
         document.getElementById('opt-backtest-market').value = slot.market;
       }
-      if (slot.period && document.getElementById('opt-backtest-period')) {
-        document.getElementById('opt-backtest-period').value = slot.period;
-        if (typeof toggleCustomDateInputs === 'function') toggleCustomDateInputs(slot.period);
+      const period = slot.period || '10Y';
+      if (document.getElementById('opt-backtest-period')) {
+        document.getElementById('opt-backtest-period').value = period;
+        if (typeof toggleCustomDateInputs === 'function') toggleCustomDateInputs(period);
       }
-      if (slot.startDate && document.getElementById('opt-start-date')) {
-        document.getElementById('opt-start-date').value = formatToDateOnly(slot.startDate, '2021-01-04');
-      }
-      if (slot.endDate && document.getElementById('opt-end-date')) {
-        document.getElementById('opt-end-date').value = formatToDateOnly(slot.endDate, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-20');
+
+      if (period === 'CUSTOM') {
+        if (slot.startDate && document.getElementById('opt-start-date')) {
+          document.getElementById('opt-start-date').value = formatToDateOnly(slot.startDate, '2016-08-21');
+        }
+        if (slot.endDate && document.getElementById('opt-end-date')) {
+          document.getElementById('opt-end-date').value = formatToDateOnly(slot.endDate, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-21');
+        }
       }
       if (slot.stopLoss !== undefined && document.getElementById('opt-stop-loss')) {
         document.getElementById('opt-stop-loss').value = slot.stopLoss !== null ? slot.stopLoss : "";
@@ -3116,7 +3141,7 @@
         btn.disabled = true;
         btn.style.opacity = '1';
         btn.style.cursor = 'wait';
-        btn.innerHTML = `<i class="fa-solid fa-rotate fa-spin" style="margin-right:8px; font-size:0.95rem;"></i> 비교 계산 중...`;
+        btn.innerHTML = `<span class="pure-btn-spinner"></span> 비교 계산 중...`;
       }
 
       // 브라우저가 스피너 회전 애니메이션을 확실하게 렌더링하도록 600ms 시간 부여
