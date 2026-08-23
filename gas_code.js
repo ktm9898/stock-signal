@@ -230,21 +230,12 @@ function doPost(e) {
                 break;
               }
               // 2) Cross-day identical indicators/price check (same unupdated candle state)
+              const cleanRowClose = Number(String(existingRows[i].length >= 13 ? existingRows[i][12] : existingRows[i][11]).replace(/[^0-9.-]/g, ""));
+              const cleanCandClose = Number(String(c.close).replace(/[^0-9.-]/g, ""));
               const rowAdx = Number(existingRows[i][4]);
-              const rowMdi = Number(existingRows[i][6]);
-              const rowRsi = Number(existingRows[i][9]);
-              // Col 12 is ClosePrice in 13-col sheets, Col 11 in older 12-col sheets
-              const rowClose = existingRows[i].length >= 13 ? Number(existingRows[i][12]) : Number(existingRows[i][11]);
               const candAdx = Number(c.adx);
-              const candMdi = Number(c.minus_di);
-              const candRsi = Number(c.rsi);
-              const candClose = Number(c.close);
 
-              if (!isNaN(rowAdx) && !isNaN(candAdx) &&
-                  Math.abs(rowAdx - candAdx) < 0.01 &&
-                  Math.abs(rowMdi - candMdi) < 0.01 &&
-                  Math.abs(rowRsi - candRsi) < 0.01 &&
-                  rowClose === candClose) {
+              if (!isNaN(cleanRowClose) && !isNaN(cleanCandClose) && cleanRowClose > 0 && cleanRowClose === cleanCandClose) {
                 exists = true;
                 break;
               }
@@ -343,22 +334,23 @@ function doPost(e) {
             const rowTickerStr = normalizeTicker(existingData[i][1]);
             if (rowTickerStr === tickerStr) {
               const rowYMD = extractYMD(existingData[i][0]);
-              if (rowYMD === todayYMD) {
+              // 1) Same-day duplication check
+              if (rowYMD && todayYMD && rowYMD === todayYMD) {
                 exists = true;
                 break;
               }
-              const rowPrice = Number(existingData[i][4]);
-              const rowAdx = Number(existingData[i][6]);
-              const sPrice = Number(s.currPrice);
-              const sAdx = Number(s.adx);
-              if (!isNaN(rowPrice) && rowPrice === sPrice && !isNaN(rowAdx) && Math.abs(rowAdx - sAdx) < 0.01) {
+              // 2) Cross-day identical price check (주말/휴일/장전 동일 캔들 상태 완벽 보존)
+              const cleanRowPrice = Number(String(existingData[i][4] !== undefined ? existingData[i][4] : "").replace(/[^0-9.-]/g, ""));
+              const cleanSPrice = Number(String(s.currPrice !== undefined ? s.currPrice : "").replace(/[^0-9.-]/g, ""));
+              
+              if (!isNaN(cleanRowPrice) && !isNaN(cleanSPrice) && cleanRowPrice > 0 && cleanRowPrice === cleanSPrice) {
                 exists = true;
                 break;
               }
             }
           }
 
-          // Keep the FIRST sell alert timestamp
+          // Keep the FIRST sell alert timestamp (do not overwrite/duplicate)
           if (!exists) {
             const detailsText = Array.isArray(s.details) ? s.details.join(", ") : String(s.details || "");
             sheet.appendRow([
