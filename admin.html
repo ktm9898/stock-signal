@@ -1840,10 +1840,16 @@
       }
     }
 
+    let IS_CALCULATING = false;
+
     async function executeBacktest() {
+      if (IS_CALCULATING) return;
+      IS_CALCULATING = true;
+
       const btn = document.getElementById('btn-run-backtest');
       if (btn) {
         btn.disabled = true;
+        btn.style.pointerEvents = 'none';
         btn.innerHTML = `<span class="pure-btn-spinner"></span> 백테스트 시뮬레이션 계산 중...`;
       }
       await new Promise(resolve => setTimeout(resolve, 50));
@@ -1951,9 +1957,11 @@
         console.error("Backtest execution error:", err);
         alert("백테스트 실행 중 오류가 발생했습니다: " + err.message);
       } finally {
+        IS_CALCULATING = false;
         const btn = document.getElementById('btn-run-backtest');
         if (btn) {
           btn.disabled = false;
+          btn.style.pointerEvents = 'auto';
           btn.innerHTML = `백테스트 시뮬레이션 실행`;
         }
       }
@@ -3123,6 +3131,8 @@
     }
 
     async function runMultiStrategyComparisonFromModal() {
+      if (IS_CALCULATING) return;
+
       const checks = document.querySelectorAll('.slot-compare-check:checked');
       if (checks.length === 0) {
         alert("비교할 전략 슬롯을 1개 이상 체크해 주세요!");
@@ -3135,8 +3145,10 @@
         return;
       }
 
+      IS_CALCULATING = true;
       const btn = document.getElementById('btn-run-compare-modal');
       if (btn) {
+        btn.disabled = true;
         btn.style.pointerEvents = 'none';
         btn.style.background = '#1d4ed8';
         btn.style.cursor = 'wait';
@@ -3154,7 +3166,9 @@
         console.error("Multi strategy compare error:", err);
         alert("전략 비교 중 오류가 발생했습니다: " + (err.message || err));
       } finally {
+        IS_CALCULATING = false;
         if (btn) {
+          btn.disabled = false;
           btn.style.pointerEvents = 'auto';
           btn.style.background = '#2563eb';
           btn.style.cursor = 'pointer';
