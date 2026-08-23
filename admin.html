@@ -1853,137 +1853,23 @@
           return;
         }
 
-        const allExecutedTrades = [];
-        const feeRate = 0.0015 + 0.0010;
+        window.IS_COMPARE_MODE = false;
+        document.getElementById('kpi-single-grid').style.display = 'grid';
+        document.getElementById('kpi-compare-grid').style.display = 'none';
 
-        const tickers = Object.keys(REAL_PRELOADED_DATA);
-        
-        tickers.forEach(ticker => {
-          if (ticker === '069500' || ticker === 'KOSPI' || ticker === 'KOSDAQ') return;
-
-          const rawRows = REAL_PRELOADED_DATA[ticker];
-          if (!rawRows || rawRows.length < 30) return;
-
-          const stockInfo = (ALL_350_STOCKS && ALL_350_STOCKS.length > 0) 
-            ? (ALL_350_STOCKS.find(s => s.ticker === ticker) || { name: ticker, market: "KOSPI200" })
-            : { name: ticker, market: "KOSPI200" };
-
-          if (targetMarket !== 'ALL' && stockInfo.market !== targetMarket) return;
-
-          const allRows = ensureIndicators(rawRows);
-          const rows = allRows.filter(r => r.date >= startDateStr && r.date <= endDateStr);
-          if (rows.length < 5) return;
-
-          let inPosition = false;
-          let entryPrice = 0;
-          let entryDate = "";
-          let entrySignalDate = "";
-          let lastStopLossDate = "";
-
-          for (let i = 0; i < rows.length - 1; i++) {
-            const curr = rows[i];
-            const nextDay = rows[i + 1];
-
-            let isCooldown = false;
-            if (cooldownDaysVal > 0 && lastStopLossDate) {
-              const diffDays = Math.round((new Date(curr.date) - new Date(lastStopLossDate)) / (1000 * 60 * 60 * 24));
-              if (diffDays < cooldownDaysVal) {
-                isCooldown = true;
-              }
-            }
-
-            const isBuySignal = !isCooldown && evaluateBuyCondition(curr, rows[i - 1]);
-
-            if (!inPosition) {
-              if (isBuySignal && nextDay.open > 0) {
-                inPosition = true;
-                entryPrice = nextDay.open * (1 + feeRate);
-                entrySignalDate = curr.date;
-                entryDate = nextDay.date;
-              }
-            } else {
-              const currClose = curr.close;
-              const paperReturnPct = ((currClose - entryPrice) / entryPrice) * 100;
-
-              let isExit = false;
-              let triggerType = "SIGNAL";
-
-              if (stopLossVal !== null && paperReturnPct <= -Math.abs(stopLossVal)) {
-                isExit = true;
-                triggerType = "STOP_LOSS";
-                lastStopLossDate = nextDay.date;
-              } else if (takeProfitVal !== null && paperReturnPct >= Math.abs(takeProfitVal)) {
-                isExit = true;
-                triggerType = "TAKE_PROFIT";
-              } else if (evaluateSellCondition(curr, rows[i - 1])) {
-                isExit = true;
-                triggerType = "SIGNAL";
-              }
-
-              if (isExit && nextDay.open > 0) {
-                const exitPrice = nextDay.open * (1 - feeRate);
-                const actualReturnPct = ((exitPrice - entryPrice) / entryPrice) * 100;
-                
-                const d1 = new Date(entryDate);
-                const d2 = new Date(nextDay.date);
-                const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
-
-                let exitReason = "매도전략";
-                if (triggerType === "STOP_LOSS") {
-                  exitReason = "손절신호";
-                } else if (triggerType === "TAKE_PROFIT") {
-                  exitReason = "익절신호";
-                } else {
-                  exitReason = "매도전략";
-                }
-
-                allExecutedTrades.push({
-                  ticker: ticker,
-                  name: stockInfo.name,
-                  market: stockInfo.market,
-                  signalDate: entrySignalDate,
-                  entryDate: entryDate,
-                  entryPrice: Math.round(entryPrice),
-                  exitDate: nextDay.date,
-                  exitPrice: Math.round(exitPrice),
-                  returnPct: parseFloat(actualReturnPct.toFixed(2)),
-                  holdingDays: holdingDays,
-                  reason: exitReason,
-                  win: actualReturnPct >= 0
-                });
-
-                inPosition = false;
-              }
-            }
-          }
-
-          if (inPosition && rows.length > 0) {
-            const lastRow = rows[rows.length - 1];
-            const exitPrice = lastRow.close * (1 - feeRate);
-            const actualReturnPct = ((exitPrice - entryPrice) / entryPrice) * 100;
-            const d1 = new Date(entryDate);
-            const d2 = new Date(lastRow.date);
-            const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
-
-            allExecutedTrades.push({
-              ticker: ticker,
-              name: stockInfo.name,
-              market: stockInfo.market,
-              signalDate: entrySignalDate,
-              entryDate: entryDate,
-              entryPrice: Math.round(entryPrice),
-              exitDate: lastRow.date,
-              exitPrice: Math.round(exitPrice),
-              returnPct: parseFloat(actualReturnPct.toFixed(2)),
-              holdingDays: holdingDays,
-              reason: "기간종료",
-              win: actualReturnPct >= 0
-            });
-            inPosition = false;
-          }
-        });
-
-        allExecutedTrades.sort((a, b) => b.entryDate.localeCompare(a.entryDate) || b.signalDate.localeCompare(a.signalDate));
+        const allExecutedTrades = simulateTradesForRules(
+          currentBuyGroups,
+          currentSellGroups,
+          'AND',
+          'OR',
+          stopLossVal,
+          takeProfitVal,
+          cooldownDaysVal,
+          targetMarket,
+          startDateStr,
+          endDateStr,
+          tradeAmount
+        );
 
         allExecutedTrades.forEach((t, idx) => t._origIdx = idx + 1);
         cachedExecutedTrades = allExecutedTrades;
@@ -2554,11 +2440,15 @@
       if (btnProfit) btnProfit.classList.toggle('active', mode === 'profit');
       if (subTitle) {
         subTitle.textContent = mode === 'index' 
-          ? '(지수기준 vs KOSPI / KOSDAQ 벤치마크)' 
-          : '(손익기준 vs KOSPI / KOSDAQ 벤치마크)';
+          ? '(지수기준 vs KOSPI / KOSDAQ)' 
+          : '(손익기준 vs KOSPI / KOSDAQ)';
       }
 
-      drawEquityChart(mode);
+      if (window.IS_COMPARE_MODE && window.CACHED_COMPARE_PAYLOAD) {
+        drawCompareEquityChart(mode);
+      } else {
+        drawEquityChart(mode);
+      }
     }
 
     function drawEquityChart(mode) {
@@ -3221,6 +3111,8 @@
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:6px;"></i> 비교 계산 중...';
       }
+      // Guarantee UI rendering tick for spinner
+      await new Promise(resolve => setTimeout(resolve, 60));
 
       try {
         const selectedSlots = Array.from(checks).map(c => parseInt(c.value)).map(idx => strategySlots[idx]).filter(s => s && !s.isEmpty && s.buyRules);
@@ -3248,12 +3140,16 @@
     }
 
     async function executeMultiStrategyCompareDatasets(selectedSlots) {
-      const market = document.getElementById('opt-backtest-market')?.value || 'ALL';
+      const targetMarketSelect = document.getElementById('opt-backtest-market');
+      const market = targetMarketSelect ? targetMarketSelect.value : 'ALL';
       await ensureMarketDataLoaded(market);
 
-      let startDateStr = formatToDateOnly(document.getElementById('opt-start-date')?.value, '2016-01-15');
-      let endDateStr = formatToDateOnly(document.getElementById('opt-end-date')?.value, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-21');
+      let startDateStr = formatToDateOnly(document.getElementById('opt-start-date')?.value, '2021-01-04');
+      let endDateStr = formatToDateOnly(document.getElementById('opt-end-date')?.value, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-20');
       const tradeAmount = parseFloat(document.getElementById('opt-initial-capital')?.value) || 1000000;
+      const stopLossVal = parseFloat(document.getElementById('opt-stop-loss')?.value) || null;
+      const takeProfitVal = parseFloat(document.getElementById('opt-take-profit')?.value) || null;
+      const cooldownDaysVal = document.getElementById('opt-cooldown-days')?.value ? parseInt(document.getElementById('opt-cooldown-days').value, 10) : 0;
 
       const colorPalette = ['#2563eb', '#7c3aed', '#059669', '#ea580c', '#db2777', '#0284c7', '#ca8a04', '#78716c', '#4f46e5', '#0d9488'];
       
@@ -3277,19 +3173,24 @@
         });
       }
 
-      const multiDatasets = [];
+      const indexDatasets = [];
+      const pnlDatasets = [];
       const summaryList = [];
 
       selectedSlots.forEach((slot, slotIdx) => {
-        const slotMarket = market; // 백테스트 설정의 기준 적용
+        const slotMarket = market;
+        const slotStopLoss = (slot.stopLoss !== undefined && slot.stopLoss !== null && slot.stopLoss !== "") ? slot.stopLoss : stopLossVal;
+        const slotTakeProfit = (slot.takeProfit !== undefined && slot.takeProfit !== null && slot.takeProfit !== "") ? slot.takeProfit : takeProfitVal;
+        const slotCooldown = (slot.cooldownDays !== undefined && slot.cooldownDays !== null && slot.cooldownDays !== "") ? slot.cooldownDays : cooldownDaysVal;
+
         const trades = simulateTradesForRules(
           slot.buyRules, 
           slot.sellRules, 
           slot.buyOperator || 'AND', 
           slot.sellOperator || 'OR', 
-          slot.stopLoss, 
-          slot.takeProfit, 
-          slot.cooldownDays,
+          slotStopLoss, 
+          slotTakeProfit, 
+          slotCooldown,
           slotMarket, 
           startDateStr, 
           endDateStr, 
@@ -3303,7 +3204,7 @@
         });
         const averageCapitalBalance = fineDates.length > 0 ? (dailyEngagedCapitalSum / fineDates.length) : tradeAmount;
 
-        // 3-Stage Mark-to-Market NAV Calculation for Equal Rigor
+        // 1) 지수기준: 3-Stage Mark-to-Market NAV
         const strategyUnrealizedData = [];
         let slotNav = 100.0;
         let slotPeakNav = -999999;
@@ -3363,10 +3264,30 @@
         }
 
         const cumRet = slotNav - 100.0;
-        const totalYears = fineDates.length > 0 
-          ? (Math.max(1, (new Date(endDateStr) - new Date(startDateStr)) / (1000 * 60 * 60 * 24 * 365.25))) 
-          : 5.0;
-        const cagr = slotNav > 0 ? ((Math.pow(slotNav / 100.0, 1 / totalYears)) - 1.0) * 100 : 0.0;
+        let cagr = 0.0;
+        if (fineDates.length > 1 && slotNav > 0) {
+          const startD = new Date(fineDates[0]);
+          const endD = new Date(fineDates[fineDates.length - 1]);
+          const diffYears = Math.max(0.1, (endD - startD) / (1000 * 60 * 60 * 24 * 365.25));
+          cagr = ((Math.pow(slotNav / 100.0, 1.0 / diffYears)) - 1.0) * 100;
+        }
+
+        // 2) 손익기준: PnL Curve
+        const slotPnlData = [];
+        fineDates.forEach(dbDate => {
+          const closed = trades.filter(t => t.exitDate <= dbDate);
+          const activeOpen = trades.filter(t => t.entryDate <= dbDate && t.exitDate > dbDate);
+          const closedNetGainSum = closed.reduce((sum, t) => sum + Math.round(tradeAmount * (t.returnPct / 100)), 0);
+          let openPaperGainSum = 0;
+          activeOpen.forEach(t => {
+            const stockPrices = priceMap[t.ticker] || {};
+            const closeP = stockPrices[dbDate] !== undefined ? stockPrices[dbDate] : t.entryPrice;
+            const paperPct = ((closeP - t.entryPrice) / t.entryPrice) * 100;
+            openPaperGainSum += Math.round(tradeAmount * (paperPct / 100));
+          });
+          const unrealizedPct = averageCapitalBalance > 0 ? ((closedNetGainSum + openPaperGainSum) / averageCapitalBalance) * 100 : 0;
+          slotPnlData.push(parseFloat(unrealizedPct.toFixed(1)));
+        });
 
         // Compute Metrics
         const totalTrades = trades.length;
@@ -3391,9 +3312,21 @@
         const avgHold = totalTrades > 0 ? (trades.reduce((a, b) => a + b.holdingDays, 0) / totalTrades).toFixed(1) : 0;
 
         const color = colorPalette[slotIdx % colorPalette.length];
-        multiDatasets.push({
-          label: `${slot.name} (지수: ${cumRet >= 0 ? '+' : ''}${cumRet.toFixed(1)}%)`,
+        
+        indexDatasets.push({
+          label: `${slot.name} (${cumRet >= 0 ? '+' : ''}${cumRet.toFixed(1)}%)`,
           data: strategyUnrealizedData,
+          borderColor: color,
+          borderWidth: 2.2,
+          fill: false,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          tension: 0.1
+        });
+
+        pnlDatasets.push({
+          label: `${slot.name} (${returnOnAvgCapital >= 0 ? '+' : ''}${returnOnAvgCapital.toFixed(1)}%)`,
+          data: slotPnlData,
           borderColor: color,
           borderWidth: 2.2,
           fill: false,
@@ -3422,7 +3355,7 @@
         });
       });
 
-      // Benchmark KOSPI
+      // Benchmark KOSPI / KOSDAQ (clean labels: KOSPI, KOSDAQ)
       let kospiBenchmarkData = fineDates.map(() => 0);
       if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
         const kRows = (REAL_PRELOADED_DATA['KOSPI'] || []).map(normalizeRow).filter(r => r.date >= startDateStr && r.date <= endDateStr);
@@ -3435,24 +3368,118 @@
           });
         }
       }
-      multiDatasets.push({
-        label: 'KOSPI 벤치마크',
-        data: kospiBenchmarkData,
-        borderColor: '#dc2626',
-        borderDash: [4, 4],
-        borderWidth: 1.5,
-        fill: false,
-        pointRadius: 0,
-        tension: 0.1
-      });
 
-      // Render Chart
-      const ctx = document.getElementById('equityChart').getContext('2d');
+      let kosdaqBenchmarkData = fineDates.map(() => 0);
+      if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSDAQ']) {
+        const kqRows = (REAL_PRELOADED_DATA['KOSDAQ'] || []).map(normalizeRow).filter(r => r.date >= startDateStr && r.date <= endDateStr);
+        if (kqRows.length > 0) {
+          const baseClose = kqRows[0].close;
+          kosdaqBenchmarkData = fineDates.map(dbDate => {
+            const rowAtDate = kqRows.filter(r => r.date <= dbDate).pop() || kqRows[0];
+            const pctChange = baseClose > 0 ? (((rowAtDate.close - baseClose) / baseClose) * 100) : 0;
+            return parseFloat(pctChange.toFixed(1));
+          });
+        }
+      }
+
+      if (market === 'KOSPI200' || market === 'ALL') {
+        const dsKospi = {
+          label: 'KOSPI',
+          data: kospiBenchmarkData,
+          borderColor: '#dc2626',
+          borderDash: [4, 4],
+          borderWidth: 1.5,
+          fill: false,
+          pointRadius: 0,
+          tension: 0.1
+        };
+        indexDatasets.push(dsKospi);
+        pnlDatasets.push(dsKospi);
+      }
+
+      if (market === 'KOSDAQ150' || market === 'ALL') {
+        const dsKosdaq = {
+          label: 'KOSDAQ',
+          data: kosdaqBenchmarkData,
+          borderColor: '#059669',
+          borderDash: [4, 4],
+          borderWidth: 1.5,
+          fill: false,
+          pointRadius: 0,
+          tension: 0.1
+        };
+        indexDatasets.push(dsKosdaq);
+        pnlDatasets.push(dsKosdaq);
+      }
+
+      // Cache compare payload
+      window.IS_COMPARE_MODE = true;
+      window.CACHED_COMPARE_PAYLOAD = {
+        fineDates,
+        indexDatasets,
+        pnlDatasets,
+        targetMarket: market
+      };
+
+      drawCompareEquityChart(window.CURRENT_CHART_MODE || 'index');
+
+      // Render KPI Comparison Matrix Table
+      renderMultiStrategyCompareMatrix(summaryList);
+
+      // Switch UI views
+      document.getElementById('kpi-single-grid').style.display = 'none';
+      document.getElementById('kpi-compare-grid').style.display = 'block';
+      const reportTitle = document.getElementById('report-strat-name');
+      if (reportTitle) {
+        reportTitle.innerHTML = `<i class="fa-solid fa-code-compare" style="margin-right:4px; color:#2563eb;"></i> <strong>다중 전략 비교 성과 리포트 (${selectedSlots.length}개 전략)</strong>`;
+      }
+
+      // Empty trade log table with info message
+      const tbody = document.getElementById('trade-log-body');
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="10" style="text-align:center; padding:32px 16px; color:#64748b; font-size:0.85rem;">
+              <i class="fa-solid fa-code-compare" style="font-size:1.8rem; color:#3b82f6; margin-bottom:8px; display:block;"></i>
+              <strong>전략 비교 모드 활성화됨</strong>
+              <div style="font-size:0.78rem; color:#94a3b8; margin-top:4px;">
+                다중 전략 비교 시에는 상단 성과 비교표와 차트에서 종합 성과를 비교합니다.<br>
+                (개별 종목 체결 일지는 단일 전략 백테스트 실행 시 표시됩니다)
+              </div>
+            </td>
+          </tr>
+        `;
+      }
+      const fullBtn = document.getElementById('btn-full-trades');
+      if (fullBtn) fullBtn.style.display = 'none';
+      const countBox = document.getElementById('trade-log-count-box');
+      if (countBox) countBox.style.display = 'none';
+      const compBadge = document.getElementById('trade-log-compare-badge');
+      if (compBadge) {
+        compBadge.style.display = 'inline-block';
+        compBadge.textContent = `비교 모드 (${selectedSlots.length}개 전략)`;
+      }
+
+      document.getElementById('results-section').style.display = 'block';
+      document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function drawCompareEquityChart(mode) {
+      const payload = window.CACHED_COMPARE_PAYLOAD;
+      if (!payload) return;
+
+      const { fineDates, indexDatasets, pnlDatasets } = payload;
+      const targetDatasets = (mode === 'profit' ? pnlDatasets : indexDatasets) || indexDatasets;
+
+      const canvas = document.getElementById('equityChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
       if (equityChartInstance) equityChartInstance.destroy();
 
       equityChartInstance = new Chart(ctx, {
         type: 'line',
-        data: { labels: fineDates, datasets: multiDatasets },
+        data: { labels: fineDates, datasets: targetDatasets },
         options: {
           responsive: true,
           maintainAspectRatio: false,
@@ -3505,46 +3532,6 @@
           }
         }
       });
-
-      // Render KPI Comparison Matrix Table
-      renderMultiStrategyCompareMatrix(summaryList);
-
-      // Switch UI views
-      document.getElementById('kpi-single-grid').style.display = 'none';
-      document.getElementById('kpi-compare-grid').style.display = 'block';
-      const reportTitle = document.getElementById('report-strat-name');
-      if (reportTitle) {
-        reportTitle.innerHTML = `<i class="fa-solid fa-code-compare" style="margin-right:4px; color:#2563eb;"></i> <strong>다중 전략 비교 성과 리포트 (${selectedSlots.length}개 전략)</strong>`;
-      }
-
-      // Empty trade log table with info message
-      const tbody = document.getElementById('trade-log-body');
-      if (tbody) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="10" style="text-align:center; padding:32px 16px; color:#64748b; font-size:0.85rem;">
-              <i class="fa-solid fa-code-compare" style="font-size:1.8rem; color:#3b82f6; margin-bottom:8px; display:block;"></i>
-              <strong>전략 비교 모드 활성화됨</strong>
-              <div style="font-size:0.78rem; color:#94a3b8; margin-top:4px;">
-                다중 전략 비교 시에는 상단 성과 비교표와 차트에서 종합 성과를 비교합니다.<br>
-                (개별 종목 체결 일지는 단일 전략 백테스트 실행 시 표시됩니다)
-              </div>
-            </td>
-          </tr>
-        `;
-      }
-      const fullBtn = document.getElementById('btn-full-trades');
-      if (fullBtn) fullBtn.style.display = 'none';
-      const countBox = document.getElementById('trade-log-count-box');
-      if (countBox) countBox.style.display = 'none';
-      const compBadge = document.getElementById('trade-log-compare-badge');
-      if (compBadge) {
-        compBadge.style.display = 'inline-block';
-        compBadge.textContent = `비교 모드 (${selectedSlots.length}개 전략)`;
-      }
-
-      document.getElementById('results-section').style.display = 'block';
-      document.getElementById('results-section').scrollIntoView({ behavior: 'smooth' });
     }
 
     let isChartExpanded = false;
@@ -3807,7 +3794,7 @@
         const isBestMDD = hasTrades && !isTiedMDD && s.portfolioMDD === minMDD;
         const isBestAvgTradeRet = hasTrades && !isTiedAvgTradeRet && s.avgTradeRet === maxAvgTradeRet;
 
-        const crown = `<span style="color:#eab308; font-size:0.82rem; margin-right:3px;">👑</span>`;
+        const crown = `<i class="fa-solid fa-crown" style="color:#eab308; font-size:0.62rem; margin-right:3px; vertical-align:middle;"></i>`;
 
         return `
           <tr style="border-bottom:1px solid #f1f5f9;">
