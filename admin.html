@@ -843,7 +843,7 @@
           <div style="margin-top: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: nowrap; gap: 6px;">
               <h4 class="chart-header-title" style="font-size: 0.86rem; font-weight: 700; color: #1e293b; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                백테스트 수익률 곡선 <span class="label-desktop" id="chart-mode-subtitle" style="font-weight:400; color:#64748b; font-size:0.75rem;">(지수기준 vs KOSPI / KOSDAQ 벤치마크)</span>
+                백테스트 수익률 곡선
               </h4>
               <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
                 <div style="display: inline-flex; background: #f1f5f9; padding: 2px; border-radius: 6px; border: 1px solid var(--border-subtle);">
@@ -2439,15 +2439,9 @@
       window.CURRENT_CHART_MODE = mode;
       const btnIndex = document.getElementById('btn-mode-index');
       const btnProfit = document.getElementById('btn-mode-profit');
-      const subTitle = document.getElementById('chart-mode-subtitle');
 
       if (btnIndex) btnIndex.classList.toggle('active', mode === 'index');
       if (btnProfit) btnProfit.classList.toggle('active', mode === 'profit');
-      if (subTitle) {
-        subTitle.textContent = mode === 'index' 
-          ? '(지수기준 vs KOSPI / KOSDAQ)' 
-          : '(손익기준 vs KOSPI / KOSDAQ)';
-      }
 
       if (window.IS_COMPARE_MODE && window.CACHED_COMPARE_PAYLOAD) {
         drawCompareEquityChart(mode);
