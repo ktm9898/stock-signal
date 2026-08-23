@@ -3139,13 +3139,26 @@
       const originalText = btn ? btn.innerHTML : '비교 실행';
       if (btn) {
         btn.disabled = true;
-        btn.style.opacity = '1';
+        btn.style.background = '#1d4ed8';
         btn.style.cursor = 'wait';
         btn.innerHTML = `<span class="pure-btn-spinner"></span> 비교 계산 중...`;
       }
 
-      // 브라우저가 스피너 회전 애니메이션을 확실하게 렌더링하도록 600ms 시간 부여
-      await new Promise(resolve => setTimeout(resolve, 600));
+      // 모달 창 내부에도 확실하고 뚜렷한 대형 회전 스피너 박스 표시
+      const listContainer = document.getElementById('compare-slots-list');
+      const originalListHtml = listContainer ? listContainer.innerHTML : '';
+      if (listContainer) {
+        listContainer.innerHTML = `
+          <div style="text-align:center; padding:32px 16px; background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;">
+            <span class="pure-btn-spinner" style="width:30px; height:30px; border-width:3.5px; border-color:rgba(37,99,235,0.2); border-top-color:#2563eb; display:inline-block; margin-right:0;"></span>
+            <div style="font-weight:700; color:#1e293b; font-size:0.95rem;">선택된 ${selectedSlots.length}개 전략 비교 연산 중...</div>
+            <div style="font-size:0.78rem; color:#64748b;">350개 전 종목 10년치 시뮬레이션을 분석하고 있습니다</div>
+          </div>
+        `;
+      }
+
+      // 브라우저 렌더링 스레드가 회전 스피너를 확실하게 그리도록 시간 부여
+      await new Promise(resolve => setTimeout(resolve, 750));
 
       try {
         // Run multi-strategy compare
@@ -3157,8 +3170,12 @@
       } finally {
         if (btn) {
           btn.disabled = false;
+          btn.style.background = '#2563eb';
           btn.style.cursor = 'pointer';
           btn.innerHTML = originalText;
+        }
+        if (listContainer && originalListHtml) {
+          listContainer.innerHTML = originalListHtml;
         }
       }
     }
