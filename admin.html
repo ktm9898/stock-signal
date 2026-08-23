@@ -765,18 +765,18 @@
 
           <!-- 6 KPI Cards In 1 Row (Single Strategy View) -->
           <div id="kpi-single-grid" class="kpi-grid-6">
-            <!-- Card 1: Total Net Profit & Return on Avg Capital -->
+            <!-- Card 1: Strategy Return (Index NAV) -->
             <div class="kpi-card">
-              <div class="kpi-title">총 순수익 금액</div>
-              <div class="kpi-value" id="kpi-total-return" style="color: var(--accent-red);">+0원</div>
-              <div class="kpi-sub" id="kpi-capital-gain">평잔 수익률: +0.0%</div>
+              <div class="kpi-title">전략 수익률 (지수)</div>
+              <div class="kpi-value" id="kpi-index-return" style="color: var(--accent-red);">+0.0%</div>
+              <div class="kpi-sub" id="kpi-index-sub">지수기준 복리 누적</div>
             </div>
 
-            <!-- Card 2: Average Capital Balance -->
+            <!-- Card 2: Total Net Profit & Average Capital Balance -->
             <div class="kpi-card">
-              <div class="kpi-title">투자금 평잔</div>
-              <div class="kpi-value" id="kpi-avg-capital" style="color: #2563eb;">0원</div>
-              <div class="kpi-sub" id="kpi-trade-amount-sub">1회 투자금: 1,000만 원</div>
+              <div class="kpi-title">총 순수익 금액</div>
+              <div class="kpi-value" id="kpi-total-return" style="color: #2563eb;">+0원</div>
+              <div class="kpi-sub" id="kpi-capital-gain">평잔: 0원 (+0.0%)</div>
             </div>
 
             <!-- Card 3: Win Rate -->
@@ -2325,7 +2325,7 @@
       });
       const averageCapitalBalance = fineDates.length > 0 ? (dailyEngagedCapitalSum / fineDates.length) : tradeAmount;
 
-      // 1) Mode A: 손익기준 (Profit Mode: Actual Won Net Profit)
+      // 1) Mode A: 손익기준 (Profit Mode: % based on Capital Balance - 기존 동일)
       const profitUnrealizedData = [];
       const profitRealizedData = [];
 
@@ -2343,8 +2343,11 @@
           openPaperGainSum += Math.round(tradeAmount * (paperPct / 100));
         });
 
-        profitRealizedData.push(closedNetGainSum);
-        profitUnrealizedData.push(closedNetGainSum + openPaperGainSum);
+        const realizedPct = averageCapitalBalance > 0 ? (closedNetGainSum / averageCapitalBalance) * 100 : 0;
+        const unrealizedPct = averageCapitalBalance > 0 ? ((closedNetGainSum + openPaperGainSum) / averageCapitalBalance) * 100 : 0;
+
+        profitRealizedData.push(parseFloat(realizedPct.toFixed(1)));
+        profitUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
       });
 
       // 2) Mode B: 지수기준 (Index Mode: Daily Equal-Weighted Compounded NAV)
@@ -2391,8 +2394,17 @@
 
       const portfolioMDD = maxNavDrawdown > 0 ? -parseFloat(maxNavDrawdown.toFixed(1)) : 0.0;
       const returnOnAvgCapital = averageCapitalBalance > 0 ? ((totalNetReturnAmount / averageCapitalBalance) * 100) : 0;
+      const finalIndexCumPct = indexUnrealizedData.length > 0 ? indexUnrealizedData[indexUnrealizedData.length - 1] : 0.0;
 
       // Update 6 KPI Cards in UI
+      // Card 1: 전략 수익률 (지수)
+      const kpiIndexEl = document.getElementById('kpi-index-return');
+      if (kpiIndexEl) {
+        kpiIndexEl.textContent = `${finalIndexCumPct >= 0 ? '+' : ''}${finalIndexCumPct.toFixed(1)}%`;
+        kpiIndexEl.style.color = finalIndexCumPct >= 0 ? 'var(--accent-red)' : 'var(--primary)';
+      }
+
+      // Card 2: 총 순수익 금액 (서브: 평잔: ~~원 (+~~%))
       const kpiTotalEl = document.getElementById('kpi-total-return');
       if (kpiTotalEl) {
         kpiTotalEl.textContent = `${totalNetReturnAmount >= 0 ? '+' : ''}${totalNetReturnAmount.toLocaleString()}원`;
@@ -2401,18 +2413,8 @@
 
       const kpiCapGainEl = document.getElementById('kpi-capital-gain');
       if (kpiCapGainEl) {
-        kpiCapGainEl.textContent = `평잔 수익률: ${returnOnAvgCapital >= 0 ? '+' : ''}${returnOnAvgCapital.toFixed(1)}%`;
-      }
-
-      const kpiAvgCapEl = document.getElementById('kpi-avg-capital');
-      if (kpiAvgCapEl) {
-        kpiAvgCapEl.textContent = `${Math.round(averageCapitalBalance).toLocaleString()}원`;
-      }
-
-      const kpiTradeAmtSubEl = document.getElementById('kpi-trade-amount-sub');
-      if (kpiTradeAmtSubEl) {
-        const amtStr = tradeAmount >= 10000000 ? `${(tradeAmount / 10000000 * 1000).toLocaleString()}만 원` : `${(tradeAmount / 10000).toLocaleString()}만 원`;
-        kpiTradeAmtSubEl.textContent = `1회 투자금: ${amtStr}`;
+        const avgCapStr = Math.round(averageCapitalBalance).toLocaleString();
+        kpiCapGainEl.textContent = `평잔: ${avgCapStr}원 (${returnOnAvgCapital >= 0 ? '+' : ''}${returnOnAvgCapital.toFixed(1)}%)`;
       }
 
       const kpiWinRateEl = document.getElementById('kpi-win-rate');
@@ -2492,19 +2494,10 @@
       if (subTitle) {
         subTitle.textContent = mode === 'index' 
           ? '(지수기준 vs KOSPI / KOSDAQ 벤치마크)' 
-          : '(손익기준: 누적 원화 손익 흐름)';
+          : '(손익기준 vs KOSPI / KOSDAQ 벤치마크)';
       }
 
       drawEquityChart(mode);
-    }
-
-    function formatWonValue(val) {
-      if (Math.abs(val) >= 100000000) {
-        return (val / 100000000).toFixed(1) + '억';
-      } else if (Math.abs(val) >= 10000) {
-        return (val / 10000).toLocaleString() + '만';
-      }
-      return val.toLocaleString() + '원';
     }
 
     function drawEquityChart(mode) {
@@ -2546,39 +2539,11 @@
             tension: 0.1
           }
         ];
-
-        if (targetMarket === 'KOSPI200' || targetMarket === 'ALL') {
-          datasets.push({
-            label: 'KOSPI',
-            data: kospiBenchmarkData,
-            borderColor: '#dc2626',
-            borderDash: [4, 4],
-            borderWidth: 1.5,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            fill: false,
-            tension: 0.1
-          });
-        }
-
-        if (targetMarket === 'KOSDAQ150' || targetMarket === 'ALL') {
-          datasets.push({
-            label: 'KOSDAQ',
-            data: kosdaqBenchmarkData,
-            borderColor: '#059669',
-            borderDash: [4, 4],
-            borderWidth: 1.5,
-            pointRadius: 0,
-            pointHoverRadius: 4,
-            fill: false,
-            tension: 0.1
-          });
-        }
       } else {
-        // Mode 'profit' (Won Net Gain)
+        // Mode 'profit' (손익기준: 기존 동일 - 평가손익%, 실현손익%)
         datasets = [
           {
-            label: '평가손익 (총 순손익)',
+            label: '평가손익',
             data: profitUnrealizedData,
             borderColor: '#2563eb',
             backgroundColor: 'rgba(37, 99, 235, 0.05)',
@@ -2589,7 +2554,7 @@
             tension: 0.1
           },
           {
-            label: '실현손익 (확정 수익)',
+            label: '실현손익',
             data: profitRealizedData,
             borderColor: '#7c3aed',
             fill: false,
@@ -2599,6 +2564,35 @@
             tension: 0.1
           }
         ];
+      }
+
+      // Both modes display KOSPI / KOSDAQ benchmark curves
+      if (targetMarket === 'KOSPI200' || targetMarket === 'ALL') {
+        datasets.push({
+          label: 'KOSPI',
+          data: kospiBenchmarkData,
+          borderColor: '#dc2626',
+          borderDash: [4, 4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          fill: false,
+          tension: 0.1
+        });
+      }
+
+      if (targetMarket === 'KOSDAQ150' || targetMarket === 'ALL') {
+        datasets.push({
+          label: 'KOSDAQ',
+          data: kosdaqBenchmarkData,
+          borderColor: '#059669',
+          borderDash: [4, 4],
+          borderWidth: 1.5,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          fill: false,
+          tension: 0.1
+        });
       }
 
       equityChartInstance = new Chart(ctx, {
@@ -2636,15 +2630,14 @@
                   const dataIdx = context.dataIndex;
                   const label = context.dataset.label;
                   const val = context.parsed.y;
-
-                  if (mode === 'profit') {
-                    const sign = val >= 0 ? '+' : '';
-                    return ` ${label}: ${sign}${val.toLocaleString()}원`;
-                  }
-
                   const sign = val >= 0 ? '+' : '';
+
                   if (label.includes('전략 수익률')) {
                     return ` 전략 수익률: ${sign}${val.toFixed(1)}%`;
+                  } else if (label.includes('평가손익')) {
+                    return ` 평가손익: ${sign}${val.toFixed(1)}%`;
+                  } else if (label.includes('실현손익')) {
+                    return ` 실현손익: ${sign}${val.toFixed(1)}%`;
                   } else if (label === 'KOSPI') {
                     const pt = kospiCloseList[dataIdx];
                     const ptText = pt ? ` (${pt.toLocaleString()}pt)` : '';
@@ -2682,12 +2675,7 @@
               grid: { color: '#f1f5f9' },
               ticks: { 
                 font: { size: 10 },
-                callback: (v) => {
-                  if (mode === 'profit') {
-                    return (v >= 0 ? '+' : '') + formatWonValue(v);
-                  }
-                  return (v >= 0 ? '+' : '') + v + '%';
-                }
+                callback: (v) => (v >= 0 ? '+' : '') + v + '%'
               }
             }
           }
