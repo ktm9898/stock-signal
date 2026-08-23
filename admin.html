@@ -3114,11 +3114,13 @@
       const originalText = btn ? btn.innerHTML : '비교 실행';
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-rotate fa-spin" style="margin-right:6px;"></i> 비교 계산 중...';
+        btn.style.opacity = '1';
+        btn.style.cursor = 'wait';
+        btn.innerHTML = `<i class="fa-solid fa-rotate fa-spin" style="margin-right:8px; font-size:0.95rem;"></i> 비교 계산 중...`;
       }
 
-      // 브라우저 UI 스레드가 스피너 회전 애니메이션 프레임을 확실히 그리도록 시간 슬라이스 부여
-      await new Promise(resolve => setTimeout(resolve, 350));
+      // 브라우저가 스피너 회전 애니메이션을 확실하게 렌더링하도록 600ms 시간 부여
+      await new Promise(resolve => setTimeout(resolve, 600));
 
       try {
         // Run multi-strategy compare
@@ -3130,6 +3132,7 @@
       } finally {
         if (btn) {
           btn.disabled = false;
+          btn.style.cursor = 'pointer';
           btn.innerHTML = originalText;
         }
       }
