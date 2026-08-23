@@ -697,7 +697,8 @@
               백테스트 기간
             </label>
             <select id="opt-backtest-period" class="form-select" style="width: 100%; font-weight: 600;" onchange="toggleCustomDateInputs(this.value)">
-              <option value="5Y" selected>최근 5년</option>
+              <option value="10Y" selected>최근 10년 (전체)</option>
+              <option value="5Y">최근 5년</option>
               <option value="3Y">최근 3년</option>
               <option value="1Y">최근 1년</option>
               <option value="CUSTOM">직접 지정</option>
@@ -706,12 +707,12 @@
 
           <div>
             <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">시작일</label>
-            <input type="date" id="opt-start-date" class="form-input" value="2021-01-04" disabled style="width: 100%; font-size: 0.78rem;">
+            <input type="date" id="opt-start-date" class="form-input" value="2016-01-15" disabled style="width: 100%; font-size: 0.78rem;">
           </div>
 
           <div>
             <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">종료일</label>
-            <input type="date" id="opt-end-date" class="form-input" value="2026-08-14" disabled style="width: 100%; font-size: 0.78rem;">
+            <input type="date" id="opt-end-date" class="form-input" value="2026-08-21" disabled style="width: 100%; font-size: 0.78rem;">
           </div>
 
           <div>
@@ -1007,32 +1008,79 @@
   </div>
 
   <script>
-    async function initDataViewer() {
-      if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length < 10) {
+    let REAL_PRELOADED_DATA = {};
+    let LOADED_MARKETS = { KOSPI200: false, KOSDAQ150: false };
+    let ALL_350_STOCKS = [];
+
+    async function ensureMarketDataLoaded(targetMarket = 'ALL') {
+      // 1. Ensure metadata is loaded
+      if (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0) {
+        try {
+          const resStock = await fetch('data/stocks_350.json');
+          if (resStock.ok) ALL_350_STOCKS = await resStock.json();
+        } catch(e) {
+          console.warn("stocks_350.json load warning:", e);
+        }
+      }
+
+      const loadTasks = [];
+      const needKospi = (targetMarket === 'ALL' || targetMarket === 'KOSPI200') && !LOADED_MARKETS.KOSPI200;
+      const needKosdaq = (targetMarket === 'ALL' || targetMarket === 'KOSDAQ150') && !LOADED_MARKETS.KOSDAQ150;
+
+      if (needKospi) {
+        loadTasks.push(
+          fetch(`data/stocks_kospi200_real.json?t=${Date.now()}`)
+            .then(res => res.ok ? res.json() : null)
+            .then(d => {
+              if (d && d.preloaded_data) {
+                Object.assign(REAL_PRELOADED_DATA, d.preloaded_data);
+                LOADED_MARKETS.KOSPI200 = true;
+                if (d.stocks && (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0)) {
+                  ALL_350_STOCKS = d.stocks;
+                }
+              }
+            })
+            .catch(e => console.warn("KOSPI200 load error:", e))
+        );
+      }
+
+      if (needKosdaq) {
+        loadTasks.push(
+          fetch(`data/stocks_kosdaq150_real.json?t=${Date.now()}`)
+            .then(res => res.ok ? res.json() : null)
+            .then(d => {
+              if (d && d.preloaded_data) {
+                Object.assign(REAL_PRELOADED_DATA, d.preloaded_data);
+                LOADED_MARKETS.KOSDAQ150 = true;
+              }
+            })
+            .catch(e => console.warn("KOSDAQ150 load error:", e))
+        );
+      }
+
+      if (loadTasks.length > 0) {
+        await Promise.all(loadTasks);
+      }
+
+      // Fallback to legacy single file if split files not found
+      if (Object.keys(REAL_PRELOADED_DATA).length === 0) {
         try {
           const res = await fetch(`data/stocks_350_real.json?t=${Date.now()}`);
           if (res.ok) {
             const d = await res.json();
             REAL_PRELOADED_DATA = d.preloaded_data || {};
-            if (d.stocks && d.stocks.length > 0) {
+            if (d.stocks && (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0)) {
               ALL_350_STOCKS = d.stocks;
             }
           }
-        } catch(e) {
-          console.warn("stocks_350_real.json load warning:", e);
-        }
+        } catch(e) {}
       }
 
-      if (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0) {
-        try {
-          const resStock = await fetch('data/stocks_350.json');
-          if (resStock.ok) {
-            ALL_350_STOCKS = await resStock.json();
-          }
-        } catch(e) {
-          console.warn("stocks_350.json load warning:", e);
-        }
-      }
+      return REAL_PRELOADED_DATA;
+    }
+
+    async function initDataViewer() {
+      await ensureMarketDataLoaded('ALL');
 
       if (REAL_PRELOADED_DATA) {
         const sampleRows = REAL_PRELOADED_DATA['005930'] || REAL_PRELOADED_DATA['KOSPI'] || Object.values(REAL_PRELOADED_DATA)[0];
@@ -1195,7 +1243,7 @@
       if (!tbody) return;
 
       if (!rows || rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="17" style="text-align:center; padding:20px; color:#64748b;">선택한 종목의 5년 데이터가 없습니다.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="17" style="text-align:center; padding:20px; color:#64748b;">선택한 종목의 10년 데이터가 없습니다.</td></tr>`;
         return;
       }
 
@@ -1706,10 +1754,14 @@
       const endInput = document.getElementById('opt-end-date');
       if (!startInput || !endInput) return;
 
-      const endStr = typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : "2026-08-20";
+      const endStr = typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : "2026-08-21";
       endInput.value = endStr;
 
-      if (val === '5Y') {
+      if (val === '10Y') {
+        startInput.value = "2016-01-15";
+        startInput.disabled = true;
+        endInput.disabled = true;
+      } else if (val === '5Y') {
         startInput.value = "2021-01-04";
         startInput.disabled = true;
         endInput.disabled = true;
@@ -1758,32 +1810,10 @@
 
         resetRecentTradesTableFilter();
 
-        if (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0) {
-          try {
-            const resStock = await fetch('data/stocks_350.json');
-            if (resStock.ok) {
-              ALL_350_STOCKS = await resStock.json();
-            }
-          } catch(e) {
-            console.warn("stocks_350.json load warning:", e);
-          }
-        }
-
-        if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length < 10) {
-          try {
-            const res = await fetch('data/stocks_350_real.json');
-            if (res.ok) {
-              const d = await res.json();
-              REAL_PRELOADED_DATA = d.preloaded_data || {};
-              if (d.stocks && d.stocks.length > 0) ALL_350_STOCKS = d.stocks;
-            }
-          } catch(e) {
-            console.warn("stocks_350_real.json load warning:", e);
-          }
-        }
+        await ensureMarketDataLoaded(targetMarket);
 
         if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length === 0) {
-          alert("주가 데이터를 로드할 수 없습니다. data/stocks_350_real.json 파일이 존재하지 않거나 서버 연결이 불안정합니다.");
+          alert("주가 데이터를 로드할 수 없습니다. 데이터 파일이 존재하지 않거나 서버 연결이 불안정합니다.");
           return;
         }
 
@@ -2999,28 +3029,12 @@
     }
 
     async function executeMultiStrategyCompareDatasets(selectedSlots) {
-      if (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0) {
-        try {
-          const resStock = await fetch('data/stocks_350.json');
-          if (resStock.ok) ALL_350_STOCKS = await resStock.json();
-        } catch(e) {}
-      }
-
-      if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length < 10) {
-        try {
-          const res = await fetch(`data/stocks_350_real.json?t=${Date.now()}`);
-          if (res.ok) {
-            const d = await res.json();
-            REAL_PRELOADED_DATA = d.preloaded_data || {};
-            if (d.stocks && d.stocks.length > 0) ALL_350_STOCKS = d.stocks;
-          }
-        } catch(e) {}
-      }
-
-      let startDateStr = formatToDateOnly(document.getElementById('opt-start-date')?.value, '2021-01-04');
-      let endDateStr = formatToDateOnly(document.getElementById('opt-end-date')?.value, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-20');
-      const tradeAmount = parseFloat(document.getElementById('opt-initial-capital')?.value) || 1000000;
       const market = document.getElementById('opt-backtest-market')?.value || 'ALL';
+      await ensureMarketDataLoaded(market);
+
+      let startDateStr = formatToDateOnly(document.getElementById('opt-start-date')?.value, '2016-01-15');
+      let endDateStr = formatToDateOnly(document.getElementById('opt-end-date')?.value, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-21');
+      const tradeAmount = parseFloat(document.getElementById('opt-initial-capital')?.value) || 1000000;
 
       const colorPalette = ['#2563eb', '#7c3aed', '#059669', '#ea580c', '#db2777', '#0284c7', '#ca8a04', '#78716c', '#4f46e5', '#0d9488'];
       
@@ -3864,7 +3878,7 @@
         const pinHint = document.getElementById('modal-pin-hint');
         if (pinHint) pinHint.style.display = 'inline';
 
-        statusText.textContent = "353개 종목 5년치 데이터 수집 및 연산 진행 중...";
+        statusText.textContent = "350개 종목 10년치 데이터 수집 및 연산 진행 중...";
         let secondsLeft = 45;
 
         if (updateTimerInterval) clearInterval(updateTimerInterval);
@@ -3879,11 +3893,11 @@
 
             // Reload fresh dataset with cache buster
             try {
-              const res = await fetch(`data/stocks_350_real.json?t=${Date.now()}`);
-              if (res.ok) {
-                const d = await res.json();
-                REAL_PRELOADED_DATA = d.preloaded_data || {};
-                
+              LOADED_MARKETS = { KOSPI200: false, KOSDAQ150: false };
+              REAL_PRELOADED_DATA = {};
+              await ensureMarketDataLoaded('ALL');
+
+              if (Object.keys(REAL_PRELOADED_DATA).length > 0) {
                 const sampleKey = Object.keys(REAL_PRELOADED_DATA)[0];
                 const sampleRows = REAL_PRELOADED_DATA[sampleKey];
                 const newLastDate = (sampleRows && sampleRows.length > 0) ? (sampleRows[sampleRows.length - 1][0] || sampleRows[sampleRows.length - 1].date) : '최신';

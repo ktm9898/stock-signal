@@ -1,7 +1,8 @@
 """
-Historical 5-Year Backtest Dataset Incremental Updater
-Fetches new daily candles and updates data/stocks_350_real.json with 100% indicator continuity.
-Maintains a rolling 5-year (1,250~1,300 trading days) window to keep file size optimal.
+Historical 10-Year Backtest Dataset Incremental Updater
+Fetches new daily candles and updates data/stocks_kospi200_real.json and data/stocks_kosdaq150_real.json
+with 100% indicator continuity.
+Maintains a rolling 10-year (2,500~2,600 trading days) window to keep file sizes safely under 50MB.
 """
 
 import os
@@ -20,16 +21,17 @@ from data_loader import (
     calculate_full_indicators,
     get_kospi200_tickers,
     get_kosdaq150_tickers,
-    fetch_stock_5y_ohlcv
+    fetch_stock_ohlcv
 )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
-STOCKS_350_REAL_PATH = os.path.join(DATA_DIR, "stocks_350_real.json")
+KOSPI200_REAL_PATH = os.path.join(DATA_DIR, "stocks_kospi200_real.json")
+KOSDAQ150_REAL_PATH = os.path.join(DATA_DIR, "stocks_kosdaq150_real.json")
 STOCKS_350_PATH = os.path.join(DATA_DIR, "stocks_350.json")
 
-# Target rolling window size (trading days ~ 5 years)
-MAX_WINDOW_DAYS = 1300
+# Target rolling window size (trading days ~ 10.4 years)
+MAX_WINDOW_DAYS = 2600
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
 def fetch_candles_and_indicators(ticker_or_symbol, candle_count=120):
@@ -126,102 +128,63 @@ def convert_df_to_array_rows(df):
         ])
     return result_rows
 
-def update_backtest_database():
+def sync_dataset_file(file_path, target_stocks_meta, market_label):
     """
-    Perform intelligent incremental update on data/stocks_350_real.json.
-    - Synchronizes constituent stock universe with live KOSPI 200 & KOSDAQ 150.
-    - Auto-downloads full 5-year history for newly added index constituents.
-    - Prunes dropped stocks to maintain clean 350-stock target universe.
-    - Incrementally updates recent trading days for existing constituents.
+    Perform intelligent incremental update on a specific split dataset file (KOSPI 200 or KOSDAQ 150).
+    - Auto-downloads full 10-year history for newly added index constituents.
+    - Prunes dropped stocks to maintain clean constituent universe.
+    - Incrementally updates recent trading days for existing constituents + benchmarks.
     """
-    if not os.path.exists(STOCKS_350_REAL_PATH):
-        print(f"[ERROR] Target dataset not found: {STOCKS_350_REAL_PATH}")
-        return False
-
-    print("[INFO] Loading existing backtest dataset...")
-    with open(STOCKS_350_REAL_PATH, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    existing_stocks_meta = data.get("stocks", [])
-    preloaded_data = data.get("preloaded_data", {})
-
-    # 1. Fetch current live constituent universe (KOSPI 200 + KOSDAQ 150)
-    print("[INFO] Checking live index constituents (KOSPI 200 + KOSDAQ 150)...")
-    kospi_items = get_kospi200_tickers()
-    kosdaq_items = get_kosdaq150_tickers()
-
-    target_stocks_meta = []
-    if len(kospi_items) >= 100 and len(kosdaq_items) >= 75:
-        target_stocks_meta = kospi_items[:200] + kosdaq_items[:150]
-        print(f" -> Live target constituents: KOSPI 200 ({len(kospi_items[:200])}), KOSDAQ 150 ({len(kosdaq_items[:150])}) = Total {len(target_stocks_meta)} stocks.")
-    else:
-        print("[WARN] Live constituent fetch returned incomplete list. Keeping existing metadata as fallback.")
-        target_stocks_meta = existing_stocks_meta
+    preloaded_data = {}
+    if os.path.exists(file_path):
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                preloaded_data = data.get("preloaded_data", {})
+        except Exception as e:
+            print(f"[WARN] Could not parse {file_path}: {e}")
 
     target_tickers = [s['ticker'] for s in target_stocks_meta]
     target_ticker_set = set(target_tickers)
     existing_ticker_set = set([k for k in preloaded_data.keys() if k not in ("KOSPI", "KOSDAQ")])
 
-    # Always ensure data/stocks_350.json metadata file is in sync
-    try:
-        with open(STOCKS_350_PATH, "w", encoding="utf-8") as f:
-            json.dump(target_stocks_meta, f, ensure_ascii=False, indent=2)
-    except Exception as e:
-        print(f"[WARN] Could not update {STOCKS_350_PATH}: {e}")
-
-    # Detect rebalanced additions and removals
+    # Detect additions & removals
     new_tickers = target_ticker_set - existing_ticker_set
     removed_tickers = existing_ticker_set - target_ticker_set
 
     if new_tickers:
-        print(f"[INFO] [NEW CONSTITUENTS] Detected {len(new_tickers)} NEW index constituent(s): {', '.join(sorted(list(new_tickers)))}")
-        end_date = datetime.datetime.now().strftime("%Y%m%d")
-        start_date = (datetime.datetime.now() - datetime.timedelta(days=365 * 5 + 30)).strftime("%Y%m%d")
-        
+        print(f"[INFO] [{market_label}] Detected {len(new_tickers)} NEW constituent(s): {', '.join(sorted(list(new_tickers)))}")
         for new_t in new_tickers:
             name = next((s['name'] for s in target_stocks_meta if s['ticker'] == new_t), new_t)
-            print(f"  -> Fetching full 5-year history for new constituent: {name} ({new_t})...")
+            print(f"  -> Fetching full 10-year history for: {name} ({new_t})...")
             try:
-                df_new = fetch_stock_5y_ohlcv(new_t, start_date, end_date)
+                df_new = fetch_stock_ohlcv(new_t, candle_count=MAX_WINDOW_DAYS)
                 if df_new is not None and len(df_new) >= 1:
                     df_new = calculate_full_indicators(df_new)
                     df_new['Date'] = df_new.index if 'Date' not in df_new.columns else df_new['Date']
                     preloaded_data[new_t] = convert_df_to_array_rows(df_new)
-                    print(f"     Successfully loaded {len(preloaded_data[new_t])} historical candles for {name}.")
+                    print(f"     Loaded {len(preloaded_data[new_t])} candles for {name}.")
                 else:
                     preloaded_data[new_t] = []
             except Exception as err:
-                print(f"     [WARN] Failed to fetch full 5Y data for {new_t}: {err}")
+                print(f"     [WARN] Failed to fetch 10Y data for {new_t}: {err}")
                 preloaded_data[new_t] = []
 
     if removed_tickers:
-        print(f"[INFO] [PRUNE DROPPED] Pruning {len(removed_tickers)} dropped constituent(s) to maintain clean 350-stock universe: {', '.join(sorted(list(removed_tickers)))}")
+        print(f"[INFO] [{market_label}] Pruning {len(removed_tickers)} dropped constituent(s): {', '.join(sorted(list(removed_tickers)))}")
         for rem_t in removed_tickers:
             preloaded_data.pop(rem_t, None)
 
-    # 2. Incremental update for all active targets + benchmarks
+    # Symbols to sync: constituents + both benchmarks
     all_active_symbols = list(set(target_tickers + ["KOSPI", "KOSDAQ"]))
-    print(f"[INFO] Syncing daily candles across {len(all_active_symbols)} active symbols...")
-
-    # Quick pre-check on leading ticker to avoid unnecessary full network calls
-    sample_ticker = "005930" if "005930" in preloaded_data else all_active_symbols[0]
-    sample_history = preloaded_data.get(sample_ticker, [])
-    last_known_date = sample_history[-1][0] if sample_history else "2021-01-01"
-    print(f"[INFO] Current dataset last trading date: {last_known_date}")
-
-    sample_df = fetch_candles_and_indicators(sample_ticker, candle_count=30)
-    if sample_df is not None and len(sample_df) > 0:
-        latest_market_date = sample_df['Date'].iloc[-1]
-        if latest_market_date <= last_known_date and not new_tickers:
-            print(f"[INFO] Fast-Exit: Market data is already up-to-date ({last_known_date}) and no index changes. Skipping sync.")
-            return True
+    print(f"[INFO] [{market_label}] Syncing daily candles across {len(all_active_symbols)} symbols...")
 
     updated_count = 0
     new_dates_added = set()
 
     def process_symbol(symbol):
         existing_rows = preloaded_data.get(symbol, [])
-        sym_last_date = existing_rows[-1][0] if existing_rows else "2021-01-01"
+        sym_last_date = existing_rows[-1][0] if existing_rows else "2016-01-01"
 
         df = fetch_candles_and_indicators(symbol, candle_count=120)
         if df is None or len(df) == 0:
@@ -231,7 +194,6 @@ def update_backtest_database():
         append_candidates = [r for r in new_array_rows if r[0] > sym_last_date]
         return symbol, sym_last_date, append_candidates
 
-    print("[INFO] Fetching latest candles in parallel (16 threads)...")
     with ThreadPoolExecutor(max_workers=16) as executor:
         results = list(executor.map(process_symbol, all_active_symbols))
 
@@ -246,34 +208,67 @@ def update_backtest_database():
             if len(combined) > MAX_WINDOW_DAYS:
                 combined = combined[-MAX_WINDOW_DAYS:]
             preloaded_data[symbol] = combined
+        elif symbol not in preloaded_data or not preloaded_data[symbol]:
+            # Initial fetch if symbol had no rows
+            df_full = fetch_stock_ohlcv(symbol, candle_count=MAX_WINDOW_DAYS)
+            if df_full is not None and len(df_full) >= 1:
+                df_full = calculate_full_indicators(df_full)
+                df_full['Date'] = df_full.index if 'Date' not in df_full.columns else df_full['Date']
+                preloaded_data[symbol] = convert_df_to_array_rows(df_full)
+                updated_count += 1
 
     if new_dates_added:
         sorted_new_dates = sorted(list(new_dates_added))
-        print(f"[SUCCESS] Added {len(sorted_new_dates)} new trading day(s): {', '.join(sorted_new_dates)}")
-        print(f"[INFO] Updated {updated_count} symbols successfully.")
+        print(f"[SUCCESS] [{market_label}] Added {len(sorted_new_dates)} new trading day(s): {', '.join(sorted_new_dates)}")
     else:
-        print("[INFO] No new dates added for existing symbols.")
+        print(f"[INFO] [{market_label}] No new dates to append.")
 
-    # Save to JSON
+    # Save to JSON with compact formatting
     payload = {
         "stocks": target_stocks_meta,
         "preloaded_data": preloaded_data
     }
 
-    temp_path = STOCKS_350_REAL_PATH + ".tmp"
+    temp_path = file_path + ".tmp"
     with open(temp_path, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False)
+        json.dump(payload, f, ensure_ascii=False, separators=(',', ':'))
 
-    if os.path.exists(STOCKS_350_REAL_PATH):
-        os.remove(STOCKS_350_REAL_PATH)
-    os.rename(temp_path, STOCKS_350_REAL_PATH)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    os.rename(temp_path, file_path)
 
-    # Synchronize data/stocks_350.json metadata list
-    with open(STOCKS_350_PATH, "w", encoding="utf-8") as f:
-        json.dump(target_stocks_meta, f, ensure_ascii=False, indent=2)
+    final_size_mb = os.path.getsize(file_path) / (1024 * 1024)
+    print(f"[DONE] Saved {market_label} dataset to {file_path} ({final_size_mb:.2f} MB)")
+    return True
 
-    final_size_mb = os.path.getsize(STOCKS_350_REAL_PATH) / (1024 * 1024)
-    print(f"[DONE] Saved updated dataset to {STOCKS_350_REAL_PATH} ({final_size_mb:.2f} MB)")
+def update_backtest_database():
+    """
+    Perform intelligent incremental update on both KOSPI 200 & KOSDAQ 150 split datasets.
+    """
+    print("[INFO] Checking live index constituents (KOSPI 200 + KOSDAQ 150)...")
+    kospi_items = get_kospi200_tickers()[:200]
+    kosdaq_items = get_kosdaq150_tickers()[:150]
+
+    all_target_stocks = kospi_items + kosdaq_items
+    print(f" -> Live target constituents: KOSPI 200 ({len(kospi_items)}), KOSDAQ 150 ({len(kosdaq_items)}) = Total {len(all_target_stocks)} stocks.")
+
+    # 1. Update metadata stocks_350.json
+    try:
+        with open(STOCKS_350_PATH, "w", encoding="utf-8") as f:
+            json.dump(all_target_stocks, f, ensure_ascii=False, indent=2)
+        print(f"[INFO] Updated {STOCKS_350_PATH}")
+    except Exception as e:
+        print(f"[WARN] Could not update {STOCKS_350_PATH}: {e}")
+
+    # 2. Update KOSPI 200 dataset
+    print("\n--- Updating KOSPI 200 10-Year Dataset ---")
+    sync_dataset_file(KOSPI200_REAL_PATH, kospi_items, "KOSPI 200")
+
+    # 3. Update KOSDAQ 150 dataset
+    print("\n--- Updating KOSDAQ 150 10-Year Dataset ---")
+    sync_dataset_file(KOSDAQ150_REAL_PATH, kosdaq_items, "KOSDAQ 150")
+
+    print("\n[ALL COMPLETE] Incremental update finished successfully.")
     return True
 
 if __name__ == "__main__":

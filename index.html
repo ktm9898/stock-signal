@@ -2010,12 +2010,30 @@
     }
 
     async function loadPreloadedRealData() {
-      if (window.REAL_PRELOADED_DATA) return;
+      if (window.REAL_PRELOADED_DATA && Object.keys(window.REAL_PRELOADED_DATA).length > 0) return;
       try {
-        const res = await fetch(`data/stocks_350_real.json?t=${Date.now()}`);
-        if (res.ok) {
-          const d = await res.json();
-          window.REAL_PRELOADED_DATA = d.preloaded_data || {};
+        window.REAL_PRELOADED_DATA = {};
+        const [resK, resKq] = await Promise.allSettled([
+          fetch(`data/stocks_kospi200_real.json?t=${Date.now()}`).then(r => r.ok ? r.json() : null),
+          fetch(`data/stocks_kosdaq150_real.json?t=${Date.now()}`).then(r => r.ok ? r.json() : null)
+        ]);
+
+        if (resK.status === 'fulfilled' && resK.value && resK.value.preloaded_data) {
+          Object.assign(window.REAL_PRELOADED_DATA, resK.value.preloaded_data);
+        }
+        if (resKq.status === 'fulfilled' && resKq.value && resKq.value.preloaded_data) {
+          Object.assign(window.REAL_PRELOADED_DATA, resKq.value.preloaded_data);
+        }
+
+        // Fallback to legacy single file if split files not found
+        if (Object.keys(window.REAL_PRELOADED_DATA).length === 0) {
+          const res = await fetch(`data/stocks_350_real.json?t=${Date.now()}`);
+          if (res.ok) {
+            const d = await res.json();
+            window.REAL_PRELOADED_DATA = d.preloaded_data || {};
+          }
+        }
+        if (typeof evaluateStrategyForDashboard === 'function') {
           evaluateStrategyForDashboard();
         }
       } catch(e) {}
