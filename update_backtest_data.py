@@ -1,8 +1,8 @@
 """
-Historical 10-Year Backtest Dataset Incremental Updater
+Historical Backtest Dataset Incremental Updater
 Fetches new daily candles and updates data/stocks_kospi200_real.json and data/stocks_kosdaq150_real.json
 with 100% indicator continuity.
-Maintains a rolling 10-year (2,500~2,600 trading days) window to keep file sizes safely under 50MB.
+Preserves all historical candles from 2016-01-01 onwards without truncating, appending new trading days.
 """
 
 import os
@@ -30,8 +30,8 @@ KOSPI200_REAL_PATH = os.path.join(DATA_DIR, "stocks_kospi200_real.json")
 KOSDAQ150_REAL_PATH = os.path.join(DATA_DIR, "stocks_kosdaq150_real.json")
 STOCKS_350_PATH = os.path.join(DATA_DIR, "stocks_350.json")
 
-# Target rolling window size (trading days ~ 10.4 years)
-MAX_WINDOW_DAYS = 2600
+# Generous fetch window (from 2016-01-01 onwards)
+FETCH_CANDLE_COUNT = 3000
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
 def fetch_candles_and_indicators(ticker_or_symbol, candle_count=120):
@@ -158,7 +158,7 @@ def sync_dataset_file(file_path, target_stocks_meta, market_label):
             name = next((s['name'] for s in target_stocks_meta if s['ticker'] == new_t), new_t)
             print(f"  -> Fetching full 10-year history for: {name} ({new_t})...")
             try:
-                df_new = fetch_stock_ohlcv(new_t, candle_count=MAX_WINDOW_DAYS)
+                df_new = fetch_stock_ohlcv(new_t, candle_count=FETCH_CANDLE_COUNT)
                 if df_new is not None and len(df_new) >= 1:
                     df_new = calculate_full_indicators(df_new)
                     df_new['Date'] = df_new.index if 'Date' not in df_new.columns else df_new['Date']
@@ -205,12 +205,10 @@ def sync_dataset_file(file_path, target_stocks_meta, market_label):
             
             existing = preloaded_data.get(symbol, [])
             combined = existing + new_rows
-            if len(combined) > MAX_WINDOW_DAYS:
-                combined = combined[-MAX_WINDOW_DAYS:]
             preloaded_data[symbol] = combined
         elif symbol not in preloaded_data or not preloaded_data[symbol]:
             # Initial fetch if symbol had no rows
-            df_full = fetch_stock_ohlcv(symbol, candle_count=MAX_WINDOW_DAYS)
+            df_full = fetch_stock_ohlcv(symbol, candle_count=FETCH_CANDLE_COUNT)
             if df_full is not None and len(df_full) >= 1:
                 df_full = calculate_full_indicators(df_full)
                 df_full['Date'] = df_full.index if 'Date' not in df_full.columns else df_full['Date']
