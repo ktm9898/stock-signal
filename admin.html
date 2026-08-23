@@ -3120,11 +3120,11 @@
       const originalText = btn ? btn.innerHTML : '비교 실행';
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" style="margin-right:6px;"></i> 비교 계산 중...';
+        btn.innerHTML = '<i class="fa-solid fa-rotate fa-spin" style="margin-right:6px;"></i> 비교 계산 중...';
       }
 
-      // 브라우저가 버튼 스피너를 화면에 먼저 렌더링하도록 틱 부여
-      await new Promise(resolve => setTimeout(resolve, 80));
+      // 브라우저 UI 스레드가 스피너 회전 애니메이션 프레임을 확실히 그리도록 시간 슬라이스 부여
+      await new Promise(resolve => setTimeout(resolve, 350));
 
       try {
         // Run multi-strategy compare
@@ -3315,9 +3315,9 @@
 
         const color = colorPalette[slotIdx % colorPalette.length];
         
-        // 괄호 없이 깔끔하게 표시
+        // 순수한 전략명만 표시 (수익률 텍스트 일체 제외)
         indexDatasets.push({
-          label: `${slot.name} ${cumRet >= 0 ? '+' : ''}${cumRet.toFixed(1)}%`,
+          label: slot.name,
           data: strategyUnrealizedData,
           borderColor: color,
           borderWidth: 2.2,
@@ -3328,7 +3328,7 @@
         });
 
         pnlDatasets.push({
-          label: `${slot.name} ${returnOnAvgCapital >= 0 ? '+' : ''}${returnOnAvgCapital.toFixed(1)}%`,
+          label: slot.name,
           data: slotPnlData,
           borderColor: color,
           borderWidth: 2.2,
@@ -3358,7 +3358,7 @@
         });
       });
 
-      // Benchmark KOSPI / KOSDAQ (clean labels: KOSPI, KOSDAQ)
+      // Benchmark KOSPI / KOSDAQ (순수 이름만)
       let kospiBenchmarkData = fineDates.map(() => 0);
       if (REAL_PRELOADED_DATA && REAL_PRELOADED_DATA['KOSPI']) {
         const kRows = (REAL_PRELOADED_DATA['KOSPI'] || []).map(normalizeRow).filter(r => r.date >= startDateStr && r.date <= endDateStr);
@@ -3386,9 +3386,8 @@
       }
 
       if (market === 'KOSPI200' || market === 'ALL') {
-        const kospiFinalPct = kospiBenchmarkData.length > 0 ? kospiBenchmarkData[kospiBenchmarkData.length - 1] : 0;
         const dsKospi = {
-          label: `KOSPI ${kospiFinalPct >= 0 ? '+' : ''}${kospiFinalPct.toFixed(1)}%`,
+          label: 'KOSPI',
           data: kospiBenchmarkData,
           borderColor: '#dc2626',
           borderDash: [4, 4],
@@ -3402,9 +3401,8 @@
       }
 
       if (market === 'KOSDAQ150' || market === 'ALL') {
-        const kosdaqFinalPct = kosdaqBenchmarkData.length > 0 ? kosdaqBenchmarkData[kosdaqBenchmarkData.length - 1] : 0;
         const dsKosdaq = {
-          label: `KOSDAQ ${kosdaqFinalPct >= 0 ? '+' : ''}${kosdaqFinalPct.toFixed(1)}%`,
+          label: 'KOSDAQ',
           data: kosdaqBenchmarkData,
           borderColor: '#059669',
           borderDash: [4, 4],
@@ -3509,8 +3507,7 @@
                   const val = context.parsed.y;
                   const sign = val >= 0 ? '+' : '';
                   const rawLabel = context.dataset.label || '';
-                  const nameOnly = rawLabel.split(' ')[0];
-                  return ` ${nameOnly}: ${sign}${val.toFixed(1)}%`;
+                  return ` ${rawLabel}: ${sign}${val.toFixed(1)}%`;
                 }
               }
             }
@@ -4358,7 +4355,7 @@
       <div id="compare-slots-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;"></div>
       <div style="display:flex; justify-content:flex-end; gap:8px;">
         <button onclick="closeCompareModal()" style="padding:8px 14px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; font-weight:600; color:#475569; cursor:pointer;">닫기</button>
-        <button id="btn-run-compare-modal" onclick="runMultiStrategyComparisonFromModal()" style="padding:8px 16px; background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">비교 실행</button>
+        <button id="btn-run-compare-modal" onclick="runMultiStrategyComparisonFromModal()" style="padding:8px 18px; min-width:130px; display:inline-flex; align-items:center; justify-content:center; background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">비교 실행</button>
       </div>
     </div>
   </div>
