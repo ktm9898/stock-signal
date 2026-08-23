@@ -162,23 +162,31 @@
     .btn-sm-action:hover {
       background: #f1f5f9;
       color: #0f172a;
-    }
     .btn-chart-mode {
       background: transparent;
       border: none;
       color: #64748b;
       font-size: 0.76rem;
       font-weight: 600;
-      padding: 4px 10px;
+      padding: 3px 8px;
       border-radius: 4px;
       cursor: pointer;
       transition: all 0.15s ease;
+      white-space: nowrap;
     }
     .btn-chart-mode.active {
       background: #ffffff;
       color: #0f172a;
       font-weight: 700;
       box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
+    .mode-text-mobile { display: none; }
+    .mode-text-desktop { display: inline; }
+    @media (max-width: 600px) {
+      .mode-text-mobile { display: inline; }
+      .mode-text-desktop { display: none; }
+      .btn-chart-mode { font-size: 0.72rem; padding: 2px 6px; }
+      .chart-header-title { font-size: 0.80rem !important; }
     }
 
     /* Strategy Rules & Groups */
@@ -830,16 +838,20 @@
             </div>
           </div>
           <div style="margin-top: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
-              <h4 style="font-size: 0.88rem; font-weight: 700; color: #1e293b; margin: 0;">
-                백테스트 수익률 곡선 <span class="label-desktop" id="chart-mode-subtitle">(지수기준 vs KOSPI / KOSDAQ 벤치마크)</span>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: nowrap; gap: 6px;">
+              <h4 class="chart-header-title" style="font-size: 0.86rem; font-weight: 700; color: #1e293b; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                백테스트 수익률 곡선 <span class="label-desktop" id="chart-mode-subtitle" style="font-weight:400; color:#64748b; font-size:0.75rem;">(지수기준 vs KOSPI / KOSDAQ 벤치마크)</span>
               </h4>
-              <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
                 <div style="display: inline-flex; background: #f1f5f9; padding: 2px; border-radius: 6px; border: 1px solid var(--border-subtle);">
-                  <button id="btn-mode-index" class="btn-chart-mode active" onclick="switchChartMode('index')">지수기준</button>
-                  <button id="btn-mode-profit" class="btn-chart-mode" onclick="switchChartMode('profit')">손익기준</button>
+                  <button id="btn-mode-index" class="btn-chart-mode active" onclick="switchChartMode('index')">
+                    <span class="mode-text-desktop">지수기준</span><span class="mode-text-mobile">지수</span>
+                  </button>
+                  <button id="btn-mode-profit" class="btn-chart-mode" onclick="switchChartMode('profit')">
+                    <span class="mode-text-desktop">손익기준</span><span class="mode-text-mobile">손익</span>
+                  </button>
                 </div>
-                <button id="btn-toggle-chart-size" class="btn-sm-action" onclick="toggleChartSize()" style="font-size:0.75rem; background:#f1f5f9; color:#334155; border:1px solid var(--border-subtle); display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:5px; cursor:pointer;">
+                <button id="btn-toggle-chart-size" class="btn-sm-action" onclick="toggleChartSize()" style="font-size:0.75rem; background:#f1f5f9; color:#334155; border:1px solid var(--border-subtle); display:inline-flex; align-items:center; gap:3px; padding:3px 8px; border-radius:5px; cursor:pointer;">
                   <i class="fa-solid fa-up-right-and-down-left-from-center" id="icon-chart-size"></i> <span id="text-chart-size">확대</span>
                 </button>
               </div>
@@ -2179,26 +2191,30 @@
       
       if (tradesUpToDate.length > 0) {
         renderRecentTradesTable(tradesUpToDate.slice(0, 50));
-        const titleEl = document.getElementById('recent-trades-title');
-        if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-calendar-days" style="margin-right:3px;"></i> <span style="color:#2563eb; font-weight:700;">${dateStr}</span> 까지의 최근 매매 체결 일지 <span style="font-size:0.75rem; color:#64748b; font-weight:400; margin-left:6px;">(최대 50개)</span>`;
+        const countEl = document.getElementById('trade-log-count');
+        if (countEl) countEl.textContent = tradesUpToDate.length;
       } else {
         renderRecentTradesTableNoData(dateStr);
       }
+      const titleEl = document.getElementById('recent-trades-title');
+      if (titleEl) titleEl.textContent = '최근 매매 체결 일지';
     }
 
     function renderRecentTradesTableNoData(dateStr) {
       const tbody = document.getElementById('trade-log-body');
       if (tbody) tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px; color:#64748b;">[${dateStr}] 일자 이전의 체결 내역이 없습니다.</td></tr>`;
       const titleEl = document.getElementById('recent-trades-title');
-      if (titleEl) titleEl.innerHTML = `<i class="fa-solid fa-calendar-days" style="margin-right:3px;"></i> <span style="color:#64748b; font-weight:600;">${dateStr}</span> 이전 체결 내역 없음`;
+      if (titleEl) titleEl.textContent = '최근 매매 체결 일지';
     }
 
     function resetRecentTradesTableFilter() {
       if (cachedExecutedTrades && cachedExecutedTrades.length > 0) {
         renderRecentTradesTable(cachedExecutedTrades.slice(0, 50));
+        const countEl = document.getElementById('trade-log-count');
+        if (countEl) countEl.textContent = cachedExecutedTrades.length;
       }
       const titleEl = document.getElementById('recent-trades-title');
-      if (titleEl) titleEl.innerHTML = `최근 매매 체결 일지 <span class="label-desktop" style="font-size:0.75rem; color:#64748b; font-weight:400; margin-left:6px;">(<i class="fa-solid fa-circle-info" style="margin-right:2px;"></i> 차트 날짜 지점을 클릭하면 해당 날짜까지의 최근 50개 내역이 표시됩니다)</span>`;
+      if (titleEl) titleEl.textContent = '최근 매매 체결 일지';
     }
 
     function renderRecentTradesTable(trades) {
