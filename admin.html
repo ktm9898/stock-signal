@@ -2791,8 +2791,11 @@
     function applySlotToEditor(slot) {
       if (!slot || slot.isEmpty || !slot.buyRules || slot.buyRules.length === 0) return;
 
-      currentBuyGroups = normalizeRulesToGroups(slot.buyRules, 'buy');
-      currentSellGroups = normalizeRulesToGroups(slot.sellRules || [], 'sell');
+      const clonedBuyRules = JSON.parse(JSON.stringify(slot.buyRules));
+      const clonedSellRules = JSON.parse(JSON.stringify(slot.sellRules || []));
+
+      currentBuyGroups = normalizeRulesToGroups(clonedBuyRules, 'buy');
+      currentSellGroups = normalizeRulesToGroups(clonedSellRules, 'sell');
       renderRules();
 
       if (slot.market && document.getElementById('opt-backtest-market')) {
