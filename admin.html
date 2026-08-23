@@ -769,7 +769,7 @@
             <div class="kpi-card">
               <div class="kpi-title">전략 수익률 (지수)</div>
               <div class="kpi-value" id="kpi-index-return" style="color: var(--accent-red);">+0.0%</div>
-              <div class="kpi-sub" id="kpi-index-sub">지수기준 복리 누적</div>
+              <div class="kpi-sub" id="kpi-index-sub">연평균(CAGR): +0.0%</div>
             </div>
 
             <!-- Card 2: Total Net Profit & Average Capital Balance -->
@@ -2396,12 +2396,30 @@
       const returnOnAvgCapital = averageCapitalBalance > 0 ? ((totalNetReturnAmount / averageCapitalBalance) * 100) : 0;
       const finalIndexCumPct = indexUnrealizedData.length > 0 ? indexUnrealizedData[indexUnrealizedData.length - 1] : 0.0;
 
+      // Calculate Annualized Return (CAGR)
+      let cagrStr = "연평균(CAGR): +0.0%";
+      if (fineDates.length > 1 && nav > 0) {
+        const startD = new Date(fineDates[0]);
+        const endD = new Date(fineDates[fineDates.length - 1]);
+        const diffYears = Math.max(0.1, (endD - startD) / (1000 * 60 * 60 * 24 * 365.25));
+        const finalMultiplier = nav / 100.0;
+        if (finalMultiplier > 0) {
+          const cagrVal = (Math.pow(finalMultiplier, 1.0 / diffYears) - 1.0) * 100;
+          cagrStr = `연평균(CAGR): ${cagrVal >= 0 ? '+' : ''}${cagrVal.toFixed(1)}%`;
+        }
+      }
+
       // Update 6 KPI Cards in UI
       // Card 1: 전략 수익률 (지수)
       const kpiIndexEl = document.getElementById('kpi-index-return');
       if (kpiIndexEl) {
         kpiIndexEl.textContent = `${finalIndexCumPct >= 0 ? '+' : ''}${finalIndexCumPct.toFixed(1)}%`;
         kpiIndexEl.style.color = finalIndexCumPct >= 0 ? 'var(--accent-red)' : 'var(--primary)';
+      }
+
+      const kpiIndexSubEl = document.getElementById('kpi-index-sub');
+      if (kpiIndexSubEl) {
+        kpiIndexSubEl.textContent = cagrStr;
       }
 
       // Card 2: 총 순수익 금액 (서브: 평잔: ~~원 (+~~%))
