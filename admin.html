@@ -2367,7 +2367,10 @@
         profitUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
       });
 
-      // 2) Mode B: 지수기준 (Index Mode: Daily Equal-Weighted Compounded NAV)
+      // 2) Mode B: 지수기준 (Index Mode: 3-Stage Daily Equal-Weighted Mark-to-Market NAV)
+      // Stage 1. Entry Day: entryPrice(Open) -> entryDate Close
+      // Stage 2. Holding Days: prevDate Close -> dbDate Close
+      // Stage 3. Exit Day: prevDate Close -> exitPrice(Open)
       const indexUnrealizedData = [];
       let nav = 100.0;
       let peakNav = -999999;
@@ -2382,23 +2385,44 @@
         }
 
         const prevDate = fineDates[idx - 1];
-        const active = trades.filter(t => t.entryDate <= prevDate && t.exitDate >= dbDate);
+        const stockRets = [];
 
-        let dayRet = 0.0;
-        if (active.length > 0) {
-          const stockRets = [];
-          for (let i = 0; i < active.length; i++) {
-            const t = active[i];
-            const pPrev = priceMap[t.ticker] ? priceMap[t.ticker][prevDate] : t.entryPrice;
-            const pCurr = priceMap[t.ticker] ? priceMap[t.ticker][dbDate] : t.entryPrice;
+        for (let i = 0; i < trades.length; i++) {
+          const t = trades[i];
+          const ticker = t.ticker;
+          const eDate = t.entryDate;
+          const xDate = t.exitDate;
+
+          if (eDate === dbDate && xDate === dbDate) {
+            // Same-day trade (Intraday Entry -> Exit)
+            if (t.entryPrice > 0) {
+              stockRets.push((t.exitPrice - t.entryPrice) / t.entryPrice);
+            }
+          } else if (eDate === dbDate) {
+            // Stage 1: Entry Day (Actual Entry Open -> Day Close)
+            const pCurr = priceMap[ticker] ? priceMap[ticker][dbDate] : null;
+            if (pCurr && t.entryPrice > 0) {
+              stockRets.push((pCurr - t.entryPrice) / t.entryPrice);
+            }
+          } else if (eDate < dbDate && xDate > dbDate) {
+            // Stage 2: Holding Day (prevDate Close -> dbDate Close)
+            const pPrev = priceMap[ticker] ? priceMap[ticker][prevDate] : null;
+            const pCurr = priceMap[ticker] ? priceMap[ticker][dbDate] : null;
             if (pPrev && pCurr && pPrev > 0) {
               stockRets.push((pCurr - pPrev) / pPrev);
             }
-          }
-          if (stockRets.length > 0) {
-            dayRet = stockRets.reduce((acc, v) => acc + v, 0) / stockRets.length;
+          } else if (xDate === dbDate) {
+            // Stage 3: Exit Day (prevDate Close -> Actual Exit Open)
+            const pPrev = priceMap[ticker] ? priceMap[ticker][prevDate] : null;
+            if (pPrev && pPrev > 0 && t.exitPrice > 0) {
+              stockRets.push((t.exitPrice - pPrev) / pPrev);
+            }
           }
         }
+
+        const dayRet = stockRets.length > 0
+          ? stockRets.reduce((acc, v) => acc + v, 0) / stockRets.length
+          : 0.0;
 
         nav = nav * (1.0 + dayRet);
         const cumPct = nav - 100.0;
