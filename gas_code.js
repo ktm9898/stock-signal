@@ -373,16 +373,43 @@ function doPost(e) {
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd HH:mm");
 
       if (data.holdings_status && data.holdings_status.length > 0 && sheet) {
+        // 기존 기록된 이전 날짜와 가격 맵 구축 (동일 가격/신호 상태면 최초 일시 유지)
+        const prevDateMap = {};
         if (sheet.getLastRow() > 1) {
+          const oldRows = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+          oldRows.forEach(r => {
+            const t = normalizeTicker(r[1]);
+            const oldDate = r[0];
+            const oldPrice = Number(String(r[4] !== undefined ? r[4] : "").replace(/[^0-9.-]/g, ""));
+            const oldSignal = String(r[13] || "");
+            if (t) {
+              prevDateMap[t] = { date: oldDate, price: oldPrice, signal: oldSignal };
+            }
+          });
           sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
         }
-        const rows = data.holdings_status.map(s => [
-          today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, 
-          s.adx || '-', s.prev_adx || '-', s.minus_di || '-', s.plus_di || '-', s.rsi || '-', 
-          (s.b_band_pct !== undefined ? s.b_band_pct : (s.BB_Pct !== undefined ? s.BB_Pct : '-')),
-          (s.volume_ratio !== undefined ? s.volume_ratio : (s.VolumeRatio !== undefined ? s.VolumeRatio : '-')),
-          s.signalLevel, Array.isArray(s.details) ? s.details.join(", ") : String(s.details || "")
-        ]);
+
+        const rows = data.holdings_status.map(s => {
+          const tStr = normalizeTicker(s.ticker);
+          const currP = Number(String(s.currPrice !== undefined ? s.currPrice : "").replace(/[^0-9.-]/g, ""));
+          let rowDate = today;
+
+          // 동일 종목이고, 주가가 동일(장마감 상태)하며 신호 상태가 유지되고 있다면 최초 발생 일시 그대로 보존!
+          if (prevDateMap[tStr]) {
+            const prev = prevDateMap[tStr];
+            if (prev.date && prev.price > 0 && currP > 0 && prev.price === currP && prev.signal === s.signalLevel) {
+              rowDate = prev.date;
+            }
+          }
+
+          return [
+            rowDate, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, 
+            s.adx || '-', s.prev_adx || '-', s.minus_di || '-', s.plus_di || '-', s.rsi || '-', 
+            (s.b_band_pct !== undefined ? s.b_band_pct : (s.BB_Pct !== undefined ? s.BB_Pct : '-')),
+            (s.volume_ratio !== undefined ? s.volume_ratio : (s.VolumeRatio !== undefined ? s.VolumeRatio : '-')),
+            s.signalLevel, Array.isArray(s.details) ? s.details.join(", ") : String(s.details || "")
+          ];
+        });
         sheet.getRange(2, 1, rows.length, 15).setValues(rows);
       }
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
