@@ -2197,14 +2197,14 @@
         renderRecentTradesTableNoData(dateStr);
       }
       const titleEl = document.getElementById('recent-trades-title');
-      if (titleEl) titleEl.textContent = '최근 매매 체결 일지';
+      if (titleEl) titleEl.innerHTML = `<span style="color:#2563eb; font-weight:700;">${dateStr}</span> 체결 일지`;
     }
 
     function renderRecentTradesTableNoData(dateStr) {
       const tbody = document.getElementById('trade-log-body');
       if (tbody) tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px; color:#64748b;">[${dateStr}] 일자 이전의 체결 내역이 없습니다.</td></tr>`;
       const titleEl = document.getElementById('recent-trades-title');
-      if (titleEl) titleEl.textContent = '최근 매매 체결 일지';
+      if (titleEl) titleEl.innerHTML = `<span style="color:#64748b; font-weight:600;">${dateStr}</span> 체결 일지`;
     }
 
     function resetRecentTradesTableFilter() {
