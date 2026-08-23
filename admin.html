@@ -786,11 +786,11 @@
         
         <div class="quant-card">
           <div class="card-header">
-            <div class="card-title">
-              백테스팅 성과 리포트
+            <div class="card-title" id="report-main-title">
+              단일 전략
             </div>
             <span id="report-strat-name" style="font-size: 0.78rem; font-weight: 700; color: #1e293b; background: #f1f5f9; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border-subtle);">
-              실제 퀀트 검증 성과
+              단일 전략
             </span>
           </div>
 
@@ -1901,12 +1901,10 @@
         const takeProfitVal = parseFloat(document.getElementById('opt-take-profit')?.value) || null;
         const cooldownDaysVal = document.getElementById('opt-cooldown-days')?.value ? parseInt(document.getElementById('opt-cooldown-days').value, 10) : 0;
 
+        const mainTitle = document.getElementById('report-main-title');
+        if (mainTitle) mainTitle.textContent = "단일 전략";
         const badge = document.getElementById('report-strat-name');
-        if (badge) {
-          if (targetMarket === 'KOSPI200') badge.textContent = "코스피 200 검증 성과";
-          else if (targetMarket === 'KOSDAQ150') badge.textContent = "코스닥 150 검증 성과";
-          else badge.textContent = "전체 (350종목) 검증 성과";
-        }
+        if (badge) badge.textContent = "단일 전략";
 
         resetRecentTradesTableFilter();
 
@@ -3513,9 +3511,11 @@
       // Switch UI views
       document.getElementById('kpi-single-grid').style.display = 'none';
       document.getElementById('kpi-compare-grid').style.display = 'block';
+      const mainTitle = document.getElementById('report-main-title');
+      if (mainTitle) mainTitle.textContent = `다중 전략 (${selectedSlots.length}개)`;
       const reportTitle = document.getElementById('report-strat-name');
       if (reportTitle) {
-        reportTitle.innerHTML = `<i class="fa-solid fa-code-compare" style="margin-right:4px; color:#2563eb;"></i> <strong>다중 전략 비교 성과 리포트 (${selectedSlots.length}개 전략)</strong>`;
+        reportTitle.innerHTML = `<i class="fa-solid fa-code-compare" style="margin-right:4px; color:#2563eb;"></i> <strong>다중 전략 (${selectedSlots.length}개)</strong>`;
       }
 
       // Empty trade log table with info message
