@@ -824,6 +824,8 @@
                 <thead>
                   <tr style="background: #f8fafc; color: #475569; border-bottom: 1px solid var(--border-color); font-weight: 700;">
                     <th style="padding: 10px 12px; text-align: left;">전략 구분</th>
+                    <th style="padding: 10px 12px; text-align: center;">전략 수익률 (지수)</th>
+                    <th style="padding: 10px 12px; text-align: center;">연평균 (CAGR)</th>
                     <th style="padding: 10px 12px; text-align: center;">총 순수익</th>
                     <th style="padding: 10px 12px; text-align: center;">평잔 수익률</th>
                     <th style="padding: 10px 12px; text-align: center;">투자금 평잔</th>
@@ -3213,15 +3215,36 @@
         return;
       }
 
-      closeCompareModal();
-
-      const selectedSlots = Array.from(checks).map(c => parseInt(c.value)).map(idx => strategySlots[idx]).filter(s => s && !s.isEmpty && s.buyRules);
-      if (selectedSlots.length === 0) {
-        alert("선택된 전략 중 유효한 전략 설정이 없습니다.");
-        return;
+      const btn = document.getElementById('btn-run-compare-modal');
+      const originalText = btn ? btn.innerHTML : '비교 실행';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right:6px;"></i> 비교 계산 중...';
       }
 
-      await executeMultiStrategyCompareDatasets(selectedSlots);
+      try {
+        const selectedSlots = Array.from(checks).map(c => parseInt(c.value)).map(idx => strategySlots[idx]).filter(s => s && !s.isEmpty && s.buyRules);
+        if (selectedSlots.length === 0) {
+          alert("선택된 전략 중 유효한 전략 설정이 없습니다.");
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+          }
+          return;
+        }
+
+        // Run multi-strategy compare
+        await executeMultiStrategyCompareDatasets(selectedSlots);
+        closeCompareModal();
+      } catch (err) {
+        console.error("Multi strategy compare error:", err);
+        alert("전략 비교 중 오류가 발생했습니다: " + (err.message || err));
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
+      }
     }
 
     async function executeMultiStrategyCompareDatasets(selectedSlots) {
@@ -3280,6 +3303,7 @@
         });
         const averageCapitalBalance = fineDates.length > 0 ? (dailyEngagedCapitalSum / fineDates.length) : tradeAmount;
 
+        // 3-Stage Mark-to-Market NAV Calculation for Equal Rigor
         const strategyUnrealizedData = [];
         let slotNav = 100.0;
         let slotPeakNav = -999999;
@@ -3294,23 +3318,40 @@
           }
 
           const prevDate = fineDates[idx - 1];
-          const active = trades.filter(t => t.entryDate <= prevDate && t.exitDate >= dbDate);
+          const stockRets = [];
 
-          let dayRet = 0.0;
-          if (active.length > 0) {
-            const stockRets = [];
-            for (let i = 0; i < active.length; i++) {
-              const t = active[i];
-              const pPrev = priceMap[t.ticker] ? priceMap[t.ticker][prevDate] : t.entryPrice;
-              const pCurr = priceMap[t.ticker] ? priceMap[t.ticker][dbDate] : t.entryPrice;
+          for (let i = 0; i < trades.length; i++) {
+            const t = trades[i];
+            const ticker = t.ticker;
+            const eDate = t.entryDate;
+            const xDate = t.exitDate;
+
+            if (eDate === dbDate && xDate === dbDate) {
+              if (t.entryPrice > 0) {
+                stockRets.push((t.exitPrice - t.entryPrice) / t.entryPrice);
+              }
+            } else if (eDate === dbDate) {
+              const pCurr = priceMap[ticker] ? priceMap[ticker][dbDate] : null;
+              if (pCurr && t.entryPrice > 0) {
+                stockRets.push((pCurr - t.entryPrice) / t.entryPrice);
+              }
+            } else if (eDate < dbDate && xDate > dbDate) {
+              const pPrev = priceMap[ticker] ? priceMap[ticker][prevDate] : null;
+              const pCurr = priceMap[ticker] ? priceMap[ticker][dbDate] : null;
               if (pPrev && pCurr && pPrev > 0) {
                 stockRets.push((pCurr - pPrev) / pPrev);
               }
-            }
-            if (stockRets.length > 0) {
-              dayRet = stockRets.reduce((acc, v) => acc + v, 0) / stockRets.length;
+            } else if (xDate === dbDate) {
+              const pPrev = priceMap[ticker] ? priceMap[ticker][prevDate] : null;
+              if (pPrev && pPrev > 0 && t.exitPrice > 0) {
+                stockRets.push((t.exitPrice - pPrev) / pPrev);
+              }
             }
           }
+
+          const dayRet = stockRets.length > 0
+            ? stockRets.reduce((acc, v) => acc + v, 0) / stockRets.length
+            : 0.0;
 
           slotNav = slotNav * (1.0 + dayRet);
           const cumPct = slotNav - 100.0;
@@ -3320,6 +3361,12 @@
           const dd = slotPeakNav > 0 ? ((slotPeakNav - slotNav) / slotPeakNav) * 100 : 0;
           if (dd > slotMaxDrawdown) slotMaxDrawdown = dd;
         }
+
+        const cumRet = slotNav - 100.0;
+        const totalYears = fineDates.length > 0 
+          ? (Math.max(1, (new Date(endDateStr) - new Date(startDateStr)) / (1000 * 60 * 60 * 24 * 365.25))) 
+          : 5.0;
+        const cagr = slotNav > 0 ? ((Math.pow(slotNav / 100.0, 1 / totalYears)) - 1.0) * 100 : 0.0;
 
         // Compute Metrics
         const totalTrades = trades.length;
@@ -3345,7 +3392,7 @@
 
         const color = colorPalette[slotIdx % colorPalette.length];
         multiDatasets.push({
-          label: `${slot.name} (평잔: ${returnOnAvgCapital >= 0 ? '+' : ''}${returnOnAvgCapital.toFixed(1)}%)`,
+          label: `${slot.name} (지수: ${cumRet >= 0 ? '+' : ''}${cumRet.toFixed(1)}%)`,
           data: strategyUnrealizedData,
           borderColor: color,
           borderWidth: 2.2,
@@ -3359,6 +3406,8 @@
           id: slot.id,
           name: slot.name,
           color: color,
+          cumRet: cumRet,
+          cagr: cagr,
           totalNetReturnAmount: totalNetReturnAmount,
           returnOnAvgCapital: returnOnAvgCapital,
           averageCapitalBalance: averageCapitalBalance,
@@ -3729,6 +3778,8 @@
       const hasTrades = list.some(s => s.totalTrades > 0);
 
       // Find Best Values for each metric
+      const maxCumRet = Math.max(...list.map(s => s.cumRet || 0));
+      const maxCagr = Math.max(...list.map(s => s.cagr || 0));
       const maxNetProfit = Math.max(...list.map(s => s.totalNetReturnAmount));
       const maxReturnOnCapital = Math.max(...list.map(s => s.returnOnAvgCapital));
       const maxWinRate = Math.max(...list.map(s => s.winRate));
@@ -3737,6 +3788,8 @@
       const maxAvgTradeRet = Math.max(...list.map(s => s.avgTradeRet));
 
       // Check if all values are tied/identical (do not show crown if all tied or no trades)
+      const isTiedCumRet = list.every(s => s.cumRet === list[0].cumRet);
+      const isTiedCagr = list.every(s => s.cagr === list[0].cagr);
       const isTiedNetProfit = list.every(s => s.totalNetReturnAmount === list[0].totalNetReturnAmount);
       const isTiedReturnOnCapital = list.every(s => s.returnOnAvgCapital === list[0].returnOnAvgCapital);
       const isTiedWinRate = list.every(s => s.winRate === list[0].winRate);
@@ -3745,6 +3798,8 @@
       const isTiedAvgTradeRet = list.every(s => s.avgTradeRet === list[0].avgTradeRet);
 
       tbody.innerHTML = list.map(s => {
+        const isBestCumRet = hasTrades && !isTiedCumRet && s.cumRet === maxCumRet;
+        const isBestCagr = hasTrades && !isTiedCagr && s.cagr === maxCagr;
         const isBestNetProfit = hasTrades && !isTiedNetProfit && s.totalNetReturnAmount === maxNetProfit;
         const isBestReturnOnCapital = hasTrades && !isTiedReturnOnCapital && s.returnOnAvgCapital === maxReturnOnCapital;
         const isBestWinRate = hasTrades && !isTiedWinRate && s.winRate === maxWinRate;
@@ -3759,6 +3814,16 @@
             <td style="padding:10px 12px; font-weight:700; color:#1e293b; white-space:nowrap; text-align:left;">
               <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${s.color}; margin-right:6px; vertical-align:middle;"></span>
               ${s.name}
+            </td>
+
+            <!-- 전략 수익률 (지수) - 최우선 배치 -->
+            <td style="padding:10px 12px; text-align:right; font-weight:700; color:${(s.cumRet || 0) >= 0 ? 'var(--accent-red)' : 'var(--primary)'}; ${isBestCumRet ? 'background:#f0fdf4;' : ''}">
+              ${isBestCumRet ? crown : ''}<span style="font-size:0.88rem;">${(s.cumRet || 0) >= 0 ? '+' : ''}${(s.cumRet || 0).toFixed(1)}%</span>
+            </td>
+
+            <!-- 연평균 (CAGR) -->
+            <td style="padding:10px 12px; text-align:right; font-weight:700; color:${(s.cagr || 0) >= 0 ? 'var(--accent-red)' : 'var(--primary)'}; ${isBestCagr ? 'background:#f0fdf4;' : ''}">
+              ${isBestCagr ? crown : ''}<span>${(s.cagr || 0) >= 0 ? '+' : ''}${(s.cagr || 0).toFixed(1)}%</span>
             </td>
 
             <!-- 총 순수익 -->
@@ -4297,7 +4362,7 @@
       <div id="compare-slots-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;"></div>
       <div style="display:flex; justify-content:flex-end; gap:8px;">
         <button onclick="closeCompareModal()" style="padding:8px 14px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; font-weight:600; color:#475569; cursor:pointer;">닫기</button>
-        <button onclick="runMultiStrategyComparisonFromModal()" style="padding:8px 16px; background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">비교 실행</button>
+        <button id="btn-run-compare-modal" onclick="runMultiStrategyComparisonFromModal()" style="padding:8px 16px; background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">비교 실행</button>
       </div>
     </div>
   </div>
