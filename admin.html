@@ -163,6 +163,23 @@
       background: #f1f5f9;
       color: #0f172a;
     }
+    .btn-chart-mode {
+      background: transparent;
+      border: none;
+      color: #64748b;
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-chart-mode.active {
+      background: #ffffff;
+      color: #0f172a;
+      font-weight: 700;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+    }
 
     /* Strategy Rules & Groups */
     .condition-group-card {
@@ -813,13 +830,19 @@
             </div>
           </div>
           <div style="margin-top: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
               <h4 style="font-size: 0.88rem; font-weight: 700; color: #1e293b; margin: 0;">
-                백테스트 수익률 곡선 <span class="label-desktop">(vs KOSPI / KOSDAQ 벤치마크)</span>
+                백테스트 수익률 곡선 <span class="label-desktop" id="chart-mode-subtitle">(지수기준 vs KOSPI / KOSDAQ 벤치마크)</span>
               </h4>
-              <button id="btn-toggle-chart-size" class="btn-sm-action" onclick="toggleChartSize()" style="font-size:0.75rem; background:#f1f5f9; color:#334155; border:1px solid var(--border-subtle); display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:5px; cursor:pointer;">
-                <i class="fa-solid fa-up-right-and-down-left-from-center" id="icon-chart-size"></i> <span id="text-chart-size">확대</span>
-              </button>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <div style="display: inline-flex; background: #f1f5f9; padding: 2px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+                  <button id="btn-mode-index" class="btn-chart-mode active" onclick="switchChartMode('index')">지수기준</button>
+                  <button id="btn-mode-profit" class="btn-chart-mode" onclick="switchChartMode('profit')">손익기준</button>
+                </div>
+                <button id="btn-toggle-chart-size" class="btn-sm-action" onclick="toggleChartSize()" style="font-size:0.75rem; background:#f1f5f9; color:#334155; border:1px solid var(--border-subtle); display:inline-flex; align-items:center; gap:4px; padding:3px 10px; border-radius:5px; cursor:pointer;">
+                  <i class="fa-solid fa-up-right-and-down-left-from-center" id="icon-chart-size"></i> <span id="text-chart-size">확대</span>
+                </button>
+              </div>
             </div>
             <div id="chart-wrapper" style="height: 340px; width: 100%; transition: height 0.25s ease;">
               <canvas id="equityChart"></canvas>
@@ -2302,9 +2325,9 @@
       });
       const averageCapitalBalance = fineDates.length > 0 ? (dailyEngagedCapitalSum / fineDates.length) : tradeAmount;
 
-      // Compute Strategy Equity Curves (Unrealized Mark-to-Market & Realized)
-      const strategyUnrealizedData = [];
-      const strategyRealizedData = [];
+      // 1) Mode A: 손익기준 (Profit Mode: Actual Won Net Profit)
+      const profitUnrealizedData = [];
+      const profitRealizedData = [];
 
       fineDates.forEach(dbDate => {
         const closed = trades.filter(t => t.exitDate <= dbDate);
@@ -2320,24 +2343,53 @@
           openPaperGainSum += Math.round(tradeAmount * (paperPct / 100));
         });
 
-        const realizedPct = averageCapitalBalance > 0 ? (closedNetGainSum / averageCapitalBalance) * 100 : 0;
-        const unrealizedPct = averageCapitalBalance > 0 ? ((closedNetGainSum + openPaperGainSum) / averageCapitalBalance) * 100 : 0;
-
-        strategyRealizedData.push(parseFloat(realizedPct.toFixed(1)));
-        strategyUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
+        profitRealizedData.push(closedNetGainSum);
+        profitUnrealizedData.push(closedNetGainSum + openPaperGainSum);
       });
 
-      // Calculate Portfolio Peak-to-Trough MDD
-      let peakVal = -999999;
-      let maxDrawdownVal = 0;
-      strategyUnrealizedData.forEach(val => {
-        if (val > peakVal) peakVal = val;
-        const dd = peakVal - val;
-        if (dd > maxDrawdownVal) maxDrawdownVal = dd;
-      });
-      const portfolioMDD = maxDrawdownVal > 0 ? -parseFloat(maxDrawdownVal.toFixed(1)) : 0.0;
+      // 2) Mode B: 지수기준 (Index Mode: Daily Equal-Weighted Compounded NAV)
+      const indexUnrealizedData = [];
+      let nav = 100.0;
+      let peakNav = -999999;
+      let maxNavDrawdown = 0;
 
-      // Calculate Return on Average Capital Balance
+      for (let idx = 0; idx < fineDates.length; idx++) {
+        const dbDate = fineDates[idx];
+        if (idx === 0) {
+          indexUnrealizedData.push(0.0);
+          peakNav = 100.0;
+          continue;
+        }
+
+        const prevDate = fineDates[idx - 1];
+        const active = trades.filter(t => t.entryDate <= prevDate && t.exitDate >= dbDate);
+
+        let dayRet = 0.0;
+        if (active.length > 0) {
+          const stockRets = [];
+          for (let i = 0; i < active.length; i++) {
+            const t = active[i];
+            const pPrev = priceMap[t.ticker] ? priceMap[t.ticker][prevDate] : t.entryPrice;
+            const pCurr = priceMap[t.ticker] ? priceMap[t.ticker][dbDate] : t.entryPrice;
+            if (pPrev && pCurr && pPrev > 0) {
+              stockRets.push((pCurr - pPrev) / pPrev);
+            }
+          }
+          if (stockRets.length > 0) {
+            dayRet = stockRets.reduce((acc, v) => acc + v, 0) / stockRets.length;
+          }
+        }
+
+        nav = nav * (1.0 + dayRet);
+        const cumPct = nav - 100.0;
+        indexUnrealizedData.push(parseFloat(cumPct.toFixed(1)));
+
+        if (nav > peakNav) peakNav = nav;
+        const dd = peakNav > 0 ? ((peakNav - nav) / peakNav) * 100 : 0;
+        if (dd > maxNavDrawdown) maxNavDrawdown = dd;
+      }
+
+      const portfolioMDD = maxNavDrawdown > 0 ? -parseFloat(maxNavDrawdown.toFixed(1)) : 0.0;
       const returnOnAvgCapital = averageCapitalBalance > 0 ? ((totalNetReturnAmount / averageCapitalBalance) * 100) : 0;
 
       // Update 6 KPI Cards in UI
@@ -2412,56 +2464,141 @@
         }
       }
 
-      const datasets = [
-        {
-          label: '평가손익',
-          data: strategyUnrealizedData,
-          borderColor: '#2563eb',
-          backgroundColor: 'rgba(37, 99, 235, 0.05)',
-          fill: true,
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 5,
-          tension: 0.1
-        },
-        {
-          label: '실현손익',
-          data: strategyRealizedData,
-          borderColor: '#7c3aed',
-          fill: false,
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          tension: 0.1
-        }
-      ];
+      // Cache chart payload for fast mode toggle
+      window.CURRENT_CHART_MODE = window.CURRENT_CHART_MODE || 'index';
+      window.CACHED_CHART_PAYLOAD = {
+        fineDates,
+        indexUnrealizedData,
+        profitUnrealizedData,
+        profitRealizedData,
+        kospiBenchmarkData,
+        kosdaqBenchmarkData,
+        kospiCloseList,
+        kosdaqCloseList,
+        targetMarket
+      };
 
-      if (targetMarket === 'KOSPI200' || targetMarket === 'ALL') {
-        datasets.push({
-          label: 'KOSPI',
-          data: kospiBenchmarkData,
-          borderColor: '#dc2626',
-          borderDash: [4, 4],
-          borderWidth: 1.5,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          fill: false,
-          tension: 0.1
-        });
+      drawEquityChart(window.CURRENT_CHART_MODE);
+    }
+
+    function switchChartMode(mode) {
+      window.CURRENT_CHART_MODE = mode;
+      const btnIndex = document.getElementById('btn-mode-index');
+      const btnProfit = document.getElementById('btn-mode-profit');
+      const subTitle = document.getElementById('chart-mode-subtitle');
+
+      if (btnIndex) btnIndex.classList.toggle('active', mode === 'index');
+      if (btnProfit) btnProfit.classList.toggle('active', mode === 'profit');
+      if (subTitle) {
+        subTitle.textContent = mode === 'index' 
+          ? '(지수기준 vs KOSPI / KOSDAQ 벤치마크)' 
+          : '(손익기준: 누적 원화 손익 흐름)';
       }
 
-      if (targetMarket === 'KOSDAQ150' || targetMarket === 'ALL') {
-        datasets.push({
-          label: 'KOSDAQ',
-          data: kosdaqBenchmarkData,
-          borderColor: '#059669',
-          borderDash: [4, 4],
-          borderWidth: 1.5,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          fill: false,
-          tension: 0.1
-        });
+      drawEquityChart(mode);
+    }
+
+    function formatWonValue(val) {
+      if (Math.abs(val) >= 100000000) {
+        return (val / 100000000).toFixed(1) + '억';
+      } else if (Math.abs(val) >= 10000) {
+        return (val / 10000).toLocaleString() + '만';
+      }
+      return val.toLocaleString() + '원';
+    }
+
+    function drawEquityChart(mode) {
+      const payload = window.CACHED_CHART_PAYLOAD;
+      if (!payload) return;
+
+      const {
+        fineDates,
+        indexUnrealizedData,
+        profitUnrealizedData,
+        profitRealizedData,
+        kospiBenchmarkData,
+        kosdaqBenchmarkData,
+        kospiCloseList,
+        kosdaqCloseList,
+        targetMarket
+      } = payload;
+
+      const canvas = document.getElementById('equityChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      if (equityChartInstance) {
+        equityChartInstance.destroy();
+      }
+
+      let datasets = [];
+      if (mode === 'index') {
+        datasets = [
+          {
+            label: '전략 수익률',
+            data: indexUnrealizedData,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.05)',
+            fill: true,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            tension: 0.1
+          }
+        ];
+
+        if (targetMarket === 'KOSPI200' || targetMarket === 'ALL') {
+          datasets.push({
+            label: 'KOSPI',
+            data: kospiBenchmarkData,
+            borderColor: '#dc2626',
+            borderDash: [4, 4],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            fill: false,
+            tension: 0.1
+          });
+        }
+
+        if (targetMarket === 'KOSDAQ150' || targetMarket === 'ALL') {
+          datasets.push({
+            label: 'KOSDAQ',
+            data: kosdaqBenchmarkData,
+            borderColor: '#059669',
+            borderDash: [4, 4],
+            borderWidth: 1.5,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            fill: false,
+            tension: 0.1
+          });
+        }
+      } else {
+        // Mode 'profit' (Won Net Gain)
+        datasets = [
+          {
+            label: '평가손익 (총 순손익)',
+            data: profitUnrealizedData,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.05)',
+            fill: true,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            tension: 0.1
+          },
+          {
+            label: '실현손익 (확정 수익)',
+            data: profitRealizedData,
+            borderColor: '#7c3aed',
+            fill: false,
+            borderWidth: 2,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            tension: 0.1
+          }
+        ];
       }
 
       equityChartInstance = new Chart(ctx, {
@@ -2499,12 +2636,15 @@
                   const dataIdx = context.dataIndex;
                   const label = context.dataset.label;
                   const val = context.parsed.y;
-                  const sign = val >= 0 ? '+' : '';
 
-                  if (label.includes('평가손익')) {
-                    return ` 평가손익: ${sign}${val.toFixed(1)}%`;
-                  } else if (label.includes('실현손익')) {
-                    return ` 실현손익: ${sign}${val.toFixed(1)}%`;
+                  if (mode === 'profit') {
+                    const sign = val >= 0 ? '+' : '';
+                    return ` ${label}: ${sign}${val.toLocaleString()}원`;
+                  }
+
+                  const sign = val >= 0 ? '+' : '';
+                  if (label.includes('전략 수익률')) {
+                    return ` 전략 수익률: ${sign}${val.toFixed(1)}%`;
                   } else if (label === 'KOSPI') {
                     const pt = kospiCloseList[dataIdx];
                     const ptText = pt ? ` (${pt.toLocaleString()}pt)` : '';
@@ -2520,10 +2660,6 @@
             }
           },
           scales: {
-            y: {
-              grid: { color: '#f1f5f9' },
-              ticks: { callback: (val) => `${val > 0 ? '+' : ''}${val}%` }
-            },
             x: {
               grid: { display: false },
               ticks: {
@@ -2539,6 +2675,18 @@
                     return rawDate.slice(2, 7).replace('-', '.');
                   }
                   return rawDate.slice(0, 7).replace('-', '.');
+                }
+              }
+            },
+            y: {
+              grid: { color: '#f1f5f9' },
+              ticks: { 
+                font: { size: 10 },
+                callback: (v) => {
+                  if (mode === 'profit') {
+                    return (v >= 0 ? '+' : '') + formatWonValue(v);
+                  }
+                  return (v >= 0 ? '+' : '') + v + '%';
                 }
               }
             }
@@ -3083,22 +3231,45 @@
         const averageCapitalBalance = fineDates.length > 0 ? (dailyEngagedCapitalSum / fineDates.length) : tradeAmount;
 
         const strategyUnrealizedData = [];
-        fineDates.forEach(dbDate => {
-          const closed = trades.filter(t => t.exitDate <= dbDate);
-          const activeOpen = trades.filter(t => t.entryDate <= dbDate && t.exitDate > dbDate);
-          const closedNetGainSum = closed.reduce((sum, t) => sum + Math.round(tradeAmount * (t.returnPct / 100)), 0);
+        let slotNav = 100.0;
+        let slotPeakNav = -999999;
+        let slotMaxDrawdown = 0;
 
-          let openPaperGainSum = 0;
-          activeOpen.forEach(t => {
-            const stockPrices = priceMap[t.ticker] || {};
-            const closeP = stockPrices[dbDate] !== undefined ? stockPrices[dbDate] : t.entryPrice;
-            const paperPct = ((closeP - t.entryPrice) / t.entryPrice) * 100;
-            openPaperGainSum += Math.round(tradeAmount * (paperPct / 100));
-          });
+        for (let idx = 0; idx < fineDates.length; idx++) {
+          const dbDate = fineDates[idx];
+          if (idx === 0) {
+            strategyUnrealizedData.push(0.0);
+            slotPeakNav = 100.0;
+            continue;
+          }
 
-          const unrealizedPct = averageCapitalBalance > 0 ? ((closedNetGainSum + openPaperGainSum) / averageCapitalBalance) * 100 : 0;
-          strategyUnrealizedData.push(parseFloat(unrealizedPct.toFixed(1)));
-        });
+          const prevDate = fineDates[idx - 1];
+          const active = trades.filter(t => t.entryDate <= prevDate && t.exitDate >= dbDate);
+
+          let dayRet = 0.0;
+          if (active.length > 0) {
+            const stockRets = [];
+            for (let i = 0; i < active.length; i++) {
+              const t = active[i];
+              const pPrev = priceMap[t.ticker] ? priceMap[t.ticker][prevDate] : t.entryPrice;
+              const pCurr = priceMap[t.ticker] ? priceMap[t.ticker][dbDate] : t.entryPrice;
+              if (pPrev && pCurr && pPrev > 0) {
+                stockRets.push((pCurr - pPrev) / pPrev);
+              }
+            }
+            if (stockRets.length > 0) {
+              dayRet = stockRets.reduce((acc, v) => acc + v, 0) / stockRets.length;
+            }
+          }
+
+          slotNav = slotNav * (1.0 + dayRet);
+          const cumPct = slotNav - 100.0;
+          strategyUnrealizedData.push(parseFloat(cumPct.toFixed(1)));
+
+          if (slotNav > slotPeakNav) slotPeakNav = slotNav;
+          const dd = slotPeakNav > 0 ? ((slotPeakNav - slotNav) / slotPeakNav) * 100 : 0;
+          if (dd > slotMaxDrawdown) slotMaxDrawdown = dd;
+        }
 
         // Compute Metrics
         const totalTrades = trades.length;
@@ -3118,15 +3289,7 @@
 
         const profitFactor = totalLossSum > 0 ? (totalProfitSum / totalLossSum) : (totalProfitSum > 0 ? 9.99 : 1.0);
         const returnOnAvgCapital = averageCapitalBalance > 0 ? ((totalNetReturnAmount / averageCapitalBalance) * 100) : 0;
-
-        let peakVal = -999999;
-        let maxDrawdownVal = 0;
-        strategyUnrealizedData.forEach(val => {
-          if (val > peakVal) peakVal = val;
-          const dd = peakVal - val;
-          if (dd > maxDrawdownVal) maxDrawdownVal = dd;
-        });
-        const portfolioMDD = maxDrawdownVal > 0 ? -parseFloat(maxDrawdownVal.toFixed(1)) : 0.0;
+        const portfolioMDD = slotMaxDrawdown > 0 ? -parseFloat(slotMaxDrawdown.toFixed(1)) : 0.0;
         const avgTradeRet = totalTrades > 0 ? (trades.reduce((s, t) => s + t.returnPct, 0) / totalTrades) : 0;
         const avgHold = totalTrades > 0 ? (trades.reduce((a, b) => a + b.holdingDays, 0) / totalTrades).toFixed(1) : 0;
 
