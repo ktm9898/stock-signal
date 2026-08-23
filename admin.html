@@ -3136,12 +3136,12 @@
       }
 
       const btn = document.getElementById('btn-run-compare-modal');
-      const originalText = btn ? btn.innerHTML : '비교 실행';
+      const originalText = btn ? btn.innerHTML : '전략비교';
       if (btn) {
         btn.style.pointerEvents = 'none';
         btn.style.background = '#1d4ed8';
         btn.style.cursor = 'wait';
-        btn.innerHTML = `<span class="pure-btn-spinner"></span> 비교 계산 중...`;
+        btn.innerHTML = `<span class="pure-btn-spinner"></span> 전략비교 중...`;
       }
 
       // 브라우저가 버튼 스피너를 확실하게 렌더링하도록 500ms 시간 부여
@@ -4374,11 +4374,11 @@
         <h4 style="font-size:1.05rem; font-weight:700; color:#0f172a; margin:0;">전략 슬롯 멀티 비교</h4>
         <button onclick="closeCompareModal()" style="background:none; border:none; font-size:1.2rem; color:#64748b; cursor:pointer;">✕</button>
       </div>
-      <p style="font-size:0.82rem; color:#64748b; margin-bottom:12px;">비교할 전략 슬롯을 체크하고 [비교 실행]을 누르세요.</p>
+      <p style="font-size:0.82rem; color:#64748b; margin-bottom:12px;">비교할 전략 슬롯을 체크하고 [전략비교] 버튼을 누르세요.</p>
       <div id="compare-slots-list" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;"></div>
       <div style="display:flex; justify-content:flex-end; gap:8px;">
         <button onclick="closeCompareModal()" style="padding:8px 14px; background:#f1f5f9; border:1px solid #cbd5e1; border-radius:6px; font-weight:600; color:#475569; cursor:pointer;">닫기</button>
-        <button id="btn-run-compare-modal" onclick="runMultiStrategyComparisonFromModal()" style="padding:8px 18px; min-width:130px; display:inline-flex; align-items:center; justify-content:center; background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">비교 실행</button>
+        <button id="btn-run-compare-modal" onclick="runMultiStrategyComparisonFromModal()" style="padding:8px 18px; min-width:130px; display:inline-flex; align-items:center; justify-content:center; background:#2563eb; color:#fff; border:none; border-radius:6px; font-weight:600; cursor:pointer;">전략비교</button>
       </div>
     </div>
   </div>
