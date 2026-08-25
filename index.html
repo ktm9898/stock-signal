@@ -1556,6 +1556,16 @@
         }
       });
 
+      // Build set of currently held stocks to prevent duplicate 1st buy signals
+      const heldTickersSet = new Set();
+      const heldNamesSet = new Set();
+      (holdingsData || []).forEach(h => {
+        const tk = formatTicker(h.Ticker || h.ticker || h.code || '');
+        const nm = String(h.Name || h.name || '').trim().replace(/\s+/g, '');
+        if (tk && tk !== '-') heldTickersSet.add(tk);
+        if (nm) heldNamesSet.add(nm);
+      });
+
       // 1. Evaluate Buy Candidates (OR Logic across buyGroups)
       const evaluatedBuyCandidates = [];
       const isCustomStrategy = activeSlot.buyRules && activeSlot.buyRules.length > 0;
@@ -1563,6 +1573,10 @@
       if (isCustomStrategy) {
         combinedStocks.forEach(item => {
           const tk = formatTicker(item.Ticker || item.ticker || item.code);
+          const nm = String(item.Name || item.name || '').trim().replace(/\s+/g, '');
+          if (heldTickersSet.has(tk) || heldNamesSet.has(nm)) {
+            return; // Already held! Skip duplicate 1st buy signal.
+          }
           const prevItem = prevRowMap.get(tk) || null;
 
           // Check if ANY buy group matches
@@ -1589,6 +1603,11 @@
       // 2. Build Today's Watchlist / 진입대기
       const todayWatchlistMap = new Map();
       combinedStocks.forEach(item => {
+        const tk = formatTicker(item.Ticker || item.ticker || item.code);
+        const nm = String(item.Name || item.name || '').trim().replace(/\s+/g, '');
+        if (heldTickersSet.has(tk) || heldNamesSet.has(nm)) {
+          return; // Already held!
+        }
         const rawStatus = String(item.Status || item.status || '');
         const currAdx = Number(item.ADX || item.adx);
         const currMdi = Number(item.Minus_DI || item.minus_di || item.minusDi);
@@ -1613,7 +1632,6 @@
         }
 
         if (isWatchlist) {
-          const tk = formatTicker(item.Ticker || item.ticker || item.code);
           if (!todayWatchlistMap.has(tk)) {
             todayWatchlistMap.set(tk, {
               Date: item.Date || item.date || item.Timestamp || (executionLogsData.length > 0 ? executionLogsData[executionLogsData.length - 1].Timestamp : new Date().toISOString()),
@@ -1638,9 +1656,13 @@
       const finalBuyList = [];
       const seenBuyMap = new Map();
 
-      // 1) Official Google Sheet Buy Signals (Preserved as '전략매수')
+      // 1) Official Google Sheet Buy Signals (Preserved as '전략매수', skipping already held stocks)
       (buyCandidatesData || []).forEach(item => {
         const tk = formatTicker(item.Ticker || item.ticker || item.code);
+        const nm = String(item.Name || item.name || '').trim().replace(/\s+/g, '');
+        if (heldTickersSet.has(tk) || heldNamesSet.has(nm)) {
+          return; // Already held!
+        }
         const dt = formatShortDate(item.Date || item.date || item.Timestamp);
         const key = `${tk}_${dt}`;
         const itemObj = {

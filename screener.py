@@ -680,6 +680,34 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"[WARN] Failed to fetch active strategy slot: {e}")
 
+    # Pre-fetch User Holdings early to filter out existing holdings from duplicate buy candidates
+    holdings_list = []
+    held_tickers = set()
+    held_names = set()
+    if gas_url:
+        try:
+            pin = os.environ.get("AUTH_PIN", "")
+            req_url = f"{gas_url}?action=holdings"
+            if pin:
+                req_url += f"&pin={pin}"
+            h_res = requests.get(req_url, timeout=15)
+            if h_res.status_code == 200:
+                res_json = h_res.json()
+                if res_json.get("success"):
+                    holdings_list = res_json.get("userHoldings", [])
+                    for h in holdings_list:
+                        t = str(h.get("Ticker") or h.get("ticker") or h.get("code") or "").strip()
+                        if t.isdigit():
+                            t = t.zfill(6)
+                        n = str(h.get("Name") or h.get("name") or "").strip().replace(" ", "")
+                        if t and t != "-":
+                            held_tickers.add(t)
+                        if n:
+                            held_names.add(n)
+                    print(f" -> Found {len(holdings_list)} user holdings in Google Sheets ({len(held_tickers)} tickers).")
+        except Exception as e:
+            print(f"[WARN] Failed to pre-fetch holdings: {e}")
+
     # 1. Fetch KOSPI 200 & KOSDAQ 150 Tickers
     print("[1/4] Fetching KOSPI 200 and KOSDAQ 150 component tickers...")
     kospi_items = get_kospi200_tickers()
@@ -741,10 +769,15 @@ if __name__ == "__main__":
             curr_vr = sanitize_num(df['volume_ratio'].iloc[-1] if 'volume_ratio' in df.columns else None, default=100.0)
             curr_close = int(df['종가'].iloc[-1]) if '종가' in df.columns and not np.isnan(df['종가'].iloc[-1]) else 0
 
+            is_held = (clean_ticker in held_tickers) or (name.replace(' ', '') in held_names)
             buy_res = evaluate_buy_signal(df, active_slot=active_slot)
             status_text = "관망"
             buy_item = None
-            if buy_res:
+            if is_held:
+                status_text = "보유중"
+                if buy_res:
+                    print(f"  ⏭️ [HOLDING EXCLUDED] {name} ({clean_ticker}) is already held in portfolio. Skipping duplicate 1st buy signal.")
+            elif buy_res:
                 buy_res['ticker'] = clean_ticker
                 buy_res['name'] = name
                 buy_res['market'] = market
