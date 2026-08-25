@@ -1323,7 +1323,7 @@
       const indNames = {
         adx: "ADX", minus_di: "-DI", plus_di: "+DI", rsi: "RSI", bb_pct: "볼린저%b",
         macd: "MACD", macd_osc: "MACD Osc", stoch_k: "스토K", stoch_d: "스토D",
-        disparity20: "이격도", volume_ratio: "거래량비율(5일)"
+        disparity20: "이격도", volume_ratio: "거래량비율(5일)", return_rate: "수익률"
       };
       const name = indNames[r.indicator] || r.indicator.toUpperCase();
       const val = r.value !== undefined && r.value !== null ? r.value : "";
@@ -1446,12 +1446,24 @@
     }
 
     // Rule Evaluation Helpers
-    function checkSingleRule(rule, row, prevRow) {
+    function checkSingleRule(rule, row, prevRow, extraCtx) {
       if (!rule || !rule.indicator) return false;
       const ind = rule.indicator;
       const cond = rule.condition_type;
       const targetInd = rule.target_indicator;
       const ruleVal = parseFloat(rule.value);
+
+      if (ind === 'return_rate' || ind === 'returnRate' || ind === 'return_pct') {
+        const avgP = (extraCtx && extraCtx.avgPrice > 0) ? extraCtx.avgPrice : ((extraCtx && extraCtx.buyPrice > 0) ? extraCtx.buyPrice : (row.buyPrice || row.BuyPrice || 0));
+        if (!avgP || avgP <= 0) return true;
+        const currP = parseFloat(row.ClosePrice !== undefined ? row.ClosePrice : (row.close !== undefined ? row.close : (row.CurrPrice || row.currPrice || 0)));
+        const returnRate = ((currP - avgP) / avgP) * 100.0;
+        if (cond === 'gte_value') return returnRate >= ruleVal;
+        if (cond === 'lte_value') return returnRate <= ruleVal;
+        if (cond === 'gt_value') return returnRate > ruleVal;
+        if (cond === 'lt_value') return returnRate < ruleVal;
+        return false;
+      }
 
       function getIndicatorValue(indicatorKey, r) {
         if (!r) return NaN;
@@ -1499,9 +1511,9 @@
       }
     }
 
-    function checkGroupMatch(group, row, prevRow) {
+    function checkGroupMatch(group, row, prevRow, extraCtx) {
       if (!group || !Array.isArray(group.rules) || group.rules.length === 0) return false;
-      return group.rules.every(rule => checkSingleRule(rule, row, prevRow));
+      return group.rules.every(rule => checkSingleRule(rule, row, prevRow, extraCtx));
     }
 
     // Dynamic Strategy Evaluator for Dashboard
@@ -1739,7 +1751,7 @@
           signalReason = `물타기 기준 (-${scaleInDropAbs}%) 도달 (수익률: ${returnRate.toFixed(2)}% | 익일 시가 ${scaleInMult}배 추가매수)`;
         } else if (metric && activeSlot.sellRules && activeSlot.sellRules.length > 0) {
           const prevItem = prevRowMap.get(rawTicker) || null;
-          const isSellMatch = activeSlot.sellRules.some(g => checkGroupMatch(g, metric, prevItem));
+          const isSellMatch = activeSlot.sellRules.some(g => checkGroupMatch(g, metric, prevItem, { avgPrice: buyPrice, buyPrice: buyPrice }));
           if (isSellMatch) {
             signalLevel = '전략매도';
             signalReason = `[${activeSlot.name}] 매도 청산 조건 충족 (RSI: ${metric.RSI || metric.rsi})`;

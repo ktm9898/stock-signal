@@ -371,17 +371,33 @@ def calculate_indicators(df, period=14):
 
     return df
 
-def check_single_rule(rule, df):
-    """Evaluate a single strategy rule against the latest OHLCV/indicators dataframe."""
-    if not rule or not isinstance(rule, dict) or 'indicator' not in rule:
+def check_single_rule(rule, df, buy_price=None):
+    """Evaluate a single rule on the given DataFrame."""
+    if not rule or not isinstance(rule, dict):
         return False
+
     ind = str(rule.get('indicator', '')).lower()
-    cond = str(rule.get('condition_type', ''))
+    cond = str(rule.get('condition_type', '')).lower()
     target_ind = str(rule.get('target_indicator', '')).lower() if rule.get('target_indicator') else None
     try:
         rule_val = float(rule.get('value', 0))
     except (ValueError, TypeError):
         rule_val = 0.0
+
+    if ind in ('return_rate', 'returnrate', 'return_pct', 'profit_pct'):
+        if buy_price is None or buy_price <= 0:
+            return True
+        curr_close = float(df['종가'].iloc[-1]) if '종가' in df.columns else float(df['Close'].iloc[-1])
+        ret = ((curr_close - buy_price) / buy_price) * 100.0
+        if cond == 'gte_value':
+            return ret >= rule_val
+        elif cond == 'lte_value':
+            return ret <= rule_val
+        elif cond == 'gt_value':
+            return ret > rule_val
+        elif cond == 'lt_value':
+            return ret < rule_val
+        return False
 
     def get_indicator_series(key):
         mapping = {
@@ -446,14 +462,14 @@ def check_single_rule(rule, df):
         return not np.isnan(prev_val) and not np.isnan(prev_target_val) and prev_val >= prev_target_val and curr_val < target_val
     return False
 
-def check_group_match(group, df):
+def check_group_match(group, df, buy_price=None):
     """Evaluate a buy/sell group (AND logic among rules inside the group)."""
     if not group or not isinstance(group, dict):
         return False
     rules = group.get('rules', [])
     if not rules or not isinstance(rules, list):
         return False
-    return all(check_single_rule(r, df) for r in rules)
+    return all(check_single_rule(r, df, buy_price=buy_price) for r in rules)
 
 def evaluate_buy_signal(df, active_slot=None):
     """
@@ -559,7 +575,7 @@ def evaluate_sell_signal(df, buy_price, active_slot=None):
     
     is_strategy_sell = False
     if active_slot and active_slot.get('sellRules') and len(active_slot['sellRules']) > 0:
-        is_strategy_sell = any(check_group_match(g, df) for g in active_slot['sellRules'])
+        is_strategy_sell = any(check_group_match(g, df, buy_price=buy_price) for g in active_slot['sellRules'])
     else:
         is_strategy_sell = (curr_rsi >= 65.0)
 

@@ -1428,7 +1428,8 @@
       { id: "stoch_k", name: "스토캐스틱 %K" },
       { id: "stoch_d", name: "스토캐스틱 %D" },
       { id: "disparity20", name: "이격도" },
-      { id: "volume_ratio", name: "거래량비율" }
+      { id: "volume_ratio", name: "거래량비율" },
+      { id: "return_rate", name: "수익률 (평단가 대비 %)" }
     ];
 
     const CONDITION_TYPES = [
@@ -1619,6 +1620,13 @@
         step: "10",
         defaultBuy: { condition_type: "gte_value", value: 100.0 },
         defaultSell: { condition_type: "lte_value", value: 80.0 }
+      },
+      return_rate: {
+        name: "수익률 (평단가 대비 %)",
+        guide: "% (+2.0 = +2% 수익 / -5.0 = -5% 손실)",
+        step: "0.5",
+        defaultBuy: { condition_type: "gte_value", value: 0.0 },
+        defaultSell: { condition_type: "gte_value", value: 2.0 }
       }
     };
 
@@ -2040,11 +2048,11 @@
       });
     }
 
-    function evaluateSellCondition(row, prevRow) {
+    function evaluateSellCondition(row, prevRow, extraCtx) {
       if (!currentSellGroups || currentSellGroups.length === 0) return false;
       return currentSellGroups.some(group => {
         if (!group.rules || group.rules.length === 0) return false;
-        return group.rules.every(r => checkSingleRule(r, row, prevRow));
+        return group.rules.every(r => checkSingleRule(r, row, prevRow, extraCtx));
       });
     }
 
@@ -2062,7 +2070,21 @@
       return row[ind];
     }
 
-    function checkSingleRule(rule, row, prevRow) {
+    function checkSingleRule(rule, row, prevRow, extraCtx) {
+      if (rule.indicator === 'return_rate' || rule.indicator === 'returnRate' || rule.indicator === 'return_pct') {
+        const avgP = (extraCtx && extraCtx.avgPrice > 0) ? extraCtx.avgPrice : ((extraCtx && extraCtx.buyPrice > 0) ? extraCtx.buyPrice : (row.buyPrice || row.BuyPrice || 0));
+        if (!avgP || avgP <= 0) return true;
+        const currP = Number(row.close !== undefined ? row.close : (row.ClosePrice !== undefined ? row.ClosePrice : (row.CurrPrice || row.currPrice || 0)));
+        const returnRate = ((currP - avgP) / avgP) * 100.0;
+        const ruleVal = Number(rule.value !== undefined ? rule.value : 0);
+        const type = rule.condition_type;
+        if (type === 'gte_value') return returnRate >= ruleVal;
+        if (type === 'lte_value') return returnRate <= ruleVal;
+        if (type === 'gt_value') return returnRate > ruleVal;
+        if (type === 'lt_value') return returnRate < ruleVal;
+        return false;
+      }
+
       const rawVal = getRawIndicatorValue(rule.indicator, row, prevRow);
       if (rawVal === undefined || rawVal === null || isNaN(rawVal)) return false;
 
@@ -3188,7 +3210,7 @@
             let triggerType = "SIGNAL";
 
             const isSellSignal = normalizedSellGroups.length > 0 && normalizedSellGroups.some(group => 
-              group.rules && group.rules.length > 0 && group.rules.every(r => checkSingleRule(r, curr, rows[i - 1]))
+              group.rules && group.rules.length > 0 && group.rules.every(r => checkSingleRule(r, curr, rows[i - 1], { avgPrice: avgPrice, buyPrice: initialBuyPrice }))
             );
 
             if (stopLoss !== null && stopLoss !== undefined && stopLoss !== "" && paperReturnPct <= -Math.abs(Number(stopLoss))) {
