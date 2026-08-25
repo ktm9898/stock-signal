@@ -2404,6 +2404,9 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         } else if (rawStage.includes('관심종목') || rawStage.includes('추세강함') || rawStage.includes('진입대기')) {
           stageText = '관심종목';
           tierClass = 'badge-sell-warn';
+        } else if (rawStage.includes('★')) {
+          stageText = '전략매수 ★';
+          tierClass = 'badge-t1';
         } else {
           stageText = '전략매수';
           tierClass = 'badge-t1';
