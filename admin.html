@@ -3262,7 +3262,7 @@
           const d2 = new Date(lastRow.date);
           const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
 
-          let exitReason = "기간종료(미청산)";
+          let exitReason = "기간종료";
           if (hasScaleIn) exitReason += " (물타기)";
 
           allExecutedTrades.push({
