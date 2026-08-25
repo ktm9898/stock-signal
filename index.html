@@ -1656,13 +1656,9 @@
       const finalBuyList = [];
       const seenBuyMap = new Map();
 
-      // 1) Official Google Sheet Buy Signals (Preserved as '전략매수', skipping already held stocks)
+      // 1) Official Google Sheet Buy Signals (Preserved as '전략매수' with full history)
       (buyCandidatesData || []).forEach(item => {
         const tk = formatTicker(item.Ticker || item.ticker || item.code);
-        const nm = String(item.Name || item.name || '').trim().replace(/\s+/g, '');
-        if (heldTickersSet.has(tk) || heldNamesSet.has(nm)) {
-          return; // Already held!
-        }
         const dt = formatShortDate(item.Date || item.date || item.Timestamp);
         const key = `${tk}_${dt}`;
         const itemObj = {
