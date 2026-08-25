@@ -502,7 +502,7 @@ def evaluate_buy_signal(df, active_slot=None):
 
 def evaluate_sell_signal(df, buy_price, active_slot=None):
     """
-    Evaluate Sell Signal for a held stock based on active strategy slot.
+    Evaluate Sell & Scale-In Signals for a held stock based on active strategy slot.
     """
     if len(df) < 2 or 'adx' not in df.columns or 'plus_di' not in df.columns:
         return None
@@ -527,6 +527,9 @@ def evaluate_sell_signal(df, buy_price, active_slot=None):
 
     stop_loss_pct = 20.0
     take_profit_pct = None
+    scale_in_drop_pct = None
+    scale_in_mult = 1.0
+
     if active_slot:
         if active_slot.get('stopLoss') is not None and active_slot['stopLoss'] != '':
             try:
@@ -538,10 +541,21 @@ def evaluate_sell_signal(df, buy_price, active_slot=None):
                 take_profit_pct = abs(float(active_slot['takeProfit']))
             except:
                 pass
+        if active_slot.get('scaleInDrop') is not None and active_slot['scaleInDrop'] != '':
+            try:
+                scale_in_drop_pct = abs(float(active_slot['scaleInDrop']))
+            except:
+                pass
+        if active_slot.get('scaleInMultiplier') is not None and active_slot['scaleInMultiplier'] != '':
+            try:
+                scale_in_mult = float(active_slot['scaleInMultiplier'])
+            except:
+                pass
 
-    # Sell conditions
+    # Evaluation conditions
     is_stop_loss = (buy_price and buy_price > 0 and return_rate <= -stop_loss_pct)
     is_take_profit = (buy_price and buy_price > 0 and take_profit_pct and return_rate >= take_profit_pct)
+    is_scale_in = (buy_price and buy_price > 0 and scale_in_drop_pct and return_rate <= -scale_in_drop_pct)
     
     is_strategy_sell = False
     if active_slot and active_slot.get('sellRules') and len(active_slot['sellRules']) > 0:
@@ -555,6 +569,9 @@ def evaluate_sell_signal(df, buy_price, active_slot=None):
     elif is_take_profit:
         level = "익절매도"
         details.append(f"익절선(+{take_profit_pct}%) 도달 (현재 수익률: +{return_rate:.2f}%)")
+    elif is_scale_in:
+        level = "물타기매수"
+        details.append(f"물타기 기준(-{scale_in_drop_pct}%) 도달 (현재 수익률: {return_rate:.2f}% | 익일 시가 {scale_in_mult}배 추가매수)")
     elif is_strategy_sell:
         level = "전략매도"
         details.append(f"전략 매도 청산 조건 충족 (RSI: {curr_rsi:.1f})")
@@ -867,9 +884,12 @@ if __name__ == "__main__":
                             holdings_status.append(sell_res)
                             if sell_res.get("isAlert"):
                                 sell_signals.append(sell_res)
-                                print(f"  ⚠️ [SELL ALERT] {sell_res['name']} ({sell_res['ticker']}) - {sell_res['signalLevel']} | {sell_res['details']}")
+                                if sell_res["signalLevel"] == "물타기매수":
+                                    print(f"  [SCALE-IN BUY] {sell_res['name']} ({sell_res['ticker']}) - {sell_res['signalLevel']} | {sell_res['details']}")
+                                else:
+                                    print(f"  [SELL ALERT] {sell_res['name']} ({sell_res['ticker']}) - {sell_res['signalLevel']} | {sell_res['details']}")
                             else:
-                                print(f"  🛡️ [HOLDING MONITOR] {sell_res['name']} ({sell_res['ticker']}) - 관망 (ADX: {sell_res['adx']}, 수익률: {sell_res['returnRate']}%)")
+                                print(f"  [HOLDING MONITOR] {sell_res['name']} ({sell_res['ticker']}) - 관망 (ADX: {sell_res['adx']}, 수익률: {sell_res['returnRate']}%)")
                     
                     if holdings_status:
                         print(f" -> Posting {len(holdings_status)} holdings status metrics to Google Sheets...")

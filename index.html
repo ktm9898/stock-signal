@@ -482,9 +482,11 @@
     .badge-t1 { background: var(--badge-tier1); }
     .badge-t2 { background: var(--badge-tier2); }
     .badge-t3 { background: var(--badge-tier3); }
+    .badge-scale-in { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; }
     .badge-neutral { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; font-weight: 500; }
     .badge-sell-warn { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
     .badge-sell-exit { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .badge-sell-danger { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
 
     .btn-buy-reg {
       background: linear-gradient(135deg, #2563eb, #0284c7);
@@ -1171,6 +1173,8 @@
       period: "5Y",
       startDate: "",
       endDate: "",
+      scaleInDrop: null,
+      scaleInMultiplier: null,
       stopLoss: null,
       takeProfit: null,
       tradeAmount: 1000000,
@@ -1381,6 +1385,9 @@
         `;
       }).join('') || '<div style="font-size:0.85rem; color:#64748b;">조건 없음</div>';
 
+      const scaleInText = (slot.scaleInDrop !== undefined && slot.scaleInDrop !== null && slot.scaleInDrop !== '') 
+        ? `-${slot.scaleInDrop}% (${slot.scaleInMultiplier || 1.0}배)` 
+        : "없음";
       const stopLossText = slot.stopLoss ? `-${slot.stopLoss}%` : "없음";
       const takeProfitText = slot.takeProfit ? `+${slot.takeProfit}%` : "없음";
       const cooldownText = slot.cooldownDays ? `${slot.cooldownDays}일` : "없음";
@@ -1403,18 +1410,22 @@
           ${sellGroupsHtml}
         </div>
 
-        <div style="border-top:1px solid #e2e8f0; padding-top:10px; display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; text-align:center;">
-          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:6px;">
-            <div style="font-size:0.7rem; color:#64748b;">손절선</div>
-            <div style="font-weight:700; font-size:0.88rem; color:#dc2626;">${stopLossText}</div>
+        <div style="border-top:1px solid #e2e8f0; padding-top:10px; display:grid; grid-template-columns:repeat(4, 1fr); gap:6px; text-align:center;">
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:6px 4px;">
+            <div style="font-size:0.68rem; color:#64748b;">물타기</div>
+            <div style="font-weight:700; font-size:0.80rem; color:#2563eb;">${scaleInText}</div>
           </div>
-          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:6px;">
-            <div style="font-size:0.7rem; color:#64748b;">익절선</div>
-            <div style="font-weight:700; font-size:0.88rem; color:#059669;">${takeProfitText}</div>
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:6px 4px;">
+            <div style="font-size:0.68rem; color:#64748b;">손절선</div>
+            <div style="font-weight:700; font-size:0.80rem; color:#dc2626;">${stopLossText}</div>
           </div>
-          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:6px;">
-            <div style="font-size:0.7rem; color:#64748b;">쿨다운</div>
-            <div style="font-weight:700; font-size:0.88rem; color:#0284c7;">${cooldownText}</div>
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:6px 4px;">
+            <div style="font-size:0.68rem; color:#64748b;">익절선</div>
+            <div style="font-weight:700; font-size:0.80rem; color:#059669;">${takeProfitText}</div>
+          </div>
+          <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:6px 4px;">
+            <div style="font-size:0.68rem; color:#64748b;">쿨다운</div>
+            <div style="font-weight:700; font-size:0.80rem; color:#0284c7;">${cooldownText}</div>
           </div>
         </div>
       `;
@@ -1674,6 +1685,8 @@
 
       const stopLossAbs = (activeSlot.stopLoss !== null && activeSlot.stopLoss !== undefined && activeSlot.stopLoss !== '') ? Math.abs(Number(activeSlot.stopLoss)) : null;
       const takeProfitAbs = (activeSlot.takeProfit !== null && activeSlot.takeProfit !== undefined && activeSlot.takeProfit !== '') ? Math.abs(Number(activeSlot.takeProfit)) : null;
+      const scaleInDropAbs = (activeSlot.scaleInDrop !== null && activeSlot.scaleInDrop !== undefined && activeSlot.scaleInDrop !== '') ? Math.abs(Number(activeSlot.scaleInDrop)) : null;
+      const scaleInMult = (activeSlot.scaleInMultiplier !== null && activeSlot.scaleInMultiplier !== undefined && activeSlot.scaleInMultiplier !== '') ? Number(activeSlot.scaleInMultiplier) : 1.0;
 
       holdingsData.forEach(holding => {
         const rawTicker = formatTicker(holding.Ticker || holding.ticker || holding.code || '');
@@ -1703,6 +1716,9 @@
         } else if (takeProfitAbs && takeProfitAbs > 0 && returnRate >= takeProfitAbs) {
           signalLevel = '익절매도';
           signalReason = `익절선 (+${takeProfitAbs}%) 도달 (수익률: +${returnRate.toFixed(2)}%)`;
+        } else if (scaleInDropAbs && scaleInDropAbs > 0 && returnRate <= -scaleInDropAbs) {
+          signalLevel = '물타기매수';
+          signalReason = `물타기 기준 (-${scaleInDropAbs}%) 도달 (수익률: ${returnRate.toFixed(2)}% | 익일 시가 ${scaleInMult}배 추가매수)`;
         } else if (metric && activeSlot.sellRules && activeSlot.sellRules.length > 0) {
           const prevItem = prevRowMap.get(rawTicker) || null;
           const isSellMatch = activeSlot.sellRules.some(g => checkGroupMatch(g, metric, prevItem));
@@ -1710,6 +1726,25 @@
             signalLevel = '전략매도';
             signalReason = `[${activeSlot.name}] 매도 청산 조건 충족 (RSI: ${metric.RSI || metric.rsi})`;
           }
+        }
+
+        if (signalLevel === '물타기매수') {
+          finalBuyList.push({
+            Date: metric ? (metric.Date || metric.date || new Date().toISOString()) : new Date().toISOString(),
+            Ticker: rawTicker,
+            Name: rawName,
+            Stage: '물타기매수',
+            priority: '물타기매수',
+            score: 999,
+            ADX: metric ? (metric.ADX || metric.adx) : '-',
+            Minus_DI: metric ? (metric.Minus_DI || metric.minus_di) : '-',
+            Plus_DI: metric ? (metric.Plus_DI || metric.plus_di) : '-',
+            RSI: metric ? (metric.RSI || metric.rsi) : '-',
+            b_band_pct: metric ? (metric.b_band_pct !== undefined ? metric.b_band_pct : (metric.BB_Pct !== undefined ? metric.BB_Pct : metric['BB_%b'])) : '-',
+            VolumeRatio: metric ? (metric.VolumeRatio !== undefined ? metric.VolumeRatio : (metric.volume_ratio !== undefined ? metric.volume_ratio : '-')) : '-',
+            ClosePrice: currPrice,
+            Reason: signalReason
+          });
         }
 
         const holdingStatusObj = {
@@ -1730,7 +1765,7 @@
         };
         evaluatedHoldingsStatus.push(holdingStatusObj);
 
-        if (signalLevel === '전략매도' || signalLevel === '손절매도' || signalLevel === '익절매도') {
+        if (signalLevel === '전략매도' || signalLevel === '손절매도' || signalLevel === '익절매도' || signalLevel === '물타기매수') {
           evaluatedSellSignals.push({
             Date: metric ? (metric.Date || metric.date || new Date().toISOString()) : new Date().toISOString(),
             Ticker: rawTicker,
@@ -2363,12 +2398,12 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || '전략매수');
         let stageText = '전략매수';
         let tierClass = 'badge-t1';
-        if (rawStage.includes('관심종목') || rawStage.includes('추세강함') || rawStage.includes('진입대기')) {
+        if (rawStage.includes('물타기매수') || rawStage.includes('물타기')) {
+          stageText = '물타기매수';
+          tierClass = 'badge-scale-in';
+        } else if (rawStage.includes('관심종목') || rawStage.includes('추세강함') || rawStage.includes('진입대기')) {
           stageText = '관심종목';
           tierClass = 'badge-sell-warn';
-        } else if (rawStage.includes('★') || rawStage.includes('실시간')) {
-          stageText = '전략매수 ★';
-          tierClass = 'badge-t1';
         } else {
           stageText = '전략매수';
           tierClass = 'badge-t1';
@@ -2628,6 +2663,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         let badgeClass = 'badge-neutral';
         if (statusText.includes('손절매도') || statusText.includes('손절')) badgeClass = 'badge-sell-danger';
         else if (statusText.includes('익절매도') || statusText.includes('익절')) badgeClass = 'badge-t1';
+        else if (statusText.includes('물타기매수') || statusText.includes('물타기')) badgeClass = 'badge-scale-in';
         else if (statusText.includes('전략매도') || statusText.includes('매도')) badgeClass = 'badge-sell-warn';
         else if (statusText.includes('전략매수') || statusText.includes('매수')) badgeClass = 'badge-t1';
         else { badgeClass = 'badge-neutral'; }

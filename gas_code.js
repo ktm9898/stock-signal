@@ -45,8 +45,8 @@ function setupSheets() {
 
   // 8. Strategy Slots Sheet Header Enforce
   let slotsSheet = ss.getSheetByName("Strategy_Slots") || ss.insertSheet("Strategy_Slots");
-  slotsSheet.getRange("A1:N1").setValues([["SlotID", "Name", "Memo", "Market", "Period", "StartDate", "EndDate", "StopLoss", "TakeProfit", "TradeAmount", "BuyRules", "SellRules", "UpdatedAt", "IsActive"]]);
-  slotsSheet.getRange("A1:N1").setFontWeight("bold").setBackground("#dbeafe");
+  slotsSheet.getRange("A1:P1").setValues([["SlotID", "Name", "Memo", "Market", "Period", "StartDate", "EndDate", "ScaleInDrop", "ScaleInMultiplier", "StopLoss", "TakeProfit", "TradeAmount", "BuyRules", "SellRules", "UpdatedAt", "IsActive"]]);
+  slotsSheet.getRange("A1:P1").setFontWeight("bold").setBackground("#dbeafe");
 }
 
 function doGet(e) {
@@ -63,12 +63,13 @@ function doGet(e) {
     const sheet = ss.getSheetByName("Strategy_Slots");
     if (sheet && sheet.getLastRow() > 1) {
       const lastRow = sheet.getLastRow();
+      const lastCol = sheet.getLastColumn();
       const activeFlags = [];
       for (let i = 2; i <= lastRow; i++) {
         const rowId = parseInt(sheet.getRange(i, 1).getValue(), 10);
         activeFlags.push([rowId === slotId ? "적용중 (ACTIVE)" : ""]);
       }
-      sheet.getRange(2, 14, activeFlags.length, 1).setValues(activeFlags);
+      sheet.getRange(2, lastCol, activeFlags.length, 1).setValues(activeFlags);
     }
 
     return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success", activeSlotId: slotId }))
@@ -81,30 +82,61 @@ function doGet(e) {
     let slotsSheet = ss.getSheetByName("Strategy_Slots");
     let slots = [];
     if (slotsSheet && slotsSheet.getLastRow() > 1) {
-      const rows = slotsSheet.getRange(2, 1, slotsSheet.getLastRow() - 1, 14).getValues();
-      slots = rows.map((r, idx) => ({
-        id: r[0] || (idx + 1),
-        name: r[1] || `전략 ${idx + 1}`,
-        memo: r[2] || '',
-        isEmpty: (r[1] && String(r[1]).includes('비어있음')) || !r[10],
-        market: r[3] || 'ALL',
-        period: r[4] || '5Y',
-        startDate: r[5] || '',
-        endDate: r[6] || '',
-        stopLoss: r[7] !== '' ? Number(r[7]) : null,
-        takeProfit: r[8] !== '' ? Number(r[8]) : null,
-        tradeAmount: r[9] ? Number(r[9]) : 1000000,
-        buyRules: r[10] ? JSON.parse(r[10]) : [],
-        sellRules: r[11] ? JSON.parse(r[11]) : [],
-        updatedAt: r[12] || '-',
-        isActive: String(r[13] || '').includes('적용') || String(r[13] || '').includes('ACTIVE')
-      }));
+      const numCols = slotsSheet.getLastColumn();
+      const rows = slotsSheet.getRange(2, 1, slotsSheet.getLastRow() - 1, numCols).getValues();
+      const is16Cols = numCols >= 16;
+      slots = rows.map((r, idx) => {
+        if (is16Cols) {
+          return {
+            id: r[0] || (idx + 1),
+            name: r[1] || `전략 ${idx + 1}`,
+            memo: r[2] || '',
+            isEmpty: (r[1] && String(r[1]).includes('비어있음')) || !r[12],
+            market: r[3] || 'ALL',
+            period: r[4] || '5Y',
+            startDate: r[5] || '',
+            endDate: r[6] || '',
+            scaleInDrop: r[7] !== '' && r[7] !== null ? Number(r[7]) : null,
+            scaleInMultiplier: r[8] !== '' && r[8] !== null ? Number(r[8]) : null,
+            stopLoss: r[9] !== '' && r[9] !== null ? Number(r[9]) : null,
+            takeProfit: r[10] !== '' && r[10] !== null ? Number(r[10]) : null,
+            tradeAmount: r[11] ? Number(r[11]) : 1000000,
+            buyRules: r[12] ? JSON.parse(r[12]) : [],
+            sellRules: r[13] ? JSON.parse(r[13]) : [],
+            updatedAt: r[14] || '-',
+            isActive: String(r[15] || '').includes('적용') || String(r[15] || '').includes('ACTIVE')
+          };
+        } else {
+          return {
+            id: r[0] || (idx + 1),
+            name: r[1] || `전략 ${idx + 1}`,
+            memo: r[2] || '',
+            isEmpty: (r[1] && String(r[1]).includes('비어있음')) || !r[10],
+            market: r[3] || 'ALL',
+            period: r[4] || '5Y',
+            startDate: r[5] || '',
+            endDate: r[6] || '',
+            scaleInDrop: null,
+            scaleInMultiplier: null,
+            stopLoss: r[7] !== '' && r[7] !== null ? Number(r[7]) : null,
+            takeProfit: r[8] !== '' && r[8] !== null ? Number(r[8]) : null,
+            tradeAmount: r[9] ? Number(r[9]) : 1000000,
+            buyRules: r[10] ? JSON.parse(r[10]) : [],
+            sellRules: r[11] ? JSON.parse(r[11]) : [],
+            updatedAt: r[12] || '-',
+            isActive: String(r[13] || '').includes('적용') || String(r[13] || '').includes('ACTIVE')
+          };
+        }
+      });
     }
     
     if (slots.length < 10) {
       const jsonStr = PropertiesService.getScriptProperties().getProperty("STRATEGY_SLOTS_JSON");
       if (jsonStr) {
-        try { slots = JSON.parse(jsonStr); } catch(err){}
+        try { 
+          const parsed = JSON.parse(jsonStr);
+          if (Array.isArray(parsed) && parsed.length === 10) slots = parsed;
+        } catch(err){}
       }
     }
     
@@ -150,12 +182,13 @@ function doPost(e) {
       const sheet = ss.getSheetByName("Strategy_Slots");
       if (sheet && sheet.getLastRow() > 1) {
         const lastRow = sheet.getLastRow();
+        const lastCol = sheet.getLastColumn();
         const activeFlags = [];
         for (let i = 2; i <= lastRow; i++) {
           const rowId = parseInt(sheet.getRange(i, 1).getValue(), 10);
           activeFlags.push([rowId === slotId ? "적용중 (ACTIVE)" : ""]);
         }
-        sheet.getRange(2, 14, activeFlags.length, 1).setValues(activeFlags);
+        sheet.getRange(2, lastCol, activeFlags.length, 1).setValues(activeFlags);
       }
 
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success", activeSlotId: slotId }))
@@ -168,8 +201,9 @@ function doPost(e) {
       const activeSlotId = parseInt(PropertiesService.getScriptProperties().getProperty("ACTIVE_STRATEGY_SLOT_ID") || "1", 10);
       if (data.slots && Array.isArray(data.slots) && sheet) {
         if (sheet.getLastRow() > 1) {
-          sheet.getRange(2, 1, sheet.getLastRow() - 1, 14).clearContent();
+          sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
         }
+        sheet.getRange("A1:P1").setValues([["SlotID", "Name", "Memo", "Market", "Period", "StartDate", "EndDate", "ScaleInDrop", "ScaleInMultiplier", "StopLoss", "TakeProfit", "TradeAmount", "BuyRules", "SellRules", "UpdatedAt", "IsActive"]]);
         const rows = data.slots.map((s, idx) => {
           const currentId = s.id || (idx + 1);
           return [
@@ -180,6 +214,8 @@ function doPost(e) {
             s.period || '5Y',
             s.startDate || '',
             s.endDate || '',
+            s.scaleInDrop !== null && s.scaleInDrop !== undefined ? s.scaleInDrop : '',
+            s.scaleInMultiplier !== null && s.scaleInMultiplier !== undefined ? s.scaleInMultiplier : '',
             s.stopLoss !== null && s.stopLoss !== undefined ? s.stopLoss : '',
             s.takeProfit !== null && s.takeProfit !== undefined ? s.takeProfit : '',
             s.tradeAmount || 1000000,
@@ -189,7 +225,7 @@ function doPost(e) {
             currentId === activeSlotId ? "적용중 (ACTIVE)" : ""
           ];
         });
-        sheet.getRange(2, 1, rows.length, 14).setValues(rows);
+        sheet.getRange(2, 1, rows.length, 16).setValues(rows);
         PropertiesService.getScriptProperties().setProperty("STRATEGY_SLOTS_JSON", JSON.stringify(data.slots));
       }
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))

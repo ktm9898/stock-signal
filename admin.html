@@ -668,6 +668,30 @@
         <button class="btn-add-group" onclick="addConditionGroup('buy')">
           <i class="fa-solid fa-plus"></i> 매수 조건 추가
         </button>
+
+        <!-- Scale-in (물타기) Sub-section inside Buy Rules -->
+        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
+          <div style="font-size: 0.80rem; font-weight: 700; color: #334155; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-layer-group" style="color: #64748b;"></i> 추가매수 (물타기) 조건 (1회 한정)
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+            <div>
+              <label style="display: block; font-size: 0.76rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                물타기 기준 하락률 (-%)
+              </label>
+              <input type="number" id="opt-scale-in-drop" class="form-input" placeholder="예: 5 (-5% 도달 시 매수)" style="width: 100%;">
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.76rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                물타기 매수 배수 (배)
+              </label>
+              <input type="number" id="opt-scale-in-mult" class="form-input" placeholder="예: 1.0 (1차 매수액의 1.0배)" step="0.1" style="width: 100%;">
+            </div>
+          </div>
+          <div style="margin-top: 6px; font-size: 0.73rem; color: #64748b;">
+            * 최초 매수가 대비 설정 하락률 도달 시 1회에 한하여 당일 종가에 '물타기매수' 신호를 포착하고 익일 시가에 추가 매수합니다. (미입력 시 물타기 비활성화)
+          </div>
+        </div>
       </div>
 
       <!-- Sell Rules -->
@@ -1471,11 +1495,19 @@
           ]
         }
       ];
+      const scaleDropEl = document.getElementById('opt-scale-in-drop');
+      if (scaleDropEl) scaleDropEl.value = "";
+      const scaleMultEl = document.getElementById('opt-scale-in-mult');
+      if (scaleMultEl) scaleMultEl.value = "";
       renderRules();
     }
 
     function resetBuyRules() {
       currentBuyGroups = [];
+      const scaleDropEl = document.getElementById('opt-scale-in-drop');
+      if (scaleDropEl) scaleDropEl.value = "";
+      const scaleMultEl = document.getElementById('opt-scale-in-mult');
+      if (scaleMultEl) scaleMultEl.value = "";
       renderRules();
     }
 
@@ -1900,6 +1932,8 @@
         const stopLossVal = parseFloat(document.getElementById('opt-stop-loss')?.value) || null;
         const takeProfitVal = parseFloat(document.getElementById('opt-take-profit')?.value) || null;
         const cooldownDaysVal = document.getElementById('opt-cooldown-days')?.value ? parseInt(document.getElementById('opt-cooldown-days').value, 10) : 0;
+        const scaleInDropVal = parseFloat(document.getElementById('opt-scale-in-drop')?.value) || null;
+        const scaleInMultVal = parseFloat(document.getElementById('opt-scale-in-mult')?.value) || null;
 
         const badge = document.getElementById('report-strat-name');
         if (badge) badge.textContent = "단일 전략";
@@ -1928,7 +1962,9 @@
           targetMarket,
           startDateStr,
           endDateStr,
-          tradeAmount
+          tradeAmount,
+          scaleInDropVal,
+          scaleInMultVal
         );
 
         allExecutedTrades.forEach((t, idx) => t._origIdx = idx + 1);
@@ -1949,7 +1985,7 @@
         let totalNetReturnAmount = 0;
 
         allExecutedTrades.forEach(t => {
-          const netGain = Math.round(tradeAmount * (t.returnPct / 100));
+          const netGain = t.netProfit !== undefined ? t.netProfit : Math.round(tradeAmount * (t.returnPct / 100));
           totalNetReturnAmount += netGain;
           if (netGain > 0) totalProfitSum += netGain;
           else totalLossSum += Math.abs(netGain);
@@ -2185,13 +2221,17 @@
         const retClass = t.win ? 'tag-win' : 'tag-loss';
         const sign = t.win ? '+' : '';
         const displayIdx = t._origIdx !== undefined ? t._origIdx : idx + 1;
+        const entryPriceHtml = t.hasScaleIn && t.avgPrice
+          ? `<strong style="color:#2563eb;">${t.avgPrice.toLocaleString()} 원</strong><span style="display:block; font-size:0.70rem; color:#64748b;">(1차: ${t.entryPrice.toLocaleString()} / 물타기: ${t.scaleInPrice ? t.scaleInPrice.toLocaleString() : '-'})</span>`
+          : `${t.entryPrice.toLocaleString()} 원`;
+
         return `
           <tr>
             <td style="color:var(--text-sub); font-size:0.75rem; text-align:center;">${displayIdx}</td>
             <td style="color:var(--text-sub); text-align:center;">${t.signalDate}</td>
             <td style="text-align:center;"><strong>${t.entryDate}</strong></td>
             <td style="padding-left: 20px;"><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
-            <td style="text-align:right; padding-right: 24px;">${t.entryPrice.toLocaleString()} 원</td>
+            <td style="text-align:right; padding-right: 24px;">${entryPriceHtml}</td>
             <td style="text-align:center;"><strong>${t.exitDate}</strong></td>
             <td style="text-align:right; padding-right: 24px;">${t.exitPrice.toLocaleString()} 원</td>
             <td style="text-align:center;"><span class="${retClass}">${sign}${t.returnPct}%</span></td>
@@ -2213,6 +2253,10 @@
         const retClass = t.win ? 'tag-win' : 'tag-loss';
         const sign = t.win ? '+' : '';
         const displayIdx = t._origIdx !== undefined ? t._origIdx : idx + 1;
+        const entryPriceHtml = t.hasScaleIn && t.avgPrice
+          ? `<strong style="color:#2563eb;">${t.avgPrice.toLocaleString()} 원</strong><span style="display:block; font-size:0.70rem; color:#64748b;">(1차: ${t.entryPrice.toLocaleString()} / 물타기: ${t.scaleInPrice ? t.scaleInPrice.toLocaleString() : '-'})</span>`
+          : `${t.entryPrice.toLocaleString()} 원`;
+
         return `
           <tr>
             <td style="color:var(--text-sub); font-size:0.75rem; text-align:center;">${displayIdx}</td>
@@ -2220,7 +2264,7 @@
             <td style="text-align:center;"><strong>${t.entryDate}</strong></td>
             <td style="padding-left: 20px;"><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
             <td style="text-align:center;"><span style="font-size:0.72rem; background:#e2e8f0; padding:1px 6px; border-radius:3px; font-weight:600;">${t.market}</span></td>
-            <td style="text-align:right; padding-right: 24px;">${t.entryPrice.toLocaleString()} 원</td>
+            <td style="text-align:right; padding-right: 24px;">${entryPriceHtml}</td>
             <td style="text-align:center;"><strong>${t.exitDate}</strong></td>
             <td style="text-align:right; padding-right: 24px;">${t.exitPrice.toLocaleString()} 원</td>
             <td style="text-align:center;"><span class="${retClass}">${sign}${t.returnPct}%</span></td>
@@ -2289,13 +2333,24 @@
       // Compute Daily Average Engaged Capital Balance across fineDates
       let dailyEngagedCapitalSum = 0;
       fineDates.forEach(dbDate => {
-        const activeCount = trades.filter(t => t.entryDate <= dbDate && t.exitDate >= dbDate).length;
-        const engaged = Math.max(1, activeCount) * tradeAmount;
-        dailyEngagedCapitalSum += engaged;
+        const activeTrades = trades.filter(t => t.entryDate <= dbDate && t.exitDate >= dbDate);
+        let dayCap = 0;
+        if (activeTrades.length === 0) {
+          dayCap = tradeAmount;
+        } else {
+          activeTrades.forEach(t => {
+            if (t.hasScaleIn && t.scaleInDate && dbDate >= t.scaleInDate) {
+              dayCap += (t.totalInvested || tradeAmount);
+            } else {
+              dayCap += tradeAmount;
+            }
+          });
+        }
+        dailyEngagedCapitalSum += dayCap;
       });
       const averageCapitalBalance = fineDates.length > 0 ? (dailyEngagedCapitalSum / fineDates.length) : tradeAmount;
 
-      // 1) Mode A: 손익기준 (Profit Mode: % based on Capital Balance - 기존 동일)
+      // 1) Mode A: 손익기준 (Profit Mode: % based on Capital Balance)
       const profitUnrealizedData = [];
       const profitRealizedData = [];
 
@@ -2303,14 +2358,17 @@
         const closed = trades.filter(t => t.exitDate <= dbDate);
         const activeOpen = trades.filter(t => t.entryDate <= dbDate && t.exitDate > dbDate);
 
-        const closedNetGainSum = closed.reduce((sum, t) => sum + Math.round(tradeAmount * (t.returnPct / 100)), 0);
+        const closedNetGainSum = closed.reduce((sum, t) => sum + (t.netProfit !== undefined ? t.netProfit : Math.round(tradeAmount * (t.returnPct / 100))), 0);
 
         let openPaperGainSum = 0;
         activeOpen.forEach(t => {
           const stockPrices = priceMap[t.ticker] || {};
-          const closeP = stockPrices[dbDate] !== undefined ? stockPrices[dbDate] : t.entryPrice;
-          const paperPct = ((closeP - t.entryPrice) / t.entryPrice) * 100;
-          openPaperGainSum += Math.round(tradeAmount * (paperPct / 100));
+          const isScaled = t.hasScaleIn && t.scaleInDate && dbDate >= t.scaleInDate;
+          const refPrice = isScaled ? (t.avgPrice || t.entryPrice) : t.entryPrice;
+          const invested = isScaled ? (t.totalInvested || tradeAmount) : tradeAmount;
+          const closeP = stockPrices[dbDate] !== undefined ? stockPrices[dbDate] : refPrice;
+          const paperPct = refPrice > 0 ? ((closeP - refPrice) / refPrice) * 100 : 0;
+          openPaperGainSum += Math.round(invested * (paperPct / 100));
         });
 
         const realizedPct = averageCapitalBalance > 0 ? (closedNetGainSum / averageCapitalBalance) * 100 : 0;
@@ -2714,6 +2772,8 @@
       period: "5Y",
       startDate: "",
       endDate: "",
+      scaleInDrop: null,
+      scaleInMultiplier: null,
       stopLoss: null,
       takeProfit: null,
       tradeAmount: 1000000,
@@ -2765,6 +2825,12 @@
         if (slot.endDate && document.getElementById('opt-end-date')) {
           document.getElementById('opt-end-date').value = formatToDateOnly(slot.endDate, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-21');
         }
+      }
+      if (document.getElementById('opt-scale-in-drop')) {
+        document.getElementById('opt-scale-in-drop').value = (slot.scaleInDrop !== undefined && slot.scaleInDrop !== null) ? slot.scaleInDrop : "";
+      }
+      if (document.getElementById('opt-scale-in-mult')) {
+        document.getElementById('opt-scale-in-mult').value = (slot.scaleInMultiplier !== undefined && slot.scaleInMultiplier !== null) ? slot.scaleInMultiplier : "";
       }
       if (slot.stopLoss !== undefined && document.getElementById('opt-stop-loss')) {
         document.getElementById('opt-stop-loss').value = slot.stopLoss !== null ? slot.stopLoss : "";
@@ -2875,6 +2941,8 @@
       const stopLossVal = document.getElementById('opt-stop-loss').value ? parseFloat(document.getElementById('opt-stop-loss').value) : null;
       const takeProfitVal = document.getElementById('opt-take-profit').value ? parseFloat(document.getElementById('opt-take-profit').value) : null;
       const cooldownDaysVal = document.getElementById('opt-cooldown-days')?.value ? parseInt(document.getElementById('opt-cooldown-days').value, 10) : null;
+      const scaleInDropVal = document.getElementById('opt-scale-in-drop')?.value ? parseFloat(document.getElementById('opt-scale-in-drop').value) : null;
+      const scaleInMultVal = document.getElementById('opt-scale-in-mult')?.value ? parseFloat(document.getElementById('opt-scale-in-mult').value) : null;
       const tradeAmount = parseFloat(document.getElementById('opt-initial-capital').value) || 1000000;
 
       const now = new Date();
@@ -2889,6 +2957,8 @@
         period: document.getElementById('opt-backtest-period').value,
         startDate: formatToDateOnly(document.getElementById('opt-start-date')?.value, '2021-01-04'),
         endDate: formatToDateOnly(document.getElementById('opt-end-date')?.value, typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '2026-08-20'),
+        scaleInDrop: scaleInDropVal,
+        scaleInMultiplier: scaleInMultVal,
         stopLoss: stopLossVal,
         takeProfit: takeProfitVal,
         cooldownDays: cooldownDaysVal,
@@ -3035,12 +3105,14 @@
       }
     }
 
-    function simulateTradesForRules(buyRules, sellRules, buyOp, sellOp, stopLoss, takeProfit, cooldownDays, market, startDateStr, endDateStr, tradeAmount) {
+    function simulateTradesForRules(buyRules, sellRules, buyOp, sellOp, stopLoss, takeProfit, cooldownDays, market, startDateStr, endDateStr, tradeAmount, scaleInDrop, scaleInMultiplier) {
       if (!REAL_PRELOADED_DATA) return [];
       const allExecutedTrades = [];
       const feeRate = 0.0015 + 0.0010;
       const tickers = Object.keys(REAL_PRELOADED_DATA);
       const cooldownVal = cooldownDays ? parseInt(cooldownDays, 10) : 0;
+      const scaleDropVal = (scaleInDrop !== null && scaleInDrop !== undefined && scaleInDrop !== "") ? Math.abs(parseFloat(scaleInDrop)) : null;
+      const scaleMultVal = (scaleInMultiplier !== null && scaleInMultiplier !== undefined && scaleInMultiplier !== "") ? Math.abs(parseFloat(scaleInMultiplier)) : 1.0;
 
       const normalizedBuyGroups = normalizeRulesToGroups(buyRules, 'buy');
       const normalizedSellGroups = normalizeRulesToGroups(sellRules, 'sell');
@@ -3059,10 +3131,17 @@
         if (rows.length < 5) return;
 
         let inPosition = false;
-        let entryPrice = 0;
+        let initialBuyPrice = 0;
+        let avgPrice = 0;
         let entryDate = "";
         let entrySignalDate = "";
         let lastStopLossDate = "";
+        let hasScaleIn = false;
+        let scaleInDate = "";
+        let scaleInPrice = 0;
+        let scaleInSignalDate = "";
+        let totalInvested = tradeAmount;
+        let totalQty = 0;
 
         for (let i = 0; i < rows.length - 1; i++) {
           const curr = rows[i];
@@ -3083,13 +3162,31 @@
           if (!inPosition) {
             if (isBuySignal && nextDay.open > 0) {
               inPosition = true;
-              entryPrice = nextDay.open * (1 + feeRate);
+              initialBuyPrice = nextDay.open * (1 + feeRate);
+              avgPrice = initialBuyPrice;
               entrySignalDate = curr.date;
               entryDate = nextDay.date;
+              hasScaleIn = false;
+              scaleInDate = "";
+              scaleInPrice = 0;
+              scaleInSignalDate = "";
+              totalInvested = tradeAmount;
+              totalQty = tradeAmount / initialBuyPrice;
             }
           } else {
             const currClose = curr.close;
-            const paperReturnPct = ((currClose - entryPrice) / entryPrice) * 100;
+
+            // Check Scale-In condition on current day close (vs initial entry price)
+            let isScaleInSignal = false;
+            if (!hasScaleIn && scaleDropVal !== null && scaleDropVal > 0) {
+              const returnVsInitial = ((currClose - initialBuyPrice) / initialBuyPrice) * 100;
+              if (returnVsInitial <= -scaleDropVal) {
+                isScaleInSignal = true;
+              }
+            }
+
+            // Check Exit conditions on current day close (vs current avg price)
+            const paperReturnPct = ((currClose - avgPrice) / avgPrice) * 100;
             let isExit = false;
             let triggerType = "SIGNAL";
 
@@ -3111,7 +3208,8 @@
 
             if (isExit && nextDay.open > 0) {
               const exitPrice = nextDay.open * (1 - feeRate);
-              const actualReturnPct = ((exitPrice - entryPrice) / entryPrice) * 100;
+              const actualReturnPct = ((exitPrice - avgPrice) / avgPrice) * 100;
+              const actualNetProfit = (exitPrice * totalQty) - totalInvested;
               const d1 = new Date(entryDate);
               const d2 = new Date(nextDay.date);
               const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
@@ -3119,6 +3217,7 @@
               let exitReason = "매도전략";
               if (triggerType === "STOP_LOSS") exitReason = "손절신호";
               else if (triggerType === "TAKE_PROFIT") exitReason = "익절신호";
+              if (hasScaleIn) exitReason += " (물타기 1회)";
 
               allExecutedTrades.push({
                 ticker: ticker,
@@ -3126,15 +3225,33 @@
                 market: stockInfo.market,
                 signalDate: entrySignalDate,
                 entryDate: entryDate,
-                entryPrice: Math.round(entryPrice),
+                entryPrice: Math.round(initialBuyPrice),
+                avgPrice: Math.round(avgPrice),
+                hasScaleIn: hasScaleIn,
+                scaleInDate: scaleInDate,
+                scaleInPrice: Math.round(scaleInPrice),
+                scaleInMult: scaleMultVal,
+                totalInvested: Math.round(totalInvested),
                 exitDate: nextDay.date,
                 exitPrice: Math.round(exitPrice),
                 returnPct: parseFloat(actualReturnPct.toFixed(2)),
+                netProfit: Math.round(actualNetProfit),
                 holdingDays: holdingDays,
                 reason: exitReason,
                 win: actualReturnPct >= 0
               });
               inPosition = false;
+            } else if (isScaleInSignal && nextDay.open > 0) {
+              // Execute 1-time Scale-in at nextDay.open
+              hasScaleIn = true;
+              scaleInSignalDate = curr.date;
+              scaleInDate = nextDay.date;
+              scaleInPrice = nextDay.open * (1 + feeRate);
+              const addInvested = tradeAmount * scaleMultVal;
+              const addQty = addInvested / scaleInPrice;
+              totalInvested += addInvested;
+              totalQty += addQty;
+              avgPrice = totalInvested / totalQty;
             }
           }
         }
@@ -3142,10 +3259,14 @@
         if (inPosition && rows.length > 0) {
           const lastRow = rows[rows.length - 1];
           const exitPrice = lastRow.close * (1 - feeRate);
-          const actualReturnPct = ((exitPrice - entryPrice) / entryPrice) * 100;
+          const actualReturnPct = ((exitPrice - avgPrice) / avgPrice) * 100;
+          const actualNetProfit = (exitPrice * totalQty) - totalInvested;
           const d1 = new Date(entryDate);
           const d2 = new Date(lastRow.date);
           const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+
+          let exitReason = "기간종료(미청산)";
+          if (hasScaleIn) exitReason += " (물타기 1회)";
 
           allExecutedTrades.push({
             ticker: ticker,
@@ -3153,12 +3274,19 @@
             market: stockInfo.market,
             signalDate: entrySignalDate,
             entryDate: entryDate,
-            entryPrice: Math.round(entryPrice),
+            entryPrice: Math.round(initialBuyPrice),
+            avgPrice: Math.round(avgPrice),
+            hasScaleIn: hasScaleIn,
+            scaleInDate: scaleInDate,
+            scaleInPrice: Math.round(scaleInPrice),
+            scaleInMult: scaleMultVal,
+            totalInvested: Math.round(totalInvested),
             exitDate: lastRow.date,
             exitPrice: Math.round(exitPrice),
             returnPct: parseFloat(actualReturnPct.toFixed(2)),
+            netProfit: Math.round(actualNetProfit),
             holdingDays: holdingDays,
-            reason: "기간종료",
+            reason: exitReason,
             win: actualReturnPct >= 0
           });
           inPosition = false;
@@ -3227,6 +3355,8 @@
       const stopLossVal = parseFloat(document.getElementById('opt-stop-loss')?.value) || null;
       const takeProfitVal = parseFloat(document.getElementById('opt-take-profit')?.value) || null;
       const cooldownDaysVal = document.getElementById('opt-cooldown-days')?.value ? parseInt(document.getElementById('opt-cooldown-days').value, 10) : 0;
+      const scaleInDropVal = parseFloat(document.getElementById('opt-scale-in-drop')?.value) || null;
+      const scaleInMultVal = parseFloat(document.getElementById('opt-scale-in-mult')?.value) || null;
 
       const colorPalette = ['#2563eb', '#7c3aed', '#059669', '#ea580c', '#db2777', '#0284c7', '#ca8a04', '#78716c', '#4f46e5', '#0d9488'];
       
@@ -3259,6 +3389,8 @@
         const slotStopLoss = (slot.stopLoss !== undefined && slot.stopLoss !== null && slot.stopLoss !== "") ? slot.stopLoss : stopLossVal;
         const slotTakeProfit = (slot.takeProfit !== undefined && slot.takeProfit !== null && slot.takeProfit !== "") ? slot.takeProfit : takeProfitVal;
         const slotCooldown = (slot.cooldownDays !== undefined && slot.cooldownDays !== null && slot.cooldownDays !== "") ? slot.cooldownDays : cooldownDaysVal;
+        const slotScaleInDrop = (slot.scaleInDrop !== undefined && slot.scaleInDrop !== null && slot.scaleInDrop !== "") ? slot.scaleInDrop : scaleInDropVal;
+        const slotScaleInMult = (slot.scaleInMultiplier !== undefined && slot.scaleInMultiplier !== null && slot.scaleInMultiplier !== "") ? slot.scaleInMultiplier : scaleInMultVal;
 
         const trades = simulateTradesForRules(
           slot.buyRules, 
@@ -3271,13 +3403,27 @@
           slotMarket, 
           startDateStr, 
           endDateStr, 
-          tradeAmount
+          tradeAmount,
+          slotScaleInDrop,
+          slotScaleInMult
         );
 
         let dailyEngagedCapitalSum = 0;
         fineDates.forEach(dbDate => {
-          const activeCount = trades.filter(t => t.entryDate <= dbDate && t.exitDate >= dbDate).length;
-          dailyEngagedCapitalSum += Math.max(1, activeCount) * tradeAmount;
+          const activeTrades = trades.filter(t => t.entryDate <= dbDate && t.exitDate >= dbDate);
+          let dayCap = 0;
+          if (activeTrades.length === 0) {
+            dayCap = tradeAmount;
+          } else {
+            activeTrades.forEach(t => {
+              if (t.hasScaleIn && t.scaleInDate && dbDate >= t.scaleInDate) {
+                dayCap += (t.totalInvested || tradeAmount);
+              } else {
+                dayCap += tradeAmount;
+              }
+            });
+          }
+          dailyEngagedCapitalSum += dayCap;
         });
         const averageCapitalBalance = fineDates.length > 0 ? (dailyEngagedCapitalSum / fineDates.length) : tradeAmount;
 
@@ -3354,13 +3500,16 @@
         fineDates.forEach(dbDate => {
           const closed = trades.filter(t => t.exitDate <= dbDate);
           const activeOpen = trades.filter(t => t.entryDate <= dbDate && t.exitDate > dbDate);
-          const closedNetGainSum = closed.reduce((sum, t) => sum + Math.round(tradeAmount * (t.returnPct / 100)), 0);
+          const closedNetGainSum = closed.reduce((sum, t) => sum + (t.netProfit !== undefined ? t.netProfit : Math.round(tradeAmount * (t.returnPct / 100))), 0);
           let openPaperGainSum = 0;
           activeOpen.forEach(t => {
             const stockPrices = priceMap[t.ticker] || {};
-            const closeP = stockPrices[dbDate] !== undefined ? stockPrices[dbDate] : t.entryPrice;
-            const paperPct = ((closeP - t.entryPrice) / t.entryPrice) * 100;
-            openPaperGainSum += Math.round(tradeAmount * (paperPct / 100));
+            const isScaled = t.hasScaleIn && t.scaleInDate && dbDate >= t.scaleInDate;
+            const refPrice = isScaled ? (t.avgPrice || t.entryPrice) : t.entryPrice;
+            const invested = isScaled ? (t.totalInvested || tradeAmount) : tradeAmount;
+            const closeP = stockPrices[dbDate] !== undefined ? stockPrices[dbDate] : refPrice;
+            const paperPct = refPrice > 0 ? ((closeP - refPrice) / refPrice) * 100 : 0;
+            openPaperGainSum += Math.round(invested * (paperPct / 100));
           });
           const unrealizedPct = averageCapitalBalance > 0 ? ((closedNetGainSum + openPaperGainSum) / averageCapitalBalance) * 100 : 0;
           slotPnlData.push(parseFloat(unrealizedPct.toFixed(1)));
@@ -3376,7 +3525,7 @@
         let totalLossSum = 0;
         let totalNetReturnAmount = 0;
         trades.forEach(t => {
-          const netGain = Math.round(tradeAmount * (t.returnPct / 100));
+          const netGain = t.netProfit !== undefined ? t.netProfit : Math.round(tradeAmount * (t.returnPct / 100));
           totalNetReturnAmount += netGain;
           if (netGain > 0) totalProfitSum += netGain;
           else totalLossSum += Math.abs(netGain);
