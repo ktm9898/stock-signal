@@ -4443,68 +4443,173 @@
     }
   </script>
 
+  <!-- Indicator Help Modal -->
+  <div id="info-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div class="modal-content" style="background:#fff; border-radius:12px; width:92%; max-width:480px; padding:18px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); border:1px solid #e2e8f0;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:6px;">
+        <h4 id="info-modal-title" style="font-size:0.90rem; font-weight:700; color:#0f172a; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;">지표 설명</h4>
+        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+          <span id="info-modal-badge" class="badge badge-t2" style="white-space:nowrap !important; flex-shrink:0; font-size:0.72rem; padding:3px 7px; font-weight:600; display:inline-block;">안내</span>
+          <button onclick="closeInfoModal()" style="background:none; border:none; font-size:1.15rem; color:#64748b; cursor:pointer; padding:0; flex-shrink:0; line-height:1; margin-left:2px;">✕</button>
+        </div>
+      </div>
+      <div id="info-modal-body" style="font-size:0.82rem; color:#334155; line-height:1.6; white-space:pre-line; max-height:60vh; overflow-y:auto; padding-right:4px;"></div>
+      <div style="margin-top:16px; text-align:right;">
+        <button class="btn-sm-action" onclick="closeInfoModal()" style="background:#2563eb; color:#fff; padding:6px 16px; border:none; border-radius:6px; font-weight:600; cursor:pointer;">확인</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     function showIndicatorHelp(type) {
       const helpData = {
         'ADX': {
           title: 'ADX (Average Directional Index)',
-          badge: '추세 강도 지표',
-          badgeClass: 'badge-t1',
-          content: `[개념]\n주가의 상승/하락 여부와 상관없이 현재 추세(Trend)가 얼마나 강력한지를 나타냅니다.\n\n[수치별 의미]\n• 20 이하 : 약한 추세 (횡보/박스권 구간)\n• 25 이상 : 명확한 추세 형성 시작\n• 30 이상 : 강력한 추세 진행 중 (본 시스템 핵심 조건)\n\n[실전 활용 팁]\nADX가 30 이상으로 치솟을 때 추세 매매(Trend Following) 전략을 사용하면 속임수 신호를 피할 수 있습니다.`
+          badge: '추세 강도',
+          badgeClass: 'badge-t2',
+          content: `[개념]
+ADX는 주가의 상승/하락 방향과 관계없이 현재 형성된 추세의 강도만을 0~100 수치로 측정하는 지표입니다.
+
+[수치별 의미]
+• 0 ~ 20 : 추세 없음 (관망 및 횡보 구간)
+• 25 이상 : 강한 추세 형성 (매매 고려 가능 구간)
+• 40 이상 : 매우 강력한 추세 진행 중
+
+[실전 활용 팁]
+ADX가 25 이상으로 올라설 때 -DI가 ADX 밑으로 하향 돌파하면 매수 신호, 반대로 상승 추세 후 ADX가 꺾이기 시작하면 익절 및 매도 준비 타점이 됩니다.`
         },
         '-DI': {
           title: '-DI (Minus Directional Indicator)',
-          badge: '하락 방향 지표',
-          badgeClass: 'badge-sell-warn',
-          content: `[개념]\n주가의 하락 압력(Bearish Momentum)의 크기를 나타냅니다.\n\n[수치별 의미]\n• +DI보다 위에 위치 : 하락세가 상승세보다 강함\n• -DI가 ADX 아래로 하향 돌파 : 하락 압력이 급격히 소멸하는 순간`
+          badge: '하락 방향성',
+          badgeClass: 'badge-sell-exit',
+          content: `[개념]
+최근 N일간 주가의 하락 변동 폭과 압력을 수치화한 지표입니다.
+
+[수치별 의미]
+• -DI > ADX : 하락 압력이 우세하여 주가가 눌려있는 상태
+• -DI가 ADX 밑으로 하향 돌파 : 하락 압력이 사라지며 상승 반전 가능성 급증
+
+[실전 활용 팁]
+ADX가 25 이상일 때 -DI가 ADX 아래로 떨어지는 순간이 본 스크리너의 핵심 매수 신호 타점입니다.`
         },
         '+DI': {
           title: '+DI (Plus Directional Indicator)',
-          badge: '상승 방향 지표',
-          badgeClass: 'badge-t2',
-          content: `[개념]\n주가의 상승 압력(Bullish Momentum)의 크기를 나타냅니다.\n\n[수치별 의미]\n• -DI보다 위에 위치 : 상승세가 하락세보다 강함`
+          badge: '상승 방향성',
+          badgeClass: 'badge-t1',
+          content: `[개념]
+최근 N일간 주가의 상승 변동 폭과 매수 압력을 수치화한 지표입니다.
+
+[수치별 의미]
+• +DI > -DI : 매수세가 매도세보다 우세한 상승 국면
+• +DI 상승 + ADX 상승 : 상승 추세가 본격적으로 탄력을 받는 구간
+
+[실전 활용 팁]
++DI가 -DI보다 위에 있으면서 ADX가 함께 상승할 때 가장 안정적인 우상향 파동이 연출됩니다.`
         },
         'RSI': {
           title: 'RSI (Relative Strength Index)',
-          badge: '상대강도 과열 지표',
-          badgeClass: 'badge-t2',
-          content: `[개념]\n최근 14일간 가격 변동 중 상승 폭과 하락 폭의 상대적 강도를 백분율(%)로 나타냅니다.\n\n[수치별 의미]\n• 30 이하 : 극단적 과매도 (바닥권 반등 타점)\n• 40 이하 : 단기 과매도\n• 65 이상 : 단기 과열 (익절 고려 구간)`
+          badge: '상대강도지수',
+          badgeClass: 'badge-t1',
+          content: `[개념]
+최근 14일간 주가 상승폭과 하락폭의 비율을 0~100%로 나타내어 매수/매도 세력의 상대적 강도를 측정합니다.
+
+[수치별 의미]
+• 30 이하 : 과매도 (주가가 지나치게 떨어져 반등 가능성 높음)
+• 40 이하 : 과매도 접근 (본 시스템 3단계 강력매수 우선순위 조건)
+• 70 이상 : 과매수 (과열 구간, 매도 및 익절 고려)
+
+[실전 활용 팁]
+매수 신호가 떴을 때 RSI가 40 이하로 낮다면 바닥권 강력 매수(3단계) 타점이 됩니다.`
         },
         'BB_Pct': {
           title: '볼린저 밴드 %b (Bollinger %b)',
           badge: '밴드위치 비율',
           badgeClass: 'badge-t2',
-          content: `[개념]\n주가가 볼린저 밴드(20일, 2표준편차) 상단과 하단 사이에서 어디에 위치하는지 0~1 비율로 나타냅니다.\n\n[수치별 의미]\n• 0.0 이하 : 밴드 하단 이탈/터치 (주가 극단적 바닥권)\n• 0.5 : 밴드 중앙선 (20일 이동평균선)\n• 1.0 이상 : 밴드 상단 이탈/터치`
+          content: `[개념]
+주가가 볼린저 밴드(20일, 2표준편차)의 상단과 하단 사이에서 어디에 위치하는지 0~1 비율로 나타냅니다.
+
+[수치별 의미]
+• 0.0 이하 : 밴드 하단 이탈/터치 (주가 극단적 바닥권)
+• 0.5 : 밴드 중앙선 (20일 이동평균선 위치)
+• 1.0 이상 : 밴드 상단 이탈/터치 (주가 단기 과열 상단)
+
+[실전 활용 팁]
+%b가 0.0 근처에 도달해 있으면서 매수 신호가 발생하면 아주 이상적인 눌림목 및 바닥 매수 기회가 됩니다.`
         },
         'MACD': {
           title: 'MACD 오실레이터 (MACD Oscillator)',
           badge: '추세 모멘텀',
           badgeClass: 'badge-t2',
-          content: `[개념]\nMACD와 Signal선의 차이를 나타내는 오실레이터 수치입니다.\n\n[수치별 의미]\n• 양수 (+) : 상승 모멘텀 우세\n• 음수 (-) : 하락 모멘텀 우세\n• 음수에서 양수로 전환 : 골든크로스 발생`
+          content: `[개념]
+MACD(12일-26일 이평선 차이)와 Signal(9일 이평선)의 차이를 나타내는 오실레이터 수치입니다.
+
+[수치별 의미]
+• 양수 (+) : 상승 모멘텀 우세 (MACD가 Signal 위에 위치)
+• 음수 (-) : 하락 모멘텀 우세 (MACD가 Signal 아래에 위치)
+• 음수(-)에서 양수(+)로 전환 : MACD 골든크로스 발생
+
+[실전 활용 팁]
+MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상승 에너지가 강력하게 실립니다.`
         },
         'STOCH': {
           title: '스토캐스틱 슬로우 (Stochastic Slow)',
           badge: '단기 반전 지표',
           badgeClass: 'badge-t3',
-          content: `[개념]\n최근 14일간 최고가-최저가 범위 내 현재 주가의 상대적 위치(%K)와 이동평균(%D)을 나타냅니다.\n\n[수치별 의미]\n• 20 이하 : 단기 과매도\n• 80 이상 : 단기 과매수`
+          content: `[개념]
+최근 14일간의 최고가-최저가 범위 내에서 현재 주가의 상대적 위치(%K)와 그 이동평균(%D)을 나타냅니다.
+
+[수치별 의미]
+• 20 이하 : 단기 과매도 (바닥권 반등 임박)
+• 80 이상 : 단기 과매수 (단기 고점 과열)
+• %K가 %D를 상향 돌파 : 스토캐스틱 골든크로스
+
+[실전 활용 팁]
+%K 수치가 20 이하 바닥권에서 %D를 뚫고 올라갈 때 RSI 및 ADX 신호와 함께 활용하면 승률이 높아집니다.`
         },
         'DISPARITY': {
           title: '20일 이격도 (Disparity 20)',
           badge: '이동평균 이격률',
           badgeClass: 'badge-t2',
-          content: `[개념]\n현재 주가가 20일 이동평균선과 얼마나 떨어져 있는지를 백분율(%)로 나타냅니다.\n\n[수치별 의미]\n• 95% 이하 : 20일선 대비 5% 이상 하락 (단기 과매도/눌림목)\n• 100% : 주가 20일선 일치`
-        },
-        'VOLUME': {
-          title: '거래량 비율 (Volume Ratio, VR)',
-          badge: '수급 폭발 지표',
-          badgeClass: 'badge-t1',
-          content: `[개념]\n최근 5일간 평균 거래량 대비 당일 거래량이 얼마나 터졌는지를 백분율(%)로 나타냅니다.\n\n[수치별 의미]\n• 100% : 최근 5일 평균과 동일한 거래량\n• 120% 이상 : 거래량 급증`
+          content: `[개념]
+현재 주가가 20일 이동평균선과 얼마나 떨어져 있는지를 백분율(%)로 나타냅니다.
+
+[수치별 의미]
+• 95% 이하 : 20일선 대비 5% 이상 하락 (단기 과매도/눌림목)
+• 100% : 현재 주가가 20일 이동평균선과 일치
+• 105% 이상 : 20일선 대비 5% 이상 급등 (단기 이격 과열)
+
+[실전 활용 팁]
+이격도가 95% 이하인 상태에서 매수 신호가 발생하면 20일선 복귀에 따른 단기 반등 수익을 노리기 좋습니다.`
         },
         'VR': {
-          title: '거래량 비율 (Volume Ratio, VR)',
+          title: '거래량 비율 (Volume Ratio, VR5)',
           badge: '수급 폭발 지표',
           badgeClass: 'badge-t1',
-          content: `[개념]\n최근 5일간 평균 거래량 대비 당일 거래량이 얼마나 터졌는지를 백분율(%)로 나타냅니다.\n\n[수치별 의미]\n• 100% : 최근 5일 평균과 동일한 거래량\n• 120% 이상 : 거래량 급증`
+          content: `[개념]
+최근 5일간의 평균 거래량 대비 당일 거래량이 얼마나 터졌는지를 백분율(%)로 나타냅니다.
+
+[수치별 의미]
+• 100% : 최근 5일 평균과 동일한 거래량
+• 120% 이상 : 거래량 급증 (본 시스템 2단계 적극매수 조건)
+• 200% 이상 : 수급 대폭발 (세력/기관 강한 매수 유입)
+
+[실전 활용 팁]
+주가가 반전할 때 거래량 비율이 120%~200% 이상 터져줘야 신호의 신뢰도가 크게 상승합니다.`
+        },
+        'VOLUME': {
+          title: '거래량 비율 (Volume Ratio, VR5)',
+          badge: '수급 폭발 지표',
+          badgeClass: 'badge-t1',
+          content: `[개념]
+최근 5일간의 평균 거래량 대비 당일 거래량이 얼마나 터졌는지를 백분율(%)로 나타냅니다.
+
+[수치별 의미]
+• 100% : 최근 5일 평균과 동일한 거래량
+• 120% 이상 : 거래량 급증 (본 시스템 2단계 적극매수 조건)
+• 200% 이상 : 수급 대폭발 (세력/기관 강한 매수 유입)
+
+[실전 활용 팁]
+주가가 반전할 때 거래량 비율이 120%~200% 이상 터져줘야 신호의 신뢰도가 크게 상승합니다.`
         }
       };
 
