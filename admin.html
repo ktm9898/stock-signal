@@ -4293,15 +4293,7 @@
       }
 
       const pinInput = document.getElementById('modal-update-pin');
-      if (pinInput) {
-        pinInput.value = getStoredPin();
-        pinInput.onkeydown = function(e) {
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            executeCloudDatasetUpdate();
-          }
-        };
-      }
+      if (pinInput) pinInput.value = "";
 
       document.getElementById('update-progress-box').style.display = 'none';
       document.getElementById('update-result-box').style.display = 'none';
@@ -4347,7 +4339,7 @@
       const timerText = document.getElementById('update-timer-text');
       const submitBtn = document.getElementById('btn-submit-cloud-update');
       const pinInput = document.getElementById('modal-update-pin');
-      const pinVal = (pinInput ? pinInput.value.trim() : '') || getStoredPin();
+      const pinVal = pinInput ? pinInput.value.trim() : '';
 
       if (!pinVal) {
         resultBox.style.display = 'block';
