@@ -46,12 +46,61 @@ try:
 except ImportError:
     BeautifulSoup = None
 
+def fetch_official_etf_constituents(etf_code, market_name):
+    """Fetch official KOSPI 200 / KOSDAQ 150 constituents from WiseReport/Naver ETF portfolio API."""
+    url = f"https://navercomp.wisereport.co.kr/v2/ETF/index.aspx?cmp_cd={etf_code}"
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    try:
+        res = requests.get(url, headers=headers, timeout=10)
+        m = re.search(r'var\s+CU_data\s*=\s*(\{.*?\});\s*var', res.text, re.DOTALL)
+        if not m:
+            return []
+        grid = json.loads(m.group(1)).get('grid_data', [])
+        
+        # Load stocks_350 master for fast ticker lookup
+        stocks_350_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "stocks_350.json")
+        master_map = {}
+        if os.path.exists(stocks_350_path):
+            with open(stocks_350_path, "r", encoding="utf-8") as f:
+                for s in json.load(f):
+                    master_map[s["name"]] = s["ticker"]
+
+        items = []
+        seen = set()
+        for g in grid:
+            nm = g.get('STK_NM_KOR', '').strip()
+            if nm and not any(k in nm for k in ['원화예치금', '설정원금', '현금', '선물']):
+                ticker = master_map.get(nm, '')
+                if ticker and ticker not in seen:
+                    seen.add(ticker)
+                    items.append({"ticker": ticker, "name": nm, "market": market_name})
+        return items
+    except Exception as e:
+        print(f"[WARN] Failed fetching official ETF {etf_code} constituents: {e}")
+        return []
+
 def get_kospi200_tickers():
-    """Retrieve KOSPI 200 list of tickers and names (PyKRX index 1028, ETF 069500, Naver fallbacks)."""
+    """Retrieve official KOSPI 200 list of tickers and names (Verified Master JSON -> Official ETF Portfolio -> PyKRX)."""
+    # 1. Priority: Read from verified data/stocks_350.json
+    stocks_350_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "stocks_350.json")
+    if os.path.exists(stocks_350_path):
+        try:
+            with open(stocks_350_path, "r", encoding="utf-8") as f:
+                stocks = json.load(f)
+                k200 = [s for s in stocks if s.get("market") == "KOSPI200"]
+                if len(k200) >= 195:
+                    return k200[:200]
+        except Exception:
+            pass
+
+    # 2. Priority: Fetch from KODEX 200 ETF (069500) Official Portfolio API
+    etf_items = fetch_official_etf_constituents("069500", "KOSPI200")
+    if len(etf_items) >= 195:
+        return etf_items[:200]
+
+    # 3. Fallback: PyKRX Index 1028 (KOSPI 200)
     items = []
     seen = set()
-    
-    # 1. Try PyKRX Index 1028 (KOSPI 200)
     try:
         if stock:
             tickers = stock.get_index_portfolio_deposit_file("1028")
@@ -62,100 +111,35 @@ def get_kospi200_tickers():
                     if clean_t not in seen:
                         seen.add(clean_t)
                         items.append({"ticker": clean_t, "name": name, "market": "KOSPI200"})
-                if len(items) >= 100:
-                    return items
+                if len(items) >= 195:
+                    return items[:200]
     except Exception as e:
-        print(f"[WARN] PyKRX get_index_portfolio_deposit_file(1028) failed: {e}")
-
-    # 2. Try PyKRX KODEX 200 ETF (069500) Portfolio
-    try:
-        if stock:
-            tickers = stock.get_etf_portfolio_deposit_file("069500")
-            if tickers and len(tickers) > 0:
-                for ticker in tickers:
-                    clean_t = str(ticker).zfill(6)
-                    name = stock.get_market_ticker_name(clean_t)
-                    if clean_t not in seen:
-                        seen.add(clean_t)
-                        items.append({"ticker": clean_t, "name": name, "market": "KOSPI200"})
-                if len(items) >= 100:
-                    return items
-    except Exception as e:
-        print(f"[WARN] PyKRX ETF 069500 portfolio failed: {e}")
-
-    # 3. Fallback: Naver Finance KOSPI 200 Scraping (entryJongmok)
-    print("[INFO] Using Naver Finance fallback to fetch KOSPI 200 list...")
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-    try:
-        for page in range(1, 21):
-            url = f"https://finance.naver.com/sise/entryJongmok.naver?page={page}"
-            res = requests.get(url, headers=headers, timeout=5)
-            res.encoding = 'euc-kr'
-            if BeautifulSoup:
-                soup = BeautifulSoup(res.text, "html.parser")
-                tds = soup.find_all("td", class_="ctg")
-                for td in tds:
-                    a = td.find("a")
-                    if a and 'code=' in a.get('href', ''):
-                        match = re.search(r'code=(\d{6})', a['href'])
-                        if match:
-                            clean_t = match.group(1)
-                            if clean_t not in seen:
-                                seen.add(clean_t)
-                                items.append({"ticker": clean_t, "name": a.text.strip(), "market": "KOSPI200"})
-            else:
-                matches = re.findall(r'href="/item/main\.naver\?code=(\d{6})"[^>]*>(.*?)</a>', res.text)
-                for code, name in matches:
-                    name_clean = name.strip()
-                    if code not in seen and name_clean:
-                        seen.add(code)
-                        items.append({"ticker": code, "name": name_clean, "market": "KOSPI200"})
-        if len(items) >= 200:
-            return items[:200]
-    except Exception as e:
-        print(f"[ERROR] Naver Finance KOSPI 200 fallback failed: {e}")
-
-    # 4. Fallback: Naver Market Sum Top 200 (sosok=0 for KOSPI)
-    try:
-        print("[INFO] Using Naver Market Sum fallback to fetch KOSPI 200...")
-        for page in range(1, 5):
-            url = f"https://finance.naver.com/sise/sise_market_sum.naver?sosok=0&page={page}"
-            res = requests.get(url, headers=headers, timeout=5)
-            res.encoding = 'euc-kr'
-            if BeautifulSoup:
-                soup = BeautifulSoup(res.text, "html.parser")
-                links = soup.find_all("a", class_="tltle")
-                for a in links:
-                    href = a.get("href", "")
-                    match = re.search(r'code=(\d{6})', href)
-                    if match:
-                        clean_t = match.group(1)
-                        name = a.text.strip()
-                        if clean_t not in seen and name:
-                            seen.add(clean_t)
-                            items.append({"ticker": clean_t, "name": name, "market": "KOSPI200"})
-                            if len(items) >= 200:
-                                return items[:200]
-            else:
-                matches = re.findall(r'href="/item/main\.naver\?code=(\d{6})"[^>]*>(.*?)</a>', res.text)
-                for code, name in matches:
-                    name_clean = name.strip()
-                    if code not in seen and name_clean:
-                        seen.add(code)
-                        items.append({"ticker": code, "name": name_clean, "market": "KOSPI200"})
-                        if len(items) >= 200:
-                            return items[:200]
-    except Exception as e:
-        print(f"[ERROR] Naver Market Sum KOSPI fallback failed: {e}")
+        print(f"[WARN] PyKRX KOSPI 200 index failed: {e}")
 
     return items[:200]
 
 def get_kosdaq150_tickers():
-    """Retrieve KOSDAQ 150 list of tickers and names (PyKRX index/ETF, Naver market sum fallbacks)."""
+    """Retrieve official KOSDAQ 150 list of tickers and names (Verified Master JSON -> Official ETF Portfolio -> PyKRX)."""
+    # 1. Priority: Read from verified data/stocks_350.json (Contains SOOP and all official 150 constituents)
+    stocks_350_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "stocks_350.json")
+    if os.path.exists(stocks_350_path):
+        try:
+            with open(stocks_350_path, "r", encoding="utf-8") as f:
+                stocks = json.load(f)
+                kd150 = [s for s in stocks if s.get("market") == "KOSDAQ150"]
+                if len(kd150) >= 145:
+                    return kd150[:150]
+        except Exception:
+            pass
+
+    # 2. Priority: Fetch from KODEX 코스닥150 ETF (229200) Official Portfolio API
+    etf_items = fetch_official_etf_constituents("229200", "KOSDAQ150")
+    if len(etf_items) >= 145:
+        return etf_items[:150]
+
+    # 3. Fallback: PyKRX Index 2203 / 2011 (KOSDAQ 150)
     items = []
     seen = set()
-    
-    # 1. Try PyKRX Index 2203 / 2011 (KOSDAQ 150)
     try:
         if stock:
             for idx_code in ["2203", "2011"]:
@@ -167,60 +151,10 @@ def get_kosdaq150_tickers():
                         if clean_t not in seen:
                             seen.add(clean_t)
                             items.append({"ticker": clean_t, "name": name, "market": "KOSDAQ150"})
-                    if len(items) >= 150:
+                    if len(items) >= 145:
                         return items[:150]
     except Exception as e:
         print(f"[WARN] PyKRX KOSDAQ 150 index failed: {e}")
-
-    # 2. Try PyKRX KODEX KOSDAQ 150 ETF (229200) Portfolio
-    try:
-        if stock:
-            tickers = stock.get_etf_portfolio_deposit_file("229200")
-            if tickers and len(tickers) > 0:
-                for ticker in tickers:
-                    clean_t = str(ticker).zfill(6)
-                    name = stock.get_market_ticker_name(clean_t)
-                    if clean_t not in seen:
-                        seen.add(clean_t)
-                        items.append({"ticker": clean_t, "name": name, "market": "KOSDAQ150"})
-                if len(items) >= 150:
-                    return items[:150]
-    except Exception as e:
-        print(f"[WARN] PyKRX ETF 229200 portfolio failed: {e}")
-
-    # 3. Fallback: Naver Market Sum Top 150 (sosok=1 for KOSDAQ)
-    print("[INFO] Using Naver Market Sum fallback to fetch KOSDAQ 150 list...")
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-    try:
-        for page in range(1, 5):
-            url = f"https://finance.naver.com/sise/sise_market_sum.naver?sosok=1&page={page}"
-            res = requests.get(url, headers=headers, timeout=5)
-            res.encoding = 'euc-kr'
-            if BeautifulSoup:
-                soup = BeautifulSoup(res.text, "html.parser")
-                links = soup.find_all("a", class_="tltle")
-                for a in links:
-                    href = a.get("href", "")
-                    match = re.search(r'code=(\d{6})', href)
-                    if match:
-                        clean_t = match.group(1)
-                        name = a.text.strip()
-                        if clean_t not in seen and name:
-                            seen.add(clean_t)
-                            items.append({"ticker": clean_t, "name": name, "market": "KOSDAQ150"})
-                            if len(items) >= 150:
-                                return items[:150]
-            else:
-                matches = re.findall(r'href="/item/main\.naver\?code=(\d{6})"[^>]*>(.*?)</a>', res.text)
-                for code, name in matches:
-                    name_clean = name.strip()
-                    if code not in seen and name_clean:
-                        seen.add(code)
-                        items.append({"ticker": code, "name": name_clean, "market": "KOSDAQ150"})
-                        if len(items) >= 150:
-                            return items[:150]
-    except Exception as e:
-        print(f"[ERROR] Naver Market Sum KOSDAQ 150 fallback failed: {e}")
 
     return items[:150]
 

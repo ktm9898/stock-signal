@@ -47,74 +47,67 @@ def ensure_data_dir():
         os.makedirs(DATA_DIR, exist_ok=True)
 
 def get_kospi200_tickers():
-    """Retrieve KOSPI 200 list of tickers and names (cached file first, then Naver, then PyKRX)."""
-    # 1. Fast path: Read from data/stocks_350.json if available
+    """Retrieve official KOSPI 200 list of tickers and names (Verified Master JSON -> PyKRX)."""
+    # 1. Fast path: Read from data/stocks_350.json
     if os.path.exists(STOCKS_350_PATH):
         try:
             with open(STOCKS_350_PATH, "r", encoding="utf-8") as f:
                 stocks = json.load(f)
                 k200 = [s for s in stocks if s.get("market") == "KOSPI200"]
-                if len(k200) >= 100:
-                    return k200
+                if len(k200) >= 195:
+                    return k200[:200]
         except Exception:
             pass
 
     items = []
     seen = set()
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-
-    # 2. Fast Naver Scraping (sosok=0 for KOSPI)
     try:
-        for page in range(1, 5):
-            url = f"https://finance.naver.com/sise/sise_market_sum.naver?sosok=0&page={page}"
-            res = requests.get(url, headers=headers, timeout=5)
-            res.encoding = 'euc-kr'
-            matches = re.findall(r'href="/item/main\.naver\?code=(\d{6})"[^>]*>(.*?)</a>', res.text)
-            for code, name in matches:
-                name_clean = name.strip()
-                if code not in seen and name_clean:
-                    seen.add(code)
-                    items.append({"ticker": code, "name": name_clean, "market": "KOSPI200"})
-                    if len(items) >= 200:
-                        return items[:200]
+        if stock:
+            tickers = stock.get_index_portfolio_deposit_file("1028")
+            if tickers and len(tickers) > 0:
+                for ticker in tickers:
+                    clean_t = str(ticker).zfill(6)
+                    name = stock.get_market_ticker_name(clean_t)
+                    if clean_t not in seen:
+                        seen.add(clean_t)
+                        items.append({"ticker": clean_t, "name": name, "market": "KOSPI200"})
+                if len(items) >= 195:
+                    return items[:200]
     except Exception as e:
-        print(f"[WARN] Naver Market Sum KOSPI fallback failed: {e}")
+        print(f"[WARN] PyKRX KOSPI 200 index failed: {e}")
 
     return items[:200]
 
 def get_kosdaq150_tickers():
-    """Retrieve KOSDAQ 150 list of tickers and names (cached file first, then Naver)."""
-    # 1. Fast path: Read from data/stocks_350.json if available
+    """Retrieve official KOSDAQ 150 list of tickers and names (Verified Master JSON -> PyKRX)."""
+    # 1. Fast path: Read from data/stocks_350.json (Contains SOOP and all official 150 constituents)
     if os.path.exists(STOCKS_350_PATH):
         try:
             with open(STOCKS_350_PATH, "r", encoding="utf-8") as f:
                 stocks = json.load(f)
                 kq150 = [s for s in stocks if s.get("market") == "KOSDAQ150"]
-                if len(kq150) >= 75:
-                    return kq150
+                if len(kq150) >= 145:
+                    return kq150[:150]
         except Exception:
             pass
 
     items = []
     seen = set()
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-
-    # 2. Fast Naver Scraping (sosok=1 for KOSDAQ)
     try:
-        for page in range(1, 5):
-            url = f"https://finance.naver.com/sise/sise_market_sum.naver?sosok=1&page={page}"
-            res = requests.get(url, headers=headers, timeout=5)
-            res.encoding = 'euc-kr'
-            matches = re.findall(r'href="/item/main\.naver\?code=(\d{6})"[^>]*>(.*?)</a>', res.text)
-            for code, name in matches:
-                name_clean = name.strip()
-                if code not in seen and name_clean:
-                    seen.add(code)
-                    items.append({"ticker": code, "name": name_clean, "market": "KOSDAQ150"})
-                    if len(items) >= 150:
+        if stock:
+            for idx_code in ["2203", "2011"]:
+                tickers = stock.get_index_portfolio_deposit_file(idx_code)
+                if tickers and len(tickers) > 0:
+                    for ticker in tickers:
+                        clean_t = str(ticker).zfill(6)
+                        name = stock.get_market_ticker_name(clean_t)
+                        if clean_t not in seen:
+                            seen.add(clean_t)
+                            items.append({"ticker": clean_t, "name": name, "market": "KOSDAQ150"})
+                    if len(items) >= 145:
                         return items[:150]
     except Exception as e:
-        print(f"[WARN] Naver Market Sum KOSDAQ fallback failed: {e}")
+        print(f"[WARN] PyKRX KOSDAQ 150 index failed: {e}")
 
     return items[:150]
 
