@@ -1468,17 +1468,19 @@
       function getIndicatorValue(indicatorKey, r) {
         if (!r) return NaN;
         switch (indicatorKey) {
-          case 'adx': return parseFloat(r.ADX !== undefined && r.ADX !== null ? r.ADX : r.adx);
-          case 'minus_di': return parseFloat(r.Minus_DI !== undefined && r.Minus_DI !== null ? r.Minus_DI : (r.minus_di !== undefined ? r.minus_di : r.minusDi));
-          case 'plus_di': return parseFloat(r.Plus_DI !== undefined && r.Plus_DI !== null ? r.Plus_DI : (r.plus_di !== undefined ? r.plus_di : r.plusDi));
-          case 'rsi': return parseFloat(r.RSI !== undefined && r.RSI !== null ? r.RSI : r.rsi);
-          case 'bb_pct': return parseFloat(r.b_band_pct !== undefined && r.b_band_pct !== null && r.b_band_pct !== '-' ? r.b_band_pct : (r.BB_Pct !== undefined ? r.BB_Pct : r['BB_%b']));
-          case 'macd': return parseFloat(r.macd !== undefined && r.macd !== null ? r.macd : r.MACD);
-          case 'macd_osc': return parseFloat(r.macd_osc !== undefined && r.macd_osc !== null ? r.macd_osc : (r.MACD_Osc !== undefined ? r.MACD_Osc : r.macdOsc));
-          case 'stoch_k': return parseFloat(r.stoch_k !== undefined && r.stoch_k !== null ? r.stoch_k : r.Stoch_K);
-          case 'stoch_d': return parseFloat(r.stoch_d !== undefined && r.stoch_d !== null ? r.stoch_d : r.Stoch_D);
-          case 'disparity20': return parseFloat(r.disparity20 !== undefined && r.disparity20 !== null ? r.disparity20 : r.Disparity20);
-          case 'volume_ratio': return parseFloat(r.VolumeRatio !== undefined && r.VolumeRatio !== null && r.VolumeRatio !== '-' ? r.VolumeRatio : (r.volume_ratio !== undefined ? r.volume_ratio : r.VR));
+          case 'adx': return parseFloat(r.ADX !== undefined && r.ADX !== null && r.ADX !== '-' ? r.ADX : (r.adx !== undefined ? r.adx : (r.prev_ADX || r.prev_adx)));
+          case 'minus_di': return parseFloat(r.Minus_DI !== undefined && r.Minus_DI !== null && r.Minus_DI !== '-' ? r.Minus_DI : (r.minus_di !== undefined ? r.minus_di : (r.minusDi !== undefined ? r.minusDi : (r.prev_Minus_DI || r.prev_minus_di))));
+          case 'plus_di': return parseFloat(r.Plus_DI !== undefined && r.Plus_DI !== null && r.Plus_DI !== '-' ? r.Plus_DI : (r.plus_di !== undefined ? r.plus_di : (r.plusDi !== undefined ? r.plusDi : (r.prev_Plus_DI || r.prev_plus_di))));
+          case 'rsi': return parseFloat(r.RSI !== undefined && r.RSI !== null && r.RSI !== '-' ? r.RSI : (r.rsi !== undefined ? r.rsi : (r.prev_RSI || r.prev_rsi)));
+          case 'bb_pct': return parseFloat(r.b_band_pct !== undefined && r.b_band_pct !== null && r.b_band_pct !== '-' ? r.b_band_pct : (r.BB_Pct !== undefined && r.BB_Pct !== '-' ? r.BB_Pct : (r.prev_BB_Pct || r.prev_b_band_pct || r['BB_%b'])));
+          case 'macd': return parseFloat(r.macd !== undefined && r.macd !== null && r.macd !== '-' ? r.macd : (r.MACD !== undefined && r.MACD !== '-' ? r.MACD : (r.prev_MACD || r.prev_macd)));
+          case 'macd_signal': return parseFloat(r.macd_signal !== undefined && r.macd_signal !== null && r.macd_signal !== '-' ? r.macd_signal : (r.MACD_Signal !== undefined && r.MACD_Signal !== '-' ? r.MACD_Signal : (r.prev_MACD_Signal || r.prev_macd_signal)));
+          case 'macd_osc': return parseFloat(r.macd_osc !== undefined && r.macd_osc !== null && r.macd_osc !== '-' ? r.macd_osc : (r.MACD_Osc !== undefined && r.MACD_Osc !== '-' ? r.MACD_Osc : (r.prev_MACD_Osc || r.prev_macd_osc || r.macdOsc)));
+          case 'stoch_k': return parseFloat(r.stoch_k !== undefined && r.stoch_k !== null && r.stoch_k !== '-' ? r.stoch_k : (r.Stoch_K !== undefined && r.Stoch_K !== '-' ? r.Stoch_K : (r.prev_Stoch_K || r.prev_stoch_k)));
+          case 'stoch_d': return parseFloat(r.stoch_d !== undefined && r.stoch_d !== null && r.stoch_d !== '-' ? r.stoch_d : (r.Stoch_D !== undefined && r.Stoch_D !== '-' ? r.Stoch_D : (r.prev_Stoch_D || r.prev_stoch_d)));
+          case 'disparity20': return parseFloat(r.disparity20 !== undefined && r.disparity20 !== null && r.disparity20 !== '-' ? r.disparity20 : (r.Disparity20 !== undefined && r.Disparity20 !== '-' ? r.Disparity20 : (r.prev_Disparity20 || r.prev_disparity20)));
+          case 'volume_ratio': return parseFloat(r.VolumeRatio !== undefined && r.VolumeRatio !== null && r.VolumeRatio !== '-' ? r.VolumeRatio : (r.volume_ratio !== undefined ? r.volume_ratio : (r.prev_VolumeRatio || r.prev_volume_ratio || r.VR)));
+          case 'close': return parseFloat(r.ClosePrice !== undefined && r.ClosePrice !== null && r.ClosePrice !== '-' ? r.ClosePrice : (r.close !== undefined ? r.close : (r.prev_ClosePrice || r.prev_close)));
           default: return NaN;
         }
       }
@@ -1532,9 +1534,46 @@
       const combinedStocks = [...latestKospi, ...latestKosdaq];
       const allHistory = [...(allMetricsData || []), ...(kosdaqMetricsData || [])];
 
-      // Map second-to-latest row for previous indicator comparison
+      // Map previous indicators: Priority 1 = Real live bundled prev_ fields from Google Sheets (100% accurate trading-day continuity)
       const prevRowMap = new Map();
-      if (window.REAL_PRELOADED_DATA) {
+      combinedStocks.forEach(item => {
+        const tk = formatTicker(item.Ticker || item.ticker || item.code);
+        const hasPrevData = (item.prev_ADX !== undefined && item.prev_ADX !== null && item.prev_ADX !== '-') ||
+                            (item.prev_adx !== undefined && item.prev_adx !== null && item.prev_adx !== '-');
+        if (hasPrevData) {
+          prevRowMap.set(tk, {
+            Date: item.Date || item.date,
+            ClosePrice: item.prev_ClosePrice !== undefined ? item.prev_ClosePrice : item.prev_close,
+            ADX: item.prev_ADX !== undefined ? item.prev_ADX : item.prev_adx,
+            Plus_DI: item.prev_Plus_DI !== undefined ? item.prev_Plus_DI : item.prev_plus_di,
+            Minus_DI: item.prev_Minus_DI !== undefined ? item.prev_Minus_DI : item.prev_minus_di,
+            RSI: item.prev_RSI !== undefined ? item.prev_RSI : item.prev_rsi,
+            BB_Pct: item.prev_BB_Pct !== undefined ? item.prev_BB_Pct : item.prev_b_band_pct,
+            b_band_pct: item.prev_BB_Pct !== undefined ? item.prev_BB_Pct : item.prev_b_band_pct,
+            MACD: item.prev_MACD !== undefined ? item.prev_MACD : item.prev_macd,
+            MACD_Signal: item.prev_MACD_Signal !== undefined ? item.prev_MACD_Signal : item.prev_macd_signal,
+            MACD_Osc: item.prev_MACD_Osc !== undefined ? item.prev_MACD_Osc : item.prev_macd_osc,
+            Stoch_K: item.prev_Stoch_K !== undefined ? item.prev_Stoch_K : item.prev_stoch_k,
+            Stoch_D: item.prev_Stoch_D !== undefined ? item.prev_Stoch_D : item.prev_stoch_d,
+            Disparity20: item.prev_Disparity20 !== undefined ? item.prev_Disparity20 : item.prev_disparity20,
+            VolumeRatio: item.prev_VolumeRatio !== undefined ? item.prev_VolumeRatio : item.prev_volume_ratio
+          });
+        }
+      });
+
+      // Priority 2 = History metrics if available
+      combinedStocks.forEach(item => {
+        const tk = formatTicker(item.Ticker || item.ticker || item.code);
+        if (!prevRowMap.has(tk)) {
+          const hist = allHistory.filter(h => formatTicker(h.Ticker || h.ticker || h.code) === tk);
+          if (hist.length >= 2) {
+            prevRowMap.set(tk, hist[hist.length - 2]);
+          }
+        }
+      });
+
+      // Priority 3 = Fallback for legacy static preloaded data
+      if (prevRowMap.size === 0 && window.REAL_PRELOADED_DATA) {
         Object.keys(window.REAL_PRELOADED_DATA).forEach(t => {
           const rows = window.REAL_PRELOADED_DATA[t];
           if (Array.isArray(rows) && rows.length >= 2) {
@@ -1558,15 +1597,6 @@
           }
         });
       }
-      combinedStocks.forEach(item => {
-        const tk = formatTicker(item.Ticker || item.ticker || item.code);
-        if (!prevRowMap.has(tk)) {
-          const hist = allHistory.filter(h => formatTicker(h.Ticker || h.ticker || h.code) === tk);
-          if (hist.length >= 2) {
-            prevRowMap.set(tk, hist[hist.length - 2]);
-          }
-        }
-      });
 
       // Build set of currently held stocks to prevent duplicate 1st buy signals
       const heldTickersSet = new Set();

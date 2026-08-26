@@ -30,8 +30,8 @@ function setupSheets() {
 
   // 5. KOSPI 200 All Metrics Sheet Header Enforce
   let allSheet = ss.getSheetByName("KOSPI200_All_Metrics") || ss.insertSheet("KOSPI200_All_Metrics");
-  allSheet.getRange("A1:Q1").setValues([["Date", "Ticker", "Name", "ADX", "Minus_DI", "Plus_DI", "RSI", "BB_Pct", "MACD", "MACD_Signal", "MACD_Osc", "Stoch_K", "Stoch_D", "Disparity20", "VolumeRatio", "ClosePrice", "Status"]]);
-  allSheet.getRange("A1:Q1").setFontWeight("bold").setBackground("#f3e8ff");
+  allSheet.getRange("A1:AD1").setValues([["Date", "Ticker", "Name", "ADX", "Minus_DI", "Plus_DI", "RSI", "BB_Pct", "MACD", "MACD_Signal", "MACD_Osc", "Stoch_K", "Stoch_D", "Disparity20", "VolumeRatio", "ClosePrice", "Status", "prev_ADX", "prev_Minus_DI", "prev_Plus_DI", "prev_RSI", "prev_BB_Pct", "prev_MACD", "prev_MACD_Signal", "prev_MACD_Osc", "prev_Stoch_K", "prev_Stoch_D", "prev_Disparity20", "prev_VolumeRatio", "prev_ClosePrice"]]);
+  allSheet.getRange("A1:AD1").setFontWeight("bold").setBackground("#f3e8ff");
 
   // 6. User Holdings Status Sheet Header Enforce
   let hStatusSheet = ss.getSheetByName("User_Holdings_Status") || ss.insertSheet("User_Holdings_Status");
@@ -40,8 +40,8 @@ function setupSheets() {
 
   // 7. KOSDAQ 150 All Metrics Sheet Header Enforce
   let kosdaqSheet = ss.getSheetByName("KOSDAQ150_All_Metrics") || ss.insertSheet("KOSDAQ150_All_Metrics");
-  kosdaqSheet.getRange("A1:Q1").setValues([["Date", "Ticker", "Name", "ADX", "Minus_DI", "Plus_DI", "RSI", "BB_Pct", "MACD", "MACD_Signal", "MACD_Osc", "Stoch_K", "Stoch_D", "Disparity20", "VolumeRatio", "ClosePrice", "Status"]]);
-  kosdaqSheet.getRange("A1:Q1").setFontWeight("bold").setBackground("#e0e7ff");
+  kosdaqSheet.getRange("A1:AD1").setValues([["Date", "Ticker", "Name", "ADX", "Minus_DI", "Plus_DI", "RSI", "BB_Pct", "MACD", "MACD_Signal", "MACD_Osc", "Stoch_K", "Stoch_D", "Disparity20", "VolumeRatio", "ClosePrice", "Status", "prev_ADX", "prev_Minus_DI", "prev_Plus_DI", "prev_RSI", "prev_BB_Pct", "prev_MACD", "prev_MACD_Signal", "prev_MACD_Osc", "prev_Stoch_K", "prev_Stoch_D", "prev_Disparity20", "prev_VolumeRatio", "prev_ClosePrice"]]);
+  kosdaqSheet.getRange("A1:AD1").setFontWeight("bold").setBackground("#e0e7ff");
 
   // 8. Strategy Slots Sheet Header Enforce
   let slotsSheet = ss.getSheetByName("Strategy_Slots") || ss.insertSheet("Strategy_Slots");
@@ -304,7 +304,7 @@ function doPost(e) {
         let allSheet = ss.getSheetByName("KOSPI200_All_Metrics");
         if (allSheet) {
           if (allSheet.getLastRow() > 1) {
-            allSheet.getRange(2, 1, allSheet.getLastRow() - 1, 17).clearContent();
+            allSheet.getRange(2, 1, allSheet.getLastRow() - 1, allSheet.getLastColumn()).clearContent();
           }
 
           const rows = kospiData.map(s => [
@@ -317,10 +317,23 @@ function doPost(e) {
             (s.stoch_d !== undefined && s.stoch_d !== null ? s.stoch_d : '-'),
             (s.disparity20 !== undefined && s.disparity20 !== null ? s.disparity20 : '-'),
             (s.volume_ratio !== undefined && s.volume_ratio !== null ? s.volume_ratio : '-'),
-            s.close, s.status
+            s.close, s.status,
+            (s.prev_adx !== undefined && s.prev_adx !== null ? s.prev_adx : '-'),
+            (s.prev_minus_di !== undefined && s.prev_minus_di !== null ? s.prev_minus_di : '-'),
+            (s.prev_plus_di !== undefined && s.prev_plus_di !== null ? s.prev_plus_di : '-'),
+            (s.prev_rsi !== undefined && s.prev_rsi !== null ? s.prev_rsi : '-'),
+            (s.prev_b_band_pct !== undefined && s.prev_b_band_pct !== null ? s.prev_b_band_pct : '-'),
+            (s.prev_macd !== undefined && s.prev_macd !== null ? s.prev_macd : '-'),
+            (s.prev_macd_signal !== undefined && s.prev_macd_signal !== null ? s.prev_macd_signal : '-'),
+            (s.prev_macd_osc !== undefined && s.prev_macd_osc !== null ? s.prev_macd_osc : '-'),
+            (s.prev_stoch_k !== undefined && s.prev_stoch_k !== null ? s.prev_stoch_k : '-'),
+            (s.prev_stoch_d !== undefined && s.prev_stoch_d !== null ? s.prev_stoch_d : '-'),
+            (s.prev_disparity20 !== undefined && s.prev_disparity20 !== null ? s.prev_disparity20 : '-'),
+            (s.prev_volume_ratio !== undefined && s.prev_volume_ratio !== null ? s.prev_volume_ratio : '-'),
+            (s.prev_close !== undefined && s.prev_close !== null ? s.prev_close : '-')
           ]);
           
-          allSheet.getRange(2, 1, rows.length, 17).setValues(rows);
+          allSheet.getRange(2, 1, rows.length, 30).setValues(rows);
         }
       }
 
@@ -329,7 +342,7 @@ function doPost(e) {
         let kosdaqSheet = ss.getSheetByName("KOSDAQ150_All_Metrics");
         if (kosdaqSheet) {
           if (kosdaqSheet.getLastRow() > 1) {
-            kosdaqSheet.getRange(2, 1, kosdaqSheet.getLastRow() - 1, 17).clearContent();
+            kosdaqSheet.getRange(2, 1, kosdaqSheet.getLastRow() - 1, kosdaqSheet.getLastColumn()).clearContent();
           }
 
           const rows = data.kosdaq_stocks.map(s => [
@@ -342,10 +355,23 @@ function doPost(e) {
             (s.stoch_d !== undefined && s.stoch_d !== null ? s.stoch_d : '-'),
             (s.disparity20 !== undefined && s.disparity20 !== null ? s.disparity20 : '-'),
             (s.volume_ratio !== undefined && s.volume_ratio !== null ? s.volume_ratio : '-'),
-            s.close, s.status
+            s.close, s.status,
+            (s.prev_adx !== undefined && s.prev_adx !== null ? s.prev_adx : '-'),
+            (s.prev_minus_di !== undefined && s.prev_minus_di !== null ? s.prev_minus_di : '-'),
+            (s.prev_plus_di !== undefined && s.prev_plus_di !== null ? s.prev_plus_di : '-'),
+            (s.prev_rsi !== undefined && s.prev_rsi !== null ? s.prev_rsi : '-'),
+            (s.prev_b_band_pct !== undefined && s.prev_b_band_pct !== null ? s.prev_b_band_pct : '-'),
+            (s.prev_macd !== undefined && s.prev_macd !== null ? s.prev_macd : '-'),
+            (s.prev_macd_signal !== undefined && s.prev_macd_signal !== null ? s.prev_macd_signal : '-'),
+            (s.prev_macd_osc !== undefined && s.prev_macd_osc !== null ? s.prev_macd_osc : '-'),
+            (s.prev_stoch_k !== undefined && s.prev_stoch_k !== null ? s.prev_stoch_k : '-'),
+            (s.prev_stoch_d !== undefined && s.prev_stoch_d !== null ? s.prev_stoch_d : '-'),
+            (s.prev_disparity20 !== undefined && s.prev_disparity20 !== null ? s.prev_disparity20 : '-'),
+            (s.prev_volume_ratio !== undefined && s.prev_volume_ratio !== null ? s.prev_volume_ratio : '-'),
+            (s.prev_close !== undefined && s.prev_close !== null ? s.prev_close : '-')
           ]);
           
-          kosdaqSheet.getRange(2, 1, rows.length, 17).setValues(rows);
+          kosdaqSheet.getRange(2, 1, rows.length, 30).setValues(rows);
         }
       }
 

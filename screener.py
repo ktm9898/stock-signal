@@ -774,16 +774,27 @@ if __name__ == "__main__":
             curr_mdi = sanitize_num(df['minus_di'].iloc[-1] if 'minus_di' in df.columns else None, default=0.0)
             prev_mdi = sanitize_num(df['minus_di'].iloc[-2] if len(df) >= 2 and 'minus_di' in df.columns else None, default=0.0)
             curr_pdi = sanitize_num(df['plus_di'].iloc[-1] if 'plus_di' in df.columns else None, default=0.0)
+            prev_pdi = sanitize_num(df['plus_di'].iloc[-2] if len(df) >= 2 and 'plus_di' in df.columns else None, default=0.0)
             curr_rsi = sanitize_num(df['rsi'].iloc[-1] if 'rsi' in df.columns else None, default=0.0)
+            prev_rsi = sanitize_num(df['rsi'].iloc[-2] if len(df) >= 2 and 'rsi' in df.columns else None, default=0.0)
             curr_bb_pct = sanitize_num(df['b_band_pct'].iloc[-1] if 'b_band_pct' in df.columns else None, default=0.5)
+            prev_bb_pct = sanitize_num(df['b_band_pct'].iloc[-2] if len(df) >= 2 and 'b_band_pct' in df.columns else None, default=0.5)
             curr_macd = sanitize_num(df['macd'].iloc[-1] if 'macd' in df.columns else None, default=0.0)
+            prev_macd = sanitize_num(df['macd'].iloc[-2] if len(df) >= 2 and 'macd' in df.columns else None, default=0.0)
             curr_macd_sig = sanitize_num(df['macd_signal'].iloc[-1] if 'macd_signal' in df.columns else None, default=0.0)
+            prev_macd_sig = sanitize_num(df['macd_signal'].iloc[-2] if len(df) >= 2 and 'macd_signal' in df.columns else None, default=0.0)
             curr_macd_osc = sanitize_num(df['macd_osc'].iloc[-1] if 'macd_osc' in df.columns else None, default=0.0)
+            prev_macd_osc = sanitize_num(df['macd_osc'].iloc[-2] if len(df) >= 2 and 'macd_osc' in df.columns else None, default=0.0)
             curr_stoch_k = sanitize_num(df['stoch_k'].iloc[-1] if 'stoch_k' in df.columns else None, default=50.0)
+            prev_stoch_k = sanitize_num(df['stoch_k'].iloc[-2] if len(df) >= 2 and 'stoch_k' in df.columns else None, default=50.0)
             curr_stoch_d = sanitize_num(df['stoch_d'].iloc[-1] if 'stoch_d' in df.columns else None, default=50.0)
+            prev_stoch_d = sanitize_num(df['stoch_d'].iloc[-2] if len(df) >= 2 and 'stoch_d' in df.columns else None, default=50.0)
             curr_disparity = sanitize_num(df['disparity20'].iloc[-1] if 'disparity20' in df.columns else None, default=100.0)
+            prev_disparity = sanitize_num(df['disparity20'].iloc[-2] if len(df) >= 2 and 'disparity20' in df.columns else None, default=100.0)
             curr_vr = sanitize_num(df['volume_ratio'].iloc[-1] if 'volume_ratio' in df.columns else None, default=100.0)
+            prev_vr = sanitize_num(df['volume_ratio'].iloc[-2] if len(df) >= 2 and 'volume_ratio' in df.columns else None, default=100.0)
             curr_close = int(df['종가'].iloc[-1]) if '종가' in df.columns and not np.isnan(df['종가'].iloc[-1]) else 0
+            prev_close = int(df['종가'].iloc[-2]) if len(df) >= 2 and '종가' in df.columns and not np.isnan(df['종가'].iloc[-2]) else 0
 
             is_held = (clean_ticker in held_tickers) or (name.replace(' ', '') in held_names)
             buy_res = evaluate_buy_signal(df, active_slot=active_slot)
@@ -821,7 +832,20 @@ if __name__ == "__main__":
                 "disparity20": curr_disparity,
                 "volume_ratio": curr_vr,
                 "close": curr_close,
-                "status": status_text
+                "status": status_text,
+                "prev_adx": prev_adx,
+                "prev_minus_di": prev_mdi,
+                "prev_plus_di": prev_pdi,
+                "prev_rsi": prev_rsi,
+                "prev_b_band_pct": prev_bb_pct,
+                "prev_macd": prev_macd,
+                "prev_macd_signal": prev_macd_sig,
+                "prev_macd_osc": prev_macd_osc,
+                "prev_stoch_k": prev_stoch_k,
+                "prev_stoch_d": prev_stoch_d,
+                "prev_disparity20": prev_disparity,
+                "prev_volume_ratio": prev_vr,
+                "prev_close": prev_close
             }
             return (clean_ticker, name, market, df, buy_item, stock_item)
         except Exception as e:
