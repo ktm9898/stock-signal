@@ -4255,8 +4255,6 @@
   </div>
 
   <script>
-    var GAS_WEBAPP_URL = window.GAS_WEBAPP_URL || "https://script.google.com/macros/s/AKfycbw5oIiLoVYFFriMuCWckamUqrwDVf4S6TB_Tm7-FeycGeTheEZKfaFuIijT_N9HYNhH/exec";
-
     function getKSTTodayString() {
       const now = new Date();
       const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
@@ -4295,7 +4293,15 @@
       }
 
       const pinInput = document.getElementById('modal-update-pin');
-      if (pinInput) pinInput.value = "";
+      if (pinInput) {
+        pinInput.value = getStoredPin();
+        pinInput.onkeydown = function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            executeCloudDatasetUpdate();
+          }
+        };
+      }
 
       document.getElementById('update-progress-box').style.display = 'none';
       document.getElementById('update-result-box').style.display = 'none';
@@ -4341,7 +4347,7 @@
       const timerText = document.getElementById('update-timer-text');
       const submitBtn = document.getElementById('btn-submit-cloud-update');
       const pinInput = document.getElementById('modal-update-pin');
-      const pinVal = pinInput ? pinInput.value.trim() : '';
+      const pinVal = (pinInput ? pinInput.value.trim() : '') || getStoredPin();
 
       if (!pinVal) {
         resultBox.style.display = 'block';
