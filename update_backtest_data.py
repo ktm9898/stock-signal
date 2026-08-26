@@ -69,27 +69,30 @@ def convert_df_to_array_rows(df):
         else:
             d_val = str(d_val)[:10]
 
-        def get_val(k, default=0.0):
-            val = row.get(k)
-            if val is None or pd.isna(val) or np.isinf(val):
-                return default
-            return float(val)
+        def get_val(*keys, default=0.0):
+            for k in keys:
+                for candidate in [k, k.lower(), k.upper(), k.capitalize()]:
+                    if candidate in row:
+                        val = row.get(candidate)
+                        if val is not None and not pd.isna(val) and not np.isinf(val):
+                            return float(val)
+            return default
 
-        r_open = round(get_val("시가"), 2)
-        r_high = round(get_val("고가"), 2)
-        r_low = round(get_val("저가"), 2)
-        r_close = round(get_val("종가"), 2)
-        r_vol = round(get_val("거래량"), 0)
+        r_open = round(get_val("시가", "open"), 2)
+        r_high = round(get_val("고가", "high"), 2)
+        r_low = round(get_val("저가", "low"), 2)
+        r_close = round(get_val("종가", "close"), 2)
+        r_vol = round(get_val("거래량", "volume"), 0)
 
-        r_adx = round(get_val("ADX", 0.0), 2)
-        r_pdi = round(get_val("Plus_DI", 0.0), 2)
-        r_mdi = round(get_val("Minus_DI", 0.0), 2)
-        r_rsi = round(get_val("RSI", 50.0), 2)
-        r_bb = round(get_val("BB_Pct", 0.5), 4)
-        r_macd = round(get_val("MACD", 0.0), 2)
-        r_stoch_k = round(get_val("Slow_K", 50.0), 2)
-        r_disp20 = round(get_val("Disparity20", 100.0), 2)
-        r_vr = round(get_val("Volume_Ratio", 100.0), 2)
+        r_adx = round(get_val("adx", "ADX", default=0.0), 2)
+        r_pdi = round(get_val("plus_di", "Plus_DI", "+DI", default=0.0), 2)
+        r_mdi = round(get_val("minus_di", "Minus_DI", "-DI", default=0.0), 2)
+        r_rsi = round(get_val("rsi", "RSI", default=50.0), 2)
+        r_bb = round(get_val("b_band_pct", "bb_pct", "BB_Pct", "BB_%b", default=0.5), 4)
+        r_macd = round(get_val("macd", "MACD", default=0.0), 2)
+        r_stoch_k = round(get_val("stoch_k", "Slow_K", "slow_k", default=50.0), 2)
+        r_disp20 = round(get_val("disparity20", "Disparity20", "disp20", default=100.0), 2)
+        r_vr = round(get_val("volume_ratio", "Volume_Ratio", "vol_ratio", default=100.0), 2)
 
         array_rows.append([
             d_val,
