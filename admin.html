@@ -926,13 +926,14 @@
           <div class="table-container">
             <table>
               <colgroup>
+                <col style="width: 13%;">
+                <col style="width: 11%;">
+                <col style="width: 11%;">
+                <col style="width: 11%;">
+                <col style="width: 11%;">
+                <col style="width: 13%;">
                 <col style="width: 15%;">
-                <col style="width: 13%;">
-                <col style="width: 13%;">
-                <col style="width: 13%;">
-                <col style="width: 13%;">
                 <col style="width: 15%;">
-                <col style="width: 18%;">
               </colgroup>
               <thead>
                 <tr>
@@ -942,7 +943,8 @@
                   <th style="text-align:center;">총매수</th>
                   <th style="text-align:center;">매도</th>
                   <th style="text-align:center;">월말보유</th>
-                  <th style="text-align:center;">수익</th>
+                  <th style="text-align:center;">평가손익</th>
+                  <th style="text-align:center;">실현손익</th>
                 </tr>
               </thead>
               <tbody id="monthly-perf-body"></tbody>
@@ -2208,18 +2210,30 @@
       });
     }
 
-    function renderMonthlyPerformanceTable(fineDates, trades, startDateStr, endDateStr, tradeAmount = 1000000) {
+    function renderMonthlyPerformanceTable(fineDates, trades, startDateStr, endDateStr, tradeAmount = 1000000, priceMap = null) {
       const tbody = document.getElementById('monthly-perf-body');
       const tfoot = document.getElementById('monthly-perf-foot');
       const monthCountEl = document.getElementById('monthly-perf-month-count');
       if (!tbody) return;
 
       if (!trades || trades.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#64748b;">설정한 조건으로 체결된 거래 내역이 없습니다.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:#64748b;">설정한 조건으로 체결된 거래 내역이 없습니다.</td></tr>`;
         if (tfoot) tfoot.innerHTML = '';
         if (monthCountEl) monthCountEl.textContent = '0';
         return;
       }
+
+      // Build priceMap fallback if not passed
+      const pMap = priceMap || {};
+      if (!priceMap && REAL_PRELOADED_DATA) {
+        Object.keys(REAL_PRELOADED_DATA).forEach(ticker => {
+          const dateMap = {};
+          (REAL_PRELOADED_DATA[ticker] || []).map(normalizeRow).forEach(r => { if (r && r.date) dateMap[r.date] = r.close; });
+          pMap[ticker] = dateMap;
+        });
+      }
+
+      const feeRate = 0.0025;
 
       // 1. Gather all unique months in chronological order within simulation range
       const monthsSet = new Set();
@@ -2242,7 +2256,7 @@
       let totalScaleIns = 0;
       let totalBuysSum = 0;
       let totalSellsSum = 0;
-      let totalProfitSum = 0;
+      let totalRealizedProfit = 0;
 
       const rowsHtml = sortedMonths.map(m => {
         const newBuys = trades.filter(t => t.entryDate && t.entryDate.startsWith(m)).length;
@@ -2251,7 +2265,7 @@
 
         const monthExitTrades = trades.filter(t => t.exitDate && t.exitDate.startsWith(m));
         const sells = monthExitTrades.length;
-        const monthProfit = monthExitTrades.reduce((acc, t) => {
+        const monthRealizedProfit = monthExitTrades.reduce((acc, t) => {
           const net = t.netProfit !== undefined ? t.netProfit : Math.round(tradeAmount * (t.returnPct / 100));
           return acc + net;
         }, 0);
@@ -2259,18 +2273,44 @@
         // Active holdings on the last trading date of this month
         const mDates = fineDates ? fineDates.filter(d => d.startsWith(m)) : [];
         const lastTradingDay = mDates.length > 0 ? mDates[mDates.length - 1] : `${m}-31`;
-        const endHoldings = trades.filter(t => t.entryDate <= lastTradingDay && t.exitDate >= lastTradingDay).length;
+        const activeHoldings = trades.filter(t => t.entryDate <= lastTradingDay && t.exitDate >= lastTradingDay);
+        const endHoldings = activeHoldings.length;
+
+        // Calculate Unrealized (평가손익) of activeHoldings at lastTradingDay
+        let monthUnrealizedProfit = 0;
+        activeHoldings.forEach(t => {
+          const pCurr = pMap[t.ticker] ? pMap[t.ticker][lastTradingDay] : null;
+          if (pCurr && pCurr > 0 && t.entryPrice > 0) {
+            let tInvested = tradeAmount;
+            let tQty = tradeAmount / t.entryPrice;
+            if (t.hasScaleIn && t.scaleInDate && lastTradingDay >= t.scaleInDate && t.scaleInPrice > 0) {
+              const addInv = tradeAmount * (t.scaleInMult || 1.0);
+              const addQty = addInv / t.scaleInPrice;
+              tInvested += addInv;
+              tQty += addQty;
+            }
+            const currVal = pCurr * (1 - feeRate) * tQty;
+            monthUnrealizedProfit += (currVal - tInvested);
+          }
+        });
 
         totalNewBuys += newBuys;
         totalScaleIns += scaleIns;
         totalBuysSum += totalBuys;
         totalSellsSum += sells;
-        totalProfitSum += monthProfit;
+        totalRealizedProfit += monthRealizedProfit;
 
         const displayMonth = m.replace('-', '.');
-        const profitSign = monthProfit > 0 ? '+' : '';
-        const profitColor = monthProfit > 0 ? 'var(--accent-red)' : (monthProfit < 0 ? 'var(--primary)' : 'var(--text-sub)');
-        const profitText = `${profitSign}${Math.round(monthProfit).toLocaleString()}원`;
+
+        // Unrealized PnL formatting
+        const uSign = monthUnrealizedProfit > 0 ? '+' : '';
+        const uColor = monthUnrealizedProfit > 0 ? 'var(--accent-red)' : (monthUnrealizedProfit < 0 ? 'var(--primary)' : 'var(--text-sub)');
+        const uText = endHoldings > 0 ? `${uSign}${Math.round(monthUnrealizedProfit).toLocaleString()}원` : `0원`;
+
+        // Realized PnL formatting
+        const rSign = monthRealizedProfit > 0 ? '+' : '';
+        const rColor = monthRealizedProfit > 0 ? 'var(--accent-red)' : (monthRealizedProfit < 0 ? 'var(--primary)' : 'var(--text-sub)');
+        const rText = sells > 0 ? `${rSign}${Math.round(monthRealizedProfit).toLocaleString()}원` : `0원`;
 
         return `
           <tr>
@@ -2280,7 +2320,8 @@
             <td style="text-align:center;">${totalBuys > 0 ? `<strong>${totalBuys}</strong>` : `<span style="color:#94a3b8;">0</span>`}</td>
             <td style="text-align:center;">${sells > 0 ? `<strong>${sells}</strong>` : `<span style="color:#94a3b8;">0</span>`}</td>
             <td style="text-align:center; font-weight:600;">${endHoldings}개</td>
-            <td style="text-align:center; font-weight:700; color:${profitColor};">${profitText}</td>
+            <td style="text-align:center; font-weight:700; color:${uColor};">${uText}</td>
+            <td style="text-align:center; font-weight:700; color:${rColor};">${rText}</td>
           </tr>
         `;
       }).join('');
@@ -2288,13 +2329,32 @@
       tbody.innerHTML = rowsHtml;
 
       if (tfoot) {
-        const lastMonth = sortedMonths.length > 0 ? sortedMonths[sortedMonths.length - 1] : '';
-        const mDates = fineDates ? fineDates.filter(d => d.startsWith(lastMonth)) : [];
-        const lastTradingDay = mDates.length > 0 ? mDates[mDates.length - 1] : (endDateStr || '');
-        const currentActiveHoldings = trades.filter(t => t.entryDate <= lastTradingDay && t.exitDate >= lastTradingDay).length;
+        const lastTradingDay = fineDates && fineDates.length > 0 ? fineDates[fineDates.length - 1] : (endDateStr || '');
+        const finalActiveHoldings = trades.filter(t => t.entryDate <= lastTradingDay && t.exitDate >= lastTradingDay);
+        let finalUnrealizedProfit = 0;
+        finalActiveHoldings.forEach(t => {
+          const pCurr = pMap[t.ticker] ? pMap[t.ticker][lastTradingDay] : null;
+          if (pCurr && pCurr > 0 && t.entryPrice > 0) {
+            let tInvested = tradeAmount;
+            let tQty = tradeAmount / t.entryPrice;
+            if (t.hasScaleIn && t.scaleInDate && lastTradingDay >= t.scaleInDate && t.scaleInPrice > 0) {
+              const addInv = tradeAmount * (t.scaleInMult || 1.0);
+              const addQty = addInv / t.scaleInPrice;
+              tInvested += addInv;
+              tQty += addQty;
+            }
+            const currVal = pCurr * (1 - feeRate) * tQty;
+            finalUnrealizedProfit += (currVal - tInvested);
+          }
+        });
 
-        const totSign = totalProfitSum > 0 ? '+' : '';
-        const totColor = totalProfitSum > 0 ? 'var(--accent-red)' : (totalProfitSum < 0 ? 'var(--primary)' : 'var(--text-sub)');
+        const totUSign = finalUnrealizedProfit > 0 ? '+' : '';
+        const totUColor = finalUnrealizedProfit > 0 ? 'var(--accent-red)' : (finalUnrealizedProfit < 0 ? 'var(--primary)' : 'var(--text-sub)');
+        const totUText = finalActiveHoldings.length > 0 ? `${totUSign}${Math.round(finalUnrealizedProfit).toLocaleString()}원` : `0원`;
+
+        const totRSign = totalRealizedProfit > 0 ? '+' : '';
+        const totRColor = totalRealizedProfit > 0 ? 'var(--accent-red)' : (totalRealizedProfit < 0 ? 'var(--primary)' : 'var(--text-sub)');
+        const totRText = `${totRSign}${Math.round(totalRealizedProfit).toLocaleString()}원`;
 
         tfoot.innerHTML = `
           <tr style="background:#f8fafc; font-weight:800; border-top:2px solid var(--border-color);">
@@ -2303,8 +2363,9 @@
             <td style="text-align:center; color:#2563eb;">${totalScaleIns}</td>
             <td style="text-align:center;">${totalBuysSum}</td>
             <td style="text-align:center;">${totalSellsSum}</td>
-            <td style="text-align:center; color:#0f172a;">${currentActiveHoldings}개</td>
-            <td style="text-align:center; color:${totColor};">${totSign}${Math.round(totalProfitSum).toLocaleString()}원</td>
+            <td style="text-align:center; color:#0f172a;">${finalActiveHoldings.length}개</td>
+            <td style="text-align:center; color:${totUColor};">${totUText}</td>
+            <td style="text-align:center; color:${totRColor};">${totRText}</td>
           </tr>
         `;
       }
@@ -2619,7 +2680,7 @@
       };
 
       drawEquityChart(window.CURRENT_CHART_MODE);
-      renderMonthlyPerformanceTable(fineDates, trades, startDateStr, endDateStr, tradeAmount);
+      renderMonthlyPerformanceTable(fineDates, trades, startDateStr, endDateStr, tradeAmount, priceMap);
     }
 
     function switchChartMode(mode) {
@@ -3738,7 +3799,7 @@
       if (tbody) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="7" style="text-align:center; padding:32px 16px; color:#64748b; font-size:0.85rem;">
+            <td colspan="8" style="text-align:center; padding:32px 16px; color:#64748b; font-size:0.85rem;">
               <i class="fa-solid fa-code-compare" style="font-size:1.8rem; color:#3b82f6; margin-bottom:8px; display:block;"></i>
               <strong>전략 비교 모드 활성화됨</strong>
               <div style="font-size:0.78rem; color:#94a3b8; margin-top:4px;">
