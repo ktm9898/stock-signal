@@ -2258,12 +2258,14 @@
       let totalSellsSum = 0;
       let totalRealizedProfit = 0;
 
+      const isActualExit = (t) => !t.reason || !t.reason.startsWith('기간종료');
+
       const rowsHtml = sortedMonths.map(m => {
         const newBuys = trades.filter(t => t.entryDate && t.entryDate.startsWith(m)).length;
         const scaleIns = trades.filter(t => t.hasScaleIn && t.scaleInDate && t.scaleInDate.startsWith(m)).length;
         const totalBuys = newBuys + scaleIns;
 
-        const monthExitTrades = trades.filter(t => t.exitDate && t.exitDate.startsWith(m));
+        const monthExitTrades = trades.filter(t => t.exitDate && t.exitDate.startsWith(m) && isActualExit(t));
         const sells = monthExitTrades.length;
         const monthRealizedProfit = monthExitTrades.reduce((acc, t) => {
           const net = t.netProfit !== undefined ? t.netProfit : Math.round(tradeAmount * (t.returnPct / 100));
@@ -2273,7 +2275,7 @@
         // Active holdings on the last trading date of this month
         const mDates = fineDates ? fineDates.filter(d => d.startsWith(m)) : [];
         const lastTradingDay = mDates.length > 0 ? mDates[mDates.length - 1] : `${m}-31`;
-        const activeHoldings = trades.filter(t => t.entryDate <= lastTradingDay && t.exitDate >= lastTradingDay);
+        const activeHoldings = trades.filter(t => t.entryDate <= lastTradingDay && (t.exitDate >= lastTradingDay || !isActualExit(t)));
         const endHoldings = activeHoldings.length;
 
         // Calculate Unrealized (평가손익) of activeHoldings at lastTradingDay
@@ -2330,7 +2332,7 @@
 
       if (tfoot) {
         const lastTradingDay = fineDates && fineDates.length > 0 ? fineDates[fineDates.length - 1] : (endDateStr || '');
-        const finalActiveHoldings = trades.filter(t => t.entryDate <= lastTradingDay && t.exitDate >= lastTradingDay);
+        const finalActiveHoldings = trades.filter(t => t.entryDate <= lastTradingDay && (t.exitDate >= lastTradingDay || !isActualExit(t)));
         let finalUnrealizedProfit = 0;
         finalActiveHoldings.forEach(t => {
           const pCurr = pMap[t.ticker] ? pMap[t.ticker][lastTradingDay] : null;
