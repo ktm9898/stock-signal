@@ -908,19 +908,16 @@
           </div>
         </div>
 
-        <!-- Recent 50 Trades Table -->
+        <!-- Monthly Performance & Holdings Table -->
         <div class="quant-card">
           <div class="card-header">
-            <div class="card-title" id="recent-trades-title">
-              최근 매매 체결 일지
+            <div class="card-title" id="monthly-perf-title">
+              <i class="fa-regular fa-calendar-days" style="color:#2563eb; margin-right:4px;"></i> 월별 매매/보유 현황
             </div>
             <div style="display:flex; gap:8px; align-items:center;">
-              <div id="trade-log-count-box" style="font-size: 0.75rem; color: var(--text-sub);">
-                표시 <span id="trade-log-count" style="font-weight: 700; color: #2563eb;">50</span>건
+              <div id="monthly-perf-count-box" style="font-size: 0.75rem; color: var(--text-sub);">
+                총 <span id="monthly-perf-month-count" style="font-weight: 700; color: #2563eb;">0</span>개월
               </div>
-              <button id="btn-full-trades" class="btn-sm-action" onclick="resetRecentTradesTableFilter()" style="font-size:0.75rem; background:#f1f5f9; color:#334155; border:1px solid var(--border-subtle);" title="차트 날짜 필터를 해제하고 가장 최신 50건으로 초기화">
-                <i class="fa-solid fa-rotate-left" style="margin-right:3px;"></i> 초기화
-              </button>
               <div id="trade-log-compare-badge" style="display: none; font-size: 0.75rem; font-weight: 600; color: #64748b; background: #f1f5f9; padding: 2px 8px; border-radius: 4px;">
               </div>
             </div>
@@ -930,19 +927,17 @@
             <table>
               <thead>
                 <tr>
-                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('idx')">No <span id="sort-icon-idx" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('signalDate')">신호 포착일 <span id="sort-icon-signalDate" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('entryDate')">매수일 (시가) <span id="sort-icon-entryDate" style="font-size:0.7rem; opacity:0.7;">▼</span></th>
-                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('name')">종목명 (코드) <span id="sort-icon-name" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('entryPrice')">매수가 <span id="sort-icon-entryPrice" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('exitDate')">매도일 (시가) <span id="sort-icon-exitDate" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('exitPrice')">매도가 <span id="sort-icon-exitPrice" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('returnPct')">수익률 <span id="sort-icon-returnPct" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('holdingDays')">보유기간 <span id="sort-icon-holdingDays" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
-                  <th style="cursor:pointer; text-align:center;" onclick="sortTradeLogTable('reason')">청산 사유 <span id="sort-icon-reason" style="font-size:0.7rem; opacity:0.7;">↕</span></th>
+                  <th style="text-align:center;">구분</th>
+                  <th style="text-align:center;">신규매수</th>
+                  <th style="text-align:center;">물타기</th>
+                  <th style="text-align:center;">총매수</th>
+                  <th style="text-align:center;">매도</th>
+                  <th style="text-align:center;">월말보유</th>
+                  <th style="text-align:right; padding-right:18px;">수익</th>
                 </tr>
               </thead>
-              <tbody id="trade-log-body"></tbody>
+              <tbody id="monthly-perf-body"></tbody>
+              <tfoot id="monthly-perf-foot"></tfoot>
             </table>
           </div>
         </div>
@@ -1943,8 +1938,6 @@
         const badge = document.getElementById('report-strat-name');
         if (badge) badge.textContent = "단일 전략";
 
-        resetRecentTradesTableFilter();
-
         await ensureMarketDataLoaded(targetMarket, startDateStr);
 
         if (!REAL_PRELOADED_DATA || Object.keys(REAL_PRELOADED_DATA).length === 0) {
@@ -2018,7 +2011,6 @@
 
         const avgHold = totalTrades > 0 ? (allExecutedTrades.reduce((a, b) => a + b.holdingDays, 0) / totalTrades).toFixed(1) : 0;
 
-        renderRecentTradesTable(allExecutedTrades.slice(0, 50));
         renderFullTradeLogs(allExecutedTrades);
 
         renderRealBenchmarkCurve(startDateStr, endDateStr, allExecutedTrades, totalNetReturnAmount, winRate, winTrades, lossTrades, profitFactor, avgTradeRet, totalTrades, avgHold);
@@ -2185,7 +2177,6 @@
         filtered = filtered.filter(t => t.name.toLowerCase().includes(searchVal) || t.ticker.toLowerCase().includes(searchVal));
       }
 
-      renderRecentTradesTable(filtered.slice(0, 50));
       renderFullTradeLogs(filtered);
     }
 
@@ -2194,71 +2185,120 @@
     }
 
     function filterTradeLogByClickedDate(dateStr) {
-      if (!cachedExecutedTrades || cachedExecutedTrades.length === 0) return;
-
-      const tradesUpToDate = cachedExecutedTrades.filter(t => t.exitDate <= dateStr || t.entryDate <= dateStr);
-      
-      if (tradesUpToDate.length > 0) {
-        renderRecentTradesTable(tradesUpToDate.slice(0, 50));
-        const countEl = document.getElementById('trade-log-count');
-        if (countEl) countEl.textContent = Math.min(50, tradesUpToDate.length);
-      } else {
-        renderRecentTradesTableNoData(dateStr);
-        const countEl = document.getElementById('trade-log-count');
-        if (countEl) countEl.textContent = 0;
-      }
-      const titleEl = document.getElementById('recent-trades-title');
-      if (titleEl) titleEl.innerHTML = `<span style="color:#2563eb; font-weight:700;">${dateStr}</span> 체결 일지`;
+      if (!dateStr) return;
+      const targetMonth = dateStr.slice(0, 7).replace('-', '.');
+      const rows = document.querySelectorAll('#monthly-perf-body tr');
+      rows.forEach(tr => {
+        const firstCell = tr.querySelector('td:first-child');
+        if (firstCell && firstCell.textContent.trim() === targetMonth) {
+          tr.style.backgroundColor = '#eff6ff';
+          tr.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+          tr.style.backgroundColor = '';
+        }
+      });
     }
 
-    function renderRecentTradesTableNoData(dateStr) {
-      const tbody = document.getElementById('trade-log-body');
-      if (tbody) tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px; color:#64748b;">[${dateStr}] 일자 이전의 체결 내역이 없습니다.</td></tr>`;
-      const titleEl = document.getElementById('recent-trades-title');
-      if (titleEl) titleEl.innerHTML = `<span style="color:#64748b; font-weight:600;">${dateStr}</span> 체결 일지`;
-    }
-
-    function resetRecentTradesTableFilter() {
-      if (cachedExecutedTrades && cachedExecutedTrades.length > 0) {
-        renderRecentTradesTable(cachedExecutedTrades.slice(0, 50));
-        const countEl = document.getElementById('trade-log-count');
-        if (countEl) countEl.textContent = Math.min(50, cachedExecutedTrades.length);
-      }
-      const titleEl = document.getElementById('recent-trades-title');
-      if (titleEl) titleEl.textContent = '최근 매매 체결 일지';
-    }
-
-    function renderRecentTradesTable(trades) {
-      const tbody = document.getElementById('trade-log-body');
+    function renderMonthlyPerformanceTable(fineDates, trades, startDateStr, endDateStr, tradeAmount = 1000000) {
+      const tbody = document.getElementById('monthly-perf-body');
+      const tfoot = document.getElementById('monthly-perf-foot');
+      const monthCountEl = document.getElementById('monthly-perf-month-count');
       if (!tbody) return;
+
       if (!trades || trades.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:20px; color:#64748b;">설정한 조건으로 체결된 거래 내역이 없습니다. (조건 완화 권장)</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#64748b;">설정한 조건으로 체결된 거래 내역이 없습니다.</td></tr>`;
+        if (tfoot) tfoot.innerHTML = '';
+        if (monthCountEl) monthCountEl.textContent = '0';
         return;
       }
 
-      tbody.innerHTML = trades.map((t, idx) => {
-        const retClass = t.win ? 'tag-win' : 'tag-loss';
-        const sign = t.win ? '+' : '';
-        const displayIdx = t._origIdx !== undefined ? t._origIdx : idx + 1;
-        const entryPriceHtml = t.hasScaleIn && t.avgPrice
-          ? `<strong style="color:#2563eb;">${t.avgPrice.toLocaleString()} 원</strong><span style="display:block; font-size:0.70rem; color:#64748b;">(1차: ${t.entryPrice.toLocaleString()} / 물타기: ${t.scaleInPrice ? t.scaleInPrice.toLocaleString() : '-'})</span>`
-          : `${t.entryPrice.toLocaleString()} 원`;
+      // 1. Gather all unique months in chronological order within simulation range
+      const monthsSet = new Set();
+      if (fineDates && fineDates.length > 0) {
+        fineDates.forEach(d => {
+          if (d >= startDateStr && d <= endDateStr) {
+            monthsSet.add(d.slice(0, 7));
+          }
+        });
+      }
+      trades.forEach(t => {
+        if (t.entryDate && t.entryDate >= startDateStr && t.entryDate <= endDateStr) monthsSet.add(t.entryDate.slice(0, 7));
+        if (t.exitDate && t.exitDate >= startDateStr && t.exitDate <= endDateStr) monthsSet.add(t.exitDate.slice(0, 7));
+      });
+
+      const sortedMonths = Array.from(monthsSet).sort();
+      if (monthCountEl) monthCountEl.textContent = sortedMonths.length;
+
+      let totalNewBuys = 0;
+      let totalScaleIns = 0;
+      let totalBuysSum = 0;
+      let totalSellsSum = 0;
+      let totalProfitSum = 0;
+
+      const rowsHtml = sortedMonths.map(m => {
+        const newBuys = trades.filter(t => t.entryDate && t.entryDate.startsWith(m)).length;
+        const scaleIns = trades.filter(t => t.hasScaleIn && t.scaleInDate && t.scaleInDate.startsWith(m)).length;
+        const totalBuys = newBuys + scaleIns;
+
+        const monthExitTrades = trades.filter(t => t.exitDate && t.exitDate.startsWith(m));
+        const sells = monthExitTrades.length;
+        const monthProfit = monthExitTrades.reduce((acc, t) => {
+          const net = t.netProfit !== undefined ? t.netProfit : Math.round(tradeAmount * (t.returnPct / 100));
+          return acc + net;
+        }, 0);
+
+        // Active holdings on the last trading date of this month
+        const mDates = fineDates ? fineDates.filter(d => d.startsWith(m)) : [];
+        const lastTradingDay = mDates.length > 0 ? mDates[mDates.length - 1] : `${m}-31`;
+        const endHoldings = trades.filter(t => t.entryDate <= lastTradingDay && t.exitDate >= lastTradingDay).length;
+
+        totalNewBuys += newBuys;
+        totalScaleIns += scaleIns;
+        totalBuysSum += totalBuys;
+        totalSellsSum += sells;
+        totalProfitSum += monthProfit;
+
+        const displayMonth = m.replace('-', '.');
+        const profitSign = monthProfit > 0 ? '+' : '';
+        const profitColor = monthProfit > 0 ? 'var(--accent-red)' : (monthProfit < 0 ? 'var(--primary)' : 'var(--text-sub)');
+        const profitText = `${profitSign}${Math.round(monthProfit).toLocaleString()}원`;
 
         return `
           <tr>
-            <td style="color:var(--text-sub); font-size:0.75rem; text-align:center;">${displayIdx}</td>
-            <td style="color:var(--text-sub); text-align:center;">${t.signalDate}</td>
-            <td style="text-align:center;"><strong>${t.entryDate}</strong></td>
-            <td style="padding-left: 20px;"><strong>${t.name}</strong> <span style="color:var(--text-sub); font-size:0.75rem;">(${t.ticker})</span></td>
-            <td style="text-align:right; padding-right: 24px;">${entryPriceHtml}</td>
-            <td style="text-align:center;"><strong>${t.exitDate}</strong></td>
-            <td style="text-align:right; padding-right: 24px;">${t.exitPrice.toLocaleString()} 원</td>
-            <td style="text-align:center;"><span class="${retClass}">${sign}${t.returnPct}%</span></td>
-            <td style="text-align:center;">${t.holdingDays}일</td>
-            <td style="text-align:center;"><span style="font-size:0.75rem; background:#f1f5f9; padding:2px 6px; border-radius:4px;">${t.reason}</span></td>
+            <td style="text-align:center; font-weight:700; color:#1e293b;">${displayMonth}</td>
+            <td style="text-align:center;">${newBuys > 0 ? `<strong>${newBuys}</strong>` : `<span style="color:#94a3b8;">0</span>`}</td>
+            <td style="text-align:center;">${scaleIns > 0 ? `<strong style="color:#2563eb;">${scaleIns}</strong>` : `<span style="color:#94a3b8;">0</span>`}</td>
+            <td style="text-align:center;">${totalBuys > 0 ? `<strong>${totalBuys}</strong>` : `<span style="color:#94a3b8;">0</span>`}</td>
+            <td style="text-align:center;">${sells > 0 ? `<strong>${sells}</strong>` : `<span style="color:#94a3b8;">0</span>`}</td>
+            <td style="text-align:center; font-weight:600;">${endHoldings}개</td>
+            <td style="text-align:right; padding-right:18px; font-weight:700; color:${profitColor};">${profitText}</td>
           </tr>
         `;
       }).join('');
+
+      tbody.innerHTML = rowsHtml;
+
+      if (tfoot) {
+        const lastMonth = sortedMonths.length > 0 ? sortedMonths[sortedMonths.length - 1] : '';
+        const mDates = fineDates ? fineDates.filter(d => d.startsWith(lastMonth)) : [];
+        const lastTradingDay = mDates.length > 0 ? mDates[mDates.length - 1] : (endDateStr || '');
+        const currentActiveHoldings = trades.filter(t => t.entryDate <= lastTradingDay && t.exitDate >= lastTradingDay).length;
+
+        const totSign = totalProfitSum > 0 ? '+' : '';
+        const totColor = totalProfitSum > 0 ? 'var(--accent-red)' : (totalProfitSum < 0 ? 'var(--primary)' : 'var(--text-sub)');
+
+        tfoot.innerHTML = `
+          <tr style="background:#f8fafc; font-weight:800; border-top:2px solid var(--border-color);">
+            <td style="text-align:center; color:#0f172a;">합계</td>
+            <td style="text-align:center;">${totalNewBuys}</td>
+            <td style="text-align:center; color:#2563eb;">${totalScaleIns}</td>
+            <td style="text-align:center;">${totalBuysSum}</td>
+            <td style="text-align:center;">${totalSellsSum}</td>
+            <td style="text-align:center; color:#0f172a;">${currentActiveHoldings}개</td>
+            <td style="text-align:right; padding-right:18px; color:${totColor};">${totSign}${Math.round(totalProfitSum).toLocaleString()}원</td>
+          </tr>
+        `;
+      }
     }
 
     function renderFullTradeLogs(trades) {
@@ -2570,6 +2610,7 @@
       };
 
       drawEquityChart(window.CURRENT_CHART_MODE);
+      renderMonthlyPerformanceTable(fineDates, trades, startDateStr, endDateStr, tradeAmount);
     }
 
     function switchChartMode(mode) {
@@ -3682,25 +3723,25 @@
         reportTitle.innerHTML = `<i class="fa-solid fa-code-compare" style="margin-right:4px; color:#2563eb;"></i> <strong>다중 전략 (${selectedSlots.length}개)</strong>`;
       }
 
-      // Empty trade log table with info message
-      const tbody = document.getElementById('trade-log-body');
+      // Notice in monthly performance table
+      const tbody = document.getElementById('monthly-perf-body');
+      const tfoot = document.getElementById('monthly-perf-foot');
       if (tbody) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="10" style="text-align:center; padding:32px 16px; color:#64748b; font-size:0.85rem;">
+            <td colspan="7" style="text-align:center; padding:32px 16px; color:#64748b; font-size:0.85rem;">
               <i class="fa-solid fa-code-compare" style="font-size:1.8rem; color:#3b82f6; margin-bottom:8px; display:block;"></i>
               <strong>전략 비교 모드 활성화됨</strong>
               <div style="font-size:0.78rem; color:#94a3b8; margin-top:4px;">
                 다중 전략 비교 시에는 상단 성과 비교표와 차트에서 종합 성과를 비교합니다.<br>
-                (개별 종목 체결 일지는 단일 전략 백테스트 실행 시 표시됩니다)
+                (월별 매매/보유 현황 및 체결 일지는 단일 전략 백테스트 실행 시 표시됩니다)
               </div>
             </td>
           </tr>
         `;
       }
-      const fullBtn = document.getElementById('btn-full-trades');
-      if (fullBtn) fullBtn.style.display = 'none';
-      const countBox = document.getElementById('trade-log-count-box');
+      if (tfoot) tfoot.innerHTML = '';
+      const countBox = document.getElementById('monthly-perf-count-box');
       if (countBox) countBox.style.display = 'none';
       const compBadge = document.getElementById('trade-log-compare-badge');
       if (compBadge) {
