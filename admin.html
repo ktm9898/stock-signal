@@ -985,11 +985,21 @@
           </div>
         </div>
 
-        <!-- Data Info Summary -->
-        <div id="viewer-stock-summary" style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 10px; font-size: 0.8rem;">
-          <div>
+        <!-- Data Info Summary & Range Filter -->
+        <div id="viewer-stock-summary" style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 10px; font-size: 0.8rem; flex-wrap: wrap; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
             <strong id="viewer-target-name" style="font-size: 0.88rem; color: #0f172a;">삼성전자 (005930)</strong>
-            <span id="viewer-target-market" style="background:#e2e8f0; padding:1px 5px; border-radius:4px; font-size:0.72rem; margin-left:6px;">KOSPI200</span>
+            <span id="viewer-target-market" style="background:#e2e8f0; padding:1px 5px; border-radius:4px; font-size:0.72rem;">KOSPI200</span>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: inline-flex; background: #f1f5f9; padding: 2px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+              <button type="button" class="btn-chart-mode active" id="viewer-range-30" onclick="setViewerDataRange(30)">30일</button>
+              <button type="button" class="btn-chart-mode" id="viewer-range-100" onclick="setViewerDataRange(100)">100일</button>
+              <button type="button" class="btn-chart-mode" id="viewer-range-250" onclick="setViewerDataRange(250)">1년</button>
+              <button type="button" class="btn-chart-mode" id="viewer-range-0" onclick="setViewerDataRange(0)">전체</button>
+            </div>
+            <span id="viewer-row-count-badge" style="font-size: 0.75rem; color: var(--text-sub); font-weight: 600; white-space: nowrap;">(30일)</span>
           </div>
         </div>
 
@@ -1328,6 +1338,26 @@
       return rows;
     }
 
+    let currentViewerRange = 30; // 기본값 30일 (에셋시그널과 동일하게 빠르고 가벼운 렌더링)
+
+    function setViewerDataRange(days) {
+      currentViewerRange = Number(days);
+      const btn30 = document.getElementById('viewer-range-30');
+      const btn100 = document.getElementById('viewer-range-100');
+      const btn250 = document.getElementById('viewer-range-250');
+      const btnAll = document.getElementById('viewer-range-0');
+
+      if (btn30) btn30.classList.toggle('active', currentViewerRange === 30);
+      if (btn100) btn100.classList.toggle('active', currentViewerRange === 100);
+      if (btn250) btn250.classList.toggle('active', currentViewerRange === 250);
+      if (btnAll) btnAll.classList.toggle('active', currentViewerRange === 0);
+
+      const selectEl = document.getElementById('viewer-stock-select');
+      if (selectEl && selectEl.value) {
+        loadViewerStockData(selectEl.value);
+      }
+    }
+
     function loadViewerStockData(ticker) {
       if (!ticker || !REAL_PRELOADED_DATA) return;
       const cleanTicker = String(ticker).padStart(6, '0');
@@ -1351,10 +1381,23 @@
 
       if (!rows || rows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="17" style="text-align:center; padding:20px; color:#64748b;">선택한 종목의 10년 데이터가 없습니다.</td></tr>`;
+        const countBadge = document.getElementById('viewer-row-count-badge');
+        if (countBadge) countBadge.textContent = '(0일)';
         return;
       }
 
-      const displayRows = rows.slice().reverse();
+      let displayRows = rows.slice().reverse();
+      if (currentViewerRange > 0) {
+        displayRows = displayRows.slice(0, currentViewerRange);
+      }
+
+      const countBadge = document.getElementById('viewer-row-count-badge');
+      if (countBadge) {
+        countBadge.textContent = currentViewerRange > 0 
+          ? `(최근 ${displayRows.length}일 / 전체 ${rows.length}일)` 
+          : `(전체 ${rows.length}일)`;
+      }
+
       tbody.innerHTML = displayRows.map(r => {
         const adx = (r.adx !== undefined && r.adx !== null) ? Number(r.adx).toFixed(1) : '-';
         const mdi = (r.minus_di !== undefined && r.minus_di !== null) ? Number(r.minus_di).toFixed(1) : '-';
