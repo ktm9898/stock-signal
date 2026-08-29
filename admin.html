@@ -999,7 +999,6 @@
               <button type="button" class="btn-chart-mode" id="viewer-range-250" onclick="setViewerDataRange(250)">1년</button>
               <button type="button" class="btn-chart-mode" id="viewer-range-0" onclick="setViewerDataRange(0)">전체</button>
             </div>
-            <span id="viewer-row-count-badge" style="font-size: 0.75rem; color: var(--text-sub); font-weight: 600; white-space: nowrap;">(30일)</span>
           </div>
         </div>
 
@@ -1381,21 +1380,12 @@
 
       if (!rows || rows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="17" style="text-align:center; padding:20px; color:#64748b;">선택한 종목의 10년 데이터가 없습니다.</td></tr>`;
-        const countBadge = document.getElementById('viewer-row-count-badge');
-        if (countBadge) countBadge.textContent = '(0일)';
         return;
       }
 
       let displayRows = rows.slice().reverse();
       if (currentViewerRange > 0) {
         displayRows = displayRows.slice(0, currentViewerRange);
-      }
-
-      const countBadge = document.getElementById('viewer-row-count-badge');
-      if (countBadge) {
-        countBadge.textContent = currentViewerRange > 0 
-          ? `(최근 ${displayRows.length}일 / 전체 ${rows.length}일)` 
-          : `(전체 ${rows.length}일)`;
       }
 
       tbody.innerHTML = displayRows.map(r => {
