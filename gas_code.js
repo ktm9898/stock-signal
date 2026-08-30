@@ -53,12 +53,36 @@ function doGet(e) {
   const inputPin = e.parameter.pin ? String(e.parameter.pin).trim() : "";
   const authPin = getAuthPin();
   const action = e.parameter.action || "all";
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // 0. Dedicated PIN Verification Action
+  if (action === "verify_pin") {
+    if (!authPin) {
+      return ContentService.createTextOutput(JSON.stringify({ success: true, pinRequired: false, valid: true, message: "No PIN configured" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    if (inputPin === authPin) {
+      return ContentService.createTextOutput(JSON.stringify({ success: true, pinRequired: true, valid: true, message: "PIN verified" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    return ContentService.createTextOutput(JSON.stringify({ success: false, pinRequired: true, valid: false, message: "Invalid PIN" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // 1. PIN Authorization Check for Protected Endpoints
+  if (authPin && inputPin !== authPin) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      success: false, 
+      status: "error", 
+      pinRequired: true, 
+      message: "Unauthorized: Invalid PIN" 
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
 
   if (action === "set_active_strategy_slot") {
     const slotId = parseInt(e.parameter.slotId || "1", 10);
     PropertiesService.getScriptProperties().setProperty("ACTIVE_STRATEGY_SLOT_ID", String(slotId));
     
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
     setupSheets();
     const sheet = ss.getSheetByName("Strategy_Slots");
     if (sheet && sheet.getLastRow() > 1) {
@@ -77,7 +101,6 @@ function doGet(e) {
   }
 
   if (action === "get_strategy_slots") {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
     setupSheets();
     let slotsSheet = ss.getSheetByName("Strategy_Slots");
     let slots = [];
@@ -145,12 +168,6 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  if (authPin && inputPin !== authPin && action !== "holdings") {
-    return ContentService.createTextOutput(JSON.stringify({ success: false, status: "error", message: "Unauthorized: Invalid PIN" }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
   setupSheets();
   let result = { success: true, status: "success" };
 
@@ -173,6 +190,23 @@ function doPost(e) {
     const data = JSON.parse(e.postData.contents);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const authPin = getAuthPin();
+    const inputPin = (data.pin || "").toString().trim();
+
+    const isBackendAction = (
+      data.action === "update_buy_candidates" || 
+      data.action === "update_holdings_status" || 
+      data.action === "update_sell_signals"
+    );
+
+    // 0. PIN Authorization Check for POST
+    if (authPin && inputPin !== authPin && !isBackendAction) {
+      return ContentService.createTextOutput(JSON.stringify({ 
+        success: false, 
+        status: "error", 
+        pinRequired: true, 
+        message: "Unauthorized: Invalid PIN" 
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
 
     if (data.action === "set_active_strategy_slot") {
       const slotId = parseInt(data.slotId || "1", 10);
@@ -229,17 +263,6 @@ function doPost(e) {
         PropertiesService.getScriptProperties().setProperty("STRATEGY_SLOTS_JSON", JSON.stringify(data.slots));
       }
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-
-    const inputPin = data.pin ? String(data.pin).trim() : "";
-    const isBackendAction = (
-      data.action === "update_buy_candidates" || 
-      data.action === "update_holdings_status" || 
-      data.action === "update_sell_signals"
-    );
-    if (authPin && inputPin !== authPin && !isBackendAction) {
-      return ContentService.createTextOutput(JSON.stringify({ success: false, status: "error", message: "Unauthorized: Invalid PIN" }))
         .setMimeType(ContentService.MimeType.JSON);
     }
 

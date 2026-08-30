@@ -1096,7 +1096,7 @@
   </div>
 
   <!-- PIN Modal -->
-  <div class="modal-overlay" id="pin-modal" style="display: flex;">
+  <div class="modal-overlay" id="pin-modal" style="display: none;">
     <div class="modal-content" style="text-align: center; max-width: 380px;">
       <div class="brand-icon" style="margin: 0 auto 16px auto; width: 44px; height: 44px; font-size: 1.3rem;">
         <i class="fa-solid fa-lock"></i>
@@ -1153,7 +1153,54 @@
     const LOCAL_SLOTS_KEY = "quant_strategy_slots_v1";
     const ACTIVE_STRATEGY_KEY = "active_dashboard_strategy_index";
 
-    let userPin = "";
+    // ==========================================
+    // PIN Authentication & Global Session Handling
+    // ==========================================
+    function getStoredPin() {
+      return localStorage.getItem("stock_auth_pin") || localStorage.getItem("stock_signal_pin") || "";
+    }
+
+    function saveStoredPin(pin) {
+      const clean = String(pin || '').trim();
+      if (clean) {
+        localStorage.setItem("stock_auth_pin", clean);
+        localStorage.setItem("stock_signal_pin", clean);
+      }
+    }
+
+    function clearStoredPin() {
+      localStorage.removeItem("stock_auth_pin");
+      localStorage.removeItem("stock_signal_pin");
+    }
+
+    function buildGasUrl(action, extraParams = "") {
+      const pin = getStoredPin();
+      let url = `${GAS_WEBAPP_URL}?action=${encodeURIComponent(action)}`;
+      if (pin) url += `&pin=${encodeURIComponent(pin)}`;
+      if (extraParams) url += `&${extraParams}`;
+      return url;
+    }
+
+    function showPinAuthModal() {
+      const modal = document.getElementById('pin-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+        const input = document.getElementById('input-pin');
+        if (input) {
+          input.value = '';
+          input.focus();
+        }
+        const err = document.getElementById('pin-error');
+        if (err) err.style.display = 'none';
+      }
+    }
+
+    function hidePinAuthModal() {
+      const modal = document.getElementById('pin-modal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    let userPin = getStoredPin();
     let buyCandidatesData = [];
     let sellSignalsData = [];
     let holdingsData = [];
@@ -1440,7 +1487,8 @@
 
       // Cloud Synchronize active strategy slot (via GET for 100% reliable sync)
       try {
-        const pinParam = userPin ? `&pin=${encodeURIComponent(userPin)}` : '';
+        const pin = getStoredPin();
+        const pinParam = pin ? `&pin=${encodeURIComponent(pin)}` : '';
         fetch(`${GAS_WEBAPP_URL}?action=set_active_strategy_slot&slotId=${idx + 1}${pinParam}`).catch(() => {});
       } catch(e) {}
     }
@@ -1982,30 +2030,51 @@
     }
 
     async function verifyPin() {
-      const pinVal = document.getElementById('input-pin').value.trim();
-      const pinBtn = document.getElementById('btn-pin-submit');
+      const input = document.getElementById('input-pin');
       const errorEl = document.getElementById('pin-error');
-      if (!pinVal) return;
+      const pinBtn = document.getElementById('btn-pin-submit');
+      const pinVal = input ? input.value.trim() : '';
+
+      if (!pinVal) {
+        if (errorEl) {
+          errorEl.textContent = '비밀번호를 입력해주세요.';
+          errorEl.style.display = 'block';
+        }
+        return;
+      }
 
       if (pinBtn) {
         pinBtn.disabled = true;
         pinBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 6px;"></i> 확인 중...`;
       }
-      errorEl.style.display = 'none';
+      if (errorEl) errorEl.style.display = 'none';
 
       try {
-        const res = await loadDataFromGAS(pinVal);
-        if (res.success) {
+        const resp = await fetch(`${GAS_WEBAPP_URL}?action=verify_pin&pin=${encodeURIComponent(pinVal)}`);
+        const res = await resp.json();
+
+        if (res.success && (res.valid !== false)) {
+          saveStoredPin(pinVal);
           userPin = pinVal;
-          document.getElementById('pin-modal').style.display = 'none';
+          hidePinAuthModal();
+          await loadDataFromGAS(pinVal);
         } else {
+          clearStoredPin();
           userPin = "";
-          errorEl.textContent = res.message || '비밀번호가 올바르지 않습니다.';
-          errorEl.style.display = 'block';
+          if (errorEl) {
+            errorEl.textContent = res.message || '비밀번호가 올바르지 않습니다.';
+            errorEl.style.display = 'block';
+          }
+          if (input) {
+            input.value = '';
+            input.focus();
+          }
         }
       } catch (err) {
-        errorEl.textContent = '확인 중 오류가 발생했습니다: ' + err.message;
-        errorEl.style.display = 'block';
+        if (errorEl) {
+          errorEl.textContent = '확인 중 오류가 발생했습니다: ' + err.message;
+          errorEl.style.display = 'block';
+        }
       } finally {
         if (pinBtn) {
           pinBtn.disabled = false;
@@ -2020,7 +2089,7 @@
         const icon = targetBtn.querySelector('i');
         if (icon) icon.classList.add('fa-spin');
       }
-      await loadDataFromGAS(userPin);
+      await loadDataFromGAS(getStoredPin());
       if (targetBtn) {
         const icon = targetBtn.querySelector('i');
         if (icon) icon.classList.remove('fa-spin');
@@ -2036,16 +2105,27 @@
       return str.replace(/[^0-9]/g, '');
     }
 
-    async function loadDataFromGAS(pin = userPin) {
-      const cleanPin = String(pin || '').trim();
+    async function loadDataFromGAS(pin = getStoredPin()) {
+      const cleanPin = String(pin || getStoredPin() || '').trim();
       try {
         const url = GAS_WEBAPP_URL + "?action=all" + (cleanPin ? "&pin=" + encodeURIComponent(cleanPin) : "");
         const resp = await fetch(url);
         const data = await resp.json();
         
-        if (data.status === "error" || data.success === false) {
+        if ((data.pinRequired && data.status === "error") || data.status === "error" || data.success === false) {
+          if (data.pinRequired || (data.message && data.message.includes("Invalid PIN"))) {
+            clearStoredPin();
+            userPin = "";
+            showPinAuthModal();
+            return { success: false, message: data.message };
+          }
           console.warn("GAS Auth/Fetch Error:", data.message);
           return { success: false, message: data.message };
+        }
+
+        if (cleanPin) {
+          saveStoredPin(cleanPin);
+          userPin = cleanPin;
         }
 
         buyCandidatesData = data.buyCandidates || [];
@@ -3004,7 +3084,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({
             action: "add_user_holding",
-            pin: userPin,
+            pin: getStoredPin(),
             ticker: ticker,
             name: name,
             buyPrice: Number(buyPrice)
@@ -3014,7 +3094,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         if (result.success) {
           showInfoModal('등록 완료', `[${name} (${ticker})] 보유 종목이 등록되었습니다.`);
           closeRegisterModal();
-          loadDataFromGAS(userPin);
+          loadDataFromGAS(getStoredPin());
         } else {
           showInfoModal('등록 실패', result.message || "오류가 발생했습니다.");
         }
@@ -3037,13 +3117,13 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({
             action: "delete_user_holding",
-            pin: userPin,
+            pin: getStoredPin(),
             ticker: ticker
           })
         });
         const result = await resp.json();
         if (result.success) {
-          loadDataFromGAS(userPin);
+          loadDataFromGAS(getStoredPin());
         } else {
           showInfoModal('삭제 실패', result.message || "오류가 발생했습니다.");
         }
@@ -3068,7 +3148,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           headers: { "Content-Type": "text/plain;charset=utf-8" },
           body: JSON.stringify({
             action: "trigger_screener",
-            pin: userPin,
+            pin: getStoredPin(),
             slotId: currentActiveStrategySlotIndex + 1
           })
         });
@@ -3121,17 +3201,13 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       });
     }
 
-    // Clear stored PINs from legacy sessions
-    try {
-      localStorage.removeItem('stock_signal_pin');
-      sessionStorage.removeItem('stock_signal_pin');
-    } catch(e) {}
-
-    // Startup check: display empty PIN modal for fresh input
-    const pinInput = document.getElementById('input-pin');
-    if (pinInput) pinInput.value = "";
-    const pEl = document.getElementById('pin-modal');
-    if (pEl) pEl.style.display = 'flex';
+    // Startup check: attempt silent data fetch with stored PIN or show PIN modal
+    const currentPin = getStoredPin();
+    if (currentPin) {
+      loadDataFromGAS(currentPin);
+    } else {
+      showPinAuthModal();
+    }
   </script>
 
   <!-- Indicator Help Modal -->
