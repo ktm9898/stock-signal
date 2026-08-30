@@ -83,7 +83,6 @@ function doGet(e) {
     const slotId = parseInt(e.parameter.slotId || "1", 10);
     PropertiesService.getScriptProperties().setProperty("ACTIVE_STRATEGY_SLOT_ID", String(slotId));
     
-    setupSheets();
     const sheet = ss.getSheetByName("Strategy_Slots");
     if (sheet && sheet.getLastRow() > 1) {
       const lastRow = sheet.getLastRow();
@@ -101,7 +100,6 @@ function doGet(e) {
   }
 
   if (action === "get_strategy_slots") {
-    setupSheets();
     let slotsSheet = ss.getSheetByName("Strategy_Slots");
     let slots = [];
     if (slotsSheet && slotsSheet.getLastRow() > 1) {
@@ -168,7 +166,6 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  setupSheets();
   let result = { success: true, status: "success" };
 
   if (action === "all" || action === "buy") result.buyCandidates = getSheetData(ss.getSheetByName("Buy_Candidates"));

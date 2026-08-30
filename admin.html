@@ -2985,30 +2985,49 @@
 
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 확인 중...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 전략 불러오는 중...';
       }
       if (errEl) errEl.style.display = 'none';
 
       try {
-        const resp = await fetch(`${GAS_WEBAPP_URL_ADMIN}?action=verify_pin&pin=${encodeURIComponent(pinVal)}`);
-        const res = await resp.json();
+        saveStoredPin(pinVal);
+        const resp = await fetch(buildGasUrl("get_strategy_slots"));
+        const data = await resp.json();
 
-        if (res.success && (res.valid !== false)) {
-          saveStoredPin(pinVal);
-          hidePinAuthModal();
-          await fetchGoogleSheetSlots();
-        } else {
+        if ((data.pinRequired && data.status === "error") || data.status === "error" || data.success === false) {
           clearStoredPin();
           if (errEl) {
-            errEl.textContent = res.message || '비밀번호가 올바르지 않습니다.';
+            errEl.textContent = data.message || '비밀번호가 올바르지 않습니다.';
             errEl.style.display = 'block';
           }
           if (input) {
             input.value = '';
             input.focus();
           }
+          return;
         }
+
+        if (data && data.success && Array.isArray(data.slots) && data.slots.length === 10) {
+          strategySlots = data.slots;
+          localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
+
+          let activeIdx = 0;
+          if (data.activeSlotId) {
+            activeIdx = data.activeSlotId - 1;
+            localStorage.setItem(ACTIVE_STRATEGY_KEY, String(activeIdx));
+          } else {
+            const savedActive = localStorage.getItem(ACTIVE_STRATEGY_KEY);
+            if (savedActive !== null) activeIdx = parseInt(savedActive, 10) || 0;
+          }
+
+          const activeSlot = strategySlots[activeIdx] || strategySlots[0];
+          if (activeSlot && !activeSlot.isEmpty && activeSlot.buyRules && activeSlot.buyRules.length > 0) {
+            applySlotToEditor(activeSlot);
+          }
+        }
+        hidePinAuthModal();
       } catch (err) {
+        clearStoredPin();
         if (errEl) {
           errEl.textContent = '서버 연결 실패. 다시 시도해주세요.';
           errEl.style.display = 'block';

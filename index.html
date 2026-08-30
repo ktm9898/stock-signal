@@ -862,7 +862,11 @@
             </tr>
           </thead>
           <tbody id="buy-candidates-body">
-            <!-- Dynamic Content -->
+            <tr>
+              <td colspan="11" style="text-align: center; padding: 32px 16px; color: var(--text-sub); font-size: 0.85rem;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary); margin-right: 8px;"></i> 데이터를 불러오는 중입니다...
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -903,7 +907,11 @@
             </tr>
           </thead>
           <tbody id="sell-signals-body">
-            <!-- Dynamic Content -->
+            <tr>
+              <td colspan="12" style="text-align: center; padding: 32px 16px; color: var(--text-sub); font-size: 0.85rem;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary); margin-right: 8px;"></i> 데이터를 불러오는 중입니다...
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -946,7 +954,11 @@
             </tr>
           </thead>
           <tbody id="holdings-body">
-            <!-- Dynamic Content -->
+            <tr>
+              <td colspan="13" style="text-align: center; padding: 32px 16px; color: var(--text-sub); font-size: 0.85rem;">
+                <i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary); margin-right: 8px;"></i> 데이터를 불러오는 중입니다...
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -2045,24 +2057,22 @@
 
       if (pinBtn) {
         pinBtn.disabled = true;
-        pinBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 6px;"></i> 확인 중...`;
+        pinBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 6px;"></i> 데이터 로딩 중...`;
       }
       if (errorEl) errorEl.style.display = 'none';
 
       try {
-        const resp = await fetch(`${GAS_WEBAPP_URL}?action=verify_pin&pin=${encodeURIComponent(pinVal)}`);
-        const res = await resp.json();
+        const res = await loadDataFromGAS(pinVal);
 
-        if (res.success && (res.valid !== false)) {
+        if (res && res.success !== false) {
           saveStoredPin(pinVal);
           userPin = pinVal;
           hidePinAuthModal();
-          await loadDataFromGAS(pinVal);
         } else {
           clearStoredPin();
           userPin = "";
           if (errorEl) {
-            errorEl.textContent = res.message || '비밀번호가 올바르지 않습니다.';
+            errorEl.textContent = (res && res.message) ? res.message : '비밀번호가 올바르지 않습니다.';
             errorEl.style.display = 'block';
           }
           if (input) {
