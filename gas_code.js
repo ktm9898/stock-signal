@@ -45,8 +45,8 @@ function setupSheets() {
 
   // 8. Strategy Slots Sheet Header Enforce
   let slotsSheet = ss.getSheetByName("Strategy_Slots") || ss.insertSheet("Strategy_Slots");
-  slotsSheet.getRange("A1:P1").setValues([["SlotID", "Name", "Memo", "Market", "Period", "StartDate", "EndDate", "ScaleInDrop", "ScaleInMultiplier", "StopLoss", "TakeProfit", "TradeAmount", "BuyRules", "SellRules", "UpdatedAt", "IsActive"]]);
-  slotsSheet.getRange("A1:P1").setFontWeight("bold").setBackground("#dbeafe");
+  slotsSheet.getRange("A1:S1").setValues([["SlotID", "Name", "Memo", "Market", "Period", "StartDate", "EndDate", "ScaleInDrop", "ScaleInMultiplier", "StopLoss", "TakeProfit", "TradeAmount", "BuyRules", "SellRules", "UpdatedAt", "IsActive", "PriorityIndicator", "PriorityOrder", "MaxBuyCount"]]);
+  slotsSheet.getRange("A1:S1").setFontWeight("bold").setBackground("#dbeafe");
 }
 
 function doGet(e) {
@@ -105,49 +105,53 @@ function doGet(e) {
     if (slotsSheet && slotsSheet.getLastRow() > 1) {
       const numCols = slotsSheet.getLastColumn();
       const rows = slotsSheet.getRange(2, 1, slotsSheet.getLastRow() - 1, numCols).getValues();
-      const is16Cols = numCols >= 16;
       slots = rows.map((r, idx) => {
-        if (is16Cols) {
-          return {
-            id: r[0] || (idx + 1),
-            name: r[1] || `전략 ${idx + 1}`,
-            memo: r[2] || '',
-            isEmpty: (r[1] && String(r[1]).includes('비어있음')) || !r[12],
-            market: r[3] || 'ALL',
-            period: r[4] || '5Y',
-            startDate: r[5] || '',
-            endDate: r[6] || '',
-            scaleInDrop: r[7] !== '' && r[7] !== null ? Number(r[7]) : null,
-            scaleInMultiplier: r[8] !== '' && r[8] !== null ? Number(r[8]) : null,
-            stopLoss: r[9] !== '' && r[9] !== null ? Number(r[9]) : null,
-            takeProfit: r[10] !== '' && r[10] !== null ? Number(r[10]) : null,
-            tradeAmount: r[11] ? Number(r[11]) : 1000000,
-            buyRules: r[12] ? JSON.parse(r[12]) : [],
-            sellRules: r[13] ? JSON.parse(r[13]) : [],
-            updatedAt: r[14] || '-',
-            isActive: String(r[15] || '').includes('적용') || String(r[15] || '').includes('ACTIVE')
-          };
-        } else {
-          return {
-            id: r[0] || (idx + 1),
-            name: r[1] || `전략 ${idx + 1}`,
-            memo: r[2] || '',
-            isEmpty: (r[1] && String(r[1]).includes('비어있음')) || !r[10],
-            market: r[3] || 'ALL',
-            period: r[4] || '5Y',
-            startDate: r[5] || '',
-            endDate: r[6] || '',
-            scaleInDrop: null,
-            scaleInMultiplier: null,
-            stopLoss: r[7] !== '' && r[7] !== null ? Number(r[7]) : null,
-            takeProfit: r[8] !== '' && r[8] !== null ? Number(r[8]) : null,
-            tradeAmount: r[9] ? Number(r[9]) : 1000000,
-            buyRules: r[10] ? JSON.parse(r[10]) : [],
-            sellRules: r[11] ? JSON.parse(r[11]) : [],
-            updatedAt: r[12] || '-',
-            isActive: String(r[13] || '').includes('적용') || String(r[13] || '').includes('ACTIVE')
-          };
+        const hasPriority = numCols >= 19;
+        const hasActiveCol = numCols >= 16;
+        
+        let buyRulesIdx = 10, sellRulesIdx = 11, updatedAtIdx = 12, isActiveIdx = 13;
+        let scaleInDrop = null, scaleInMultiplier = null;
+        let stopLoss = r[7] !== '' && r[7] !== null ? Number(r[7]) : null;
+        let takeProfit = r[8] !== '' && r[8] !== null ? Number(r[8]) : null;
+        let tradeAmount = r[9] ? Number(r[9]) : 1000000;
+
+        if (hasActiveCol) {
+          scaleInDrop = r[7] !== '' && r[7] !== null ? Number(r[7]) : null;
+          scaleInMultiplier = r[8] !== '' && r[8] !== null ? Number(r[8]) : null;
+          stopLoss = r[9] !== '' && r[9] !== null ? Number(r[9]) : null;
+          takeProfit = r[10] !== '' && r[10] !== null ? Number(r[10]) : null;
+          tradeAmount = r[11] ? Number(r[11]) : 1000000;
+          buyRulesIdx = 12;
+          sellRulesIdx = 13;
+          updatedAtIdx = 14;
+          isActiveIdx = 15;
         }
+
+        const buyRulesRaw = r[buyRulesIdx];
+        const sellRulesRaw = r[sellRulesIdx];
+
+        return {
+          id: r[0] || (idx + 1),
+          name: r[1] || `전략 ${idx + 1}`,
+          memo: r[2] || '',
+          isEmpty: (r[1] && String(r[1]).includes('비어있음')) || !buyRulesRaw,
+          market: r[3] || 'ALL',
+          period: r[4] || '5Y',
+          startDate: r[5] || '',
+          endDate: r[6] || '',
+          scaleInDrop: scaleInDrop,
+          scaleInMultiplier: scaleInMultiplier,
+          stopLoss: stopLoss,
+          takeProfit: takeProfit,
+          tradeAmount: tradeAmount,
+          buyRules: buyRulesRaw ? JSON.parse(buyRulesRaw) : [],
+          sellRules: sellRulesRaw ? JSON.parse(sellRulesRaw) : [],
+          updatedAt: r[updatedAtIdx] || '-',
+          isActive: String(r[isActiveIdx] || '').includes('적용') || String(r[isActiveIdx] || '').includes('ACTIVE'),
+          priorityIndicator: hasPriority ? (r[16] || '') : '',
+          priorityOrder: hasPriority ? (r[17] || '') : '',
+          maxBuyCount: hasPriority && r[18] !== '' && r[18] !== null ? Number(r[18]) : null
+        };
       });
     }
     
@@ -232,9 +236,9 @@ function doPost(e) {
       const activeSlotId = parseInt(PropertiesService.getScriptProperties().getProperty("ACTIVE_STRATEGY_SLOT_ID") || "1", 10);
       if (data.slots && Array.isArray(data.slots) && sheet) {
         if (sheet.getLastRow() > 1) {
-          sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).clearContent();
+          sheet.getRange(2, 1, sheet.getLastRow() - 1, Math.max(19, sheet.getLastColumn())).clearContent();
         }
-        sheet.getRange("A1:P1").setValues([["SlotID", "Name", "Memo", "Market", "Period", "StartDate", "EndDate", "ScaleInDrop", "ScaleInMultiplier", "StopLoss", "TakeProfit", "TradeAmount", "BuyRules", "SellRules", "UpdatedAt", "IsActive"]]);
+        sheet.getRange("A1:S1").setValues([["SlotID", "Name", "Memo", "Market", "Period", "StartDate", "EndDate", "ScaleInDrop", "ScaleInMultiplier", "StopLoss", "TakeProfit", "TradeAmount", "BuyRules", "SellRules", "UpdatedAt", "IsActive", "PriorityIndicator", "PriorityOrder", "MaxBuyCount"]]);
         const rows = data.slots.map((s, idx) => {
           const currentId = s.id || (idx + 1);
           return [
@@ -253,10 +257,13 @@ function doPost(e) {
             JSON.stringify(s.buyRules || []),
             JSON.stringify(s.sellRules || []),
             s.updatedAt || '-',
-            currentId === activeSlotId ? "적용중 (ACTIVE)" : ""
+            currentId === activeSlotId ? "적용중 (ACTIVE)" : "",
+            s.priorityIndicator || "",
+            s.priorityOrder || "",
+            s.maxBuyCount !== null && s.maxBuyCount !== undefined ? s.maxBuyCount : ""
           ];
         });
-        sheet.getRange(2, 1, rows.length, 16).setValues(rows);
+        sheet.getRange(2, 1, rows.length, 19).setValues(rows);
         PropertiesService.getScriptProperties().setProperty("STRATEGY_SLOTS_JSON", JSON.stringify(data.slots));
       }
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
@@ -682,8 +689,13 @@ function syncActiveStrategyToSheet(slotId) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   setupSheets();
   const sheet = ss.getSheetByName("Strategy_Slots");
-  if (sheet) {
-    sheet.getRange("N1").setValue("IsActive").setFontWeight("bold").setBackground("#dbeafe");
+  if (sheet && sheet.getLastRow() >= 1) {
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    let isActiveColIdx = headers.indexOf("IsActive") + 1;
+    if (isActiveColIdx <= 0) {
+      isActiveColIdx = 16;
+      sheet.getRange(1, isActiveColIdx).setValue("IsActive").setFontWeight("bold").setBackground("#dbeafe");
+    }
     const lastRow = sheet.getLastRow();
     if (lastRow > 1) {
       const activeFlags = [];
@@ -691,7 +703,7 @@ function syncActiveStrategyToSheet(slotId) {
         const rowId = parseInt(sheet.getRange(i, 1).getValue(), 10);
         activeFlags.push([rowId === targetId ? "적용중 (ACTIVE)" : ""]);
       }
-      sheet.getRange(2, 14, activeFlags.length, 1).setValues(activeFlags);
+      sheet.getRange(2, isActiveColIdx, activeFlags.length, 1).setValues(activeFlags);
     }
   }
 }

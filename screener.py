@@ -809,8 +809,32 @@ if __name__ == "__main__":
                     buy_candidates.append(buy_item)
                     print(f"  🔥 [BUY SIGNAL] [{market}] {buy_item['name']} ({buy_item['ticker']}) - {buy_item['priority']} | ADX: {buy_item['adx']} | RSI: {buy_item['rsi']}")
 
-    # Sort buy candidates by priority score
-    buy_candidates.sort(key=lambda x: x['score'], reverse=True)
+    # Sort buy candidates based on active strategy priority indicator
+    priority_ind = active_slot.get('priorityIndicator', '') if active_slot else ''
+    priority_ord = active_slot.get('priorityOrder', 'DESC') if active_slot else 'DESC'
+
+    if not priority_ind:
+        # Default fallback for ranking display: sort by volume_ratio descending
+        priority_ind = 'volume_ratio'
+        priority_ord = 'DESC'
+
+    def get_sort_value(cand):
+        val = cand.get(priority_ind)
+        if val is None:
+            return -999999 if priority_ord == 'DESC' else 999999
+        try:
+            return float(val)
+        except (ValueError, TypeError):
+            return -999999 if priority_ord == 'DESC' else 999999
+
+    reverse_sort = (priority_ord == 'DESC')
+    buy_candidates.sort(key=get_sort_value, reverse=reverse_sort)
+
+    # Assign priority rank (1-indexed)
+    for idx, cand in enumerate(buy_candidates):
+        cand['priority_rank'] = idx + 1
+        cand['score'] = idx + 1  # Map to score for compatibility
+
     print(f" -> Found {len(buy_candidates)} buy candidate stocks across KOSPI 200 & KOSDAQ 150.")
     print(f" -> Calculated indicators for KOSPI 200 ({len(kospi_stocks)}) and KOSDAQ 150 ({len(kosdaq_stocks)}).")
 

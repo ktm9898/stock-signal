@@ -835,8 +835,9 @@
         <table class="buy-signals-table">
           <colgroup>
             <col style="width: 75px;">
-            <col style="width: 155px;">
-            <col style="width: 75px;">
+            <col style="width: 135px;">
+            <col style="width: 65px;">
+            <col style="width: 65px;">
             <col style="width: 54px;">
             <col style="width: 54px;">
             <col style="width: 54px;">
@@ -850,6 +851,7 @@
             <tr>
               <th>포착 일시</th>
               <th>종목</th>
+              <th>신호</th>
               <th>우선순위</th>
               <th>ADX</th>
               <th>-DI</th>
@@ -1234,6 +1236,9 @@
       endDate: "",
       scaleInDrop: null,
       scaleInMultiplier: null,
+      priorityIndicator: "",
+      priorityOrder: "",
+      maxBuyCount: null,
       stopLoss: null,
       takeProfit: null,
       tradeAmount: 1000000,
@@ -1486,6 +1491,10 @@
             <div style="font-size:0.68rem; color:#64748b;">쿨다운</div>
             <div style="font-weight:700; font-size:0.80rem; color:#0284c7;">${cooldownText}</div>
           </div>
+        </div>
+        <div style="border-top:1px solid #e2e8f0; padding-top:10px; margin-top:10px; display:flex; justify-content:space-between; font-size:0.75rem; color:#64748b;">
+          <div>우선순위: <span style="font-weight:700; color:#475569;">${slot.priorityIndicator ? slot.priorityIndicator.toUpperCase() + ' (' + (slot.priorityOrder === 'DESC' ? '내림차순' : '오름차순') + ')' : '없음'}</span></div>
+          <div>최대 매수: <span style="font-weight:700; color:#475569;">${slot.maxBuyCount ? slot.maxBuyCount + '개' : '무제한'}</span></div>
         </div>
       `;
     }
@@ -2516,7 +2525,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         timeLabel = formatShortDate(lastLog.Timestamp || lastLog.date || '');
       }
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--text-sub); padding:32px 20px; font-size:0.9rem;">
+        tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; color:var(--text-sub); padding:32px 20px; font-size:0.9rem;">
           <i class="fa-regular fa-circle-check" style="margin-right:6px; color:#22c55e;"></i>
           ${timeLabel ? `[${timeLabel}] ` : ''}전체 350개 종목 검사 완료. 현재 선택된 전략 조건에 부합하는 매수 신호 종목이 없습니다.
         </td></tr>`;
@@ -2541,6 +2550,57 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         if (!alreadyExists) {
           uniqueList.push(item);
         }
+      });
+
+      // Group and rank candidates by date
+      const activeSlot = strategySlots[currentActiveStrategySlotIndex] || strategySlots[0] || DEFAULT_STRATEGY_PRESETS[0];
+      const indicator = activeSlot.priorityIndicator || 'volume_ratio';
+      const order = activeSlot.priorityOrder || 'DESC';
+
+      function getIndicatorValue(item, ind) {
+        if (ind === 'volume_ratio' || ind === 'VolumeRatio') {
+          const rawVR = (item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr)));
+          return Number(rawVR !== undefined && rawVR !== null && rawVR !== '' && !isNaN(Number(rawVR)) ? rawVR : 0);
+        }
+        if (ind === 'rsi' || ind === 'RSI') {
+          return Number(item.RSI !== undefined ? item.RSI : (item.rsi || 50));
+        }
+        if (ind === 'adx' || ind === 'ADX') {
+          return Number(item.ADX !== undefined ? item.ADX : (item.adx || 0));
+        }
+        if (ind === 'minus_di' || ind === 'Minus_DI' || ind === 'minusDi') {
+          return Number(item.Minus_DI !== undefined ? item.Minus_DI : (item.minus_di !== undefined ? item.minus_di : (item.minusDi || 0)));
+        }
+        if (ind === 'plus_di' || ind === 'Plus_DI' || ind === 'plusDi') {
+          return Number(item.Plus_DI !== undefined ? item.Plus_DI : (item.plus_di !== undefined ? item.plus_di : (item.plusDi || 0)));
+        }
+        if (ind === 'b_band_pct' || ind === 'BB_Pct') {
+          const rawBB = (item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']));
+          return Number(rawBB !== undefined && rawBB !== null && rawBB !== '' && !isNaN(Number(rawBB)) ? rawBB : 0.5);
+        }
+        if (ind === 'close' || ind === 'ClosePrice') {
+          return Number(item.ClosePrice || item.price || item.close || 0);
+        }
+        return 0;
+      }
+
+      const dateGroups = {};
+      uniqueList.forEach(item => {
+        const dateStr = formatDateOnly(item.Date || item.date || item.Timestamp);
+        if (!dateGroups[dateStr]) dateGroups[dateStr] = [];
+        dateGroups[dateStr].push(item);
+      });
+
+      Object.keys(dateGroups).forEach(dateStr => {
+        const arr = dateGroups[dateStr];
+        arr.sort((a, b) => {
+          const valA = getIndicatorValue(a, indicator);
+          const valB = getIndicatorValue(b, indicator);
+          return order === 'DESC' ? valB - valA : valA - valB;
+        });
+        arr.forEach((item, idx) => {
+          item.computed_rank = idx + 1;
+        });
       });
 
       const reversedList = [...uniqueList].reverse();
@@ -2581,11 +2641,14 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
         const reason = (item.Reason || item.reason || item.Notes || item.notes || `ADX: ${formatDec(item.ADX || item.adx)}, -DI: ${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}, RSI: ${formatDec(item.RSI || item.rsi)}, 볼린저%b: ${bBandPctStr}, VR: ${vrStr} 조건 충족`).replace(/'/g, "\\'");
 
+        const rankText = item.computed_rank ? `${item.computed_rank}순위` : '-';
+
         return `
           <tr>
             <td style="text-align:center;"><span style="color:var(--text-sub); font-size:0.85rem; font-weight:500;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
             <td style="padding-left: 16px;"><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
             <td style="text-align:center;"><span class="badge ${tierClass}" onclick="showDetailsModal('${name}', '${stageText}', '${reason}', '${tierClass}')" title="클릭 시 포착 사유 확인">${stageText}</span></td>
+            <td style="text-align:center;"><span style="font-size:0.85rem; font-weight:700; color:#475569;">${rankText}</span></td>
             <td style="text-align:center;"><strong style="color:var(--accent-cyan);">${formatDec(item.ADX || item.adx)}</strong></td>
             <td style="text-align:center;">${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}</td>
             <td style="text-align:center;">${formatDec(item.Plus_DI || item.plus_di || item.plusDi)}</td>

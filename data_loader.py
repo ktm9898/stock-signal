@@ -507,6 +507,23 @@ def build_10y_split_datasets(candle_count=2600):
     print(f"[DONE] Complete 10-year dual dataset generated successfully! Total size: {total_mb:.2f} MB (both files safely < 50MB)")
     return kospi_payload, kosdaq_payload
 
+def load_5y_history_cache():
+    """Load cached 5-year historical dataset from Parquet or CSV."""
+    if os.path.exists(CACHE_FILE):
+        try:
+            return pd.read_parquet(CACHE_FILE)
+        except Exception:
+            pass
+    if os.path.exists(CACHE_CSV):
+        try:
+            df = pd.read_csv(CACHE_CSV)
+            if 'Date' in df.columns:
+                df['Date'] = pd.to_datetime(df['Date'])
+            return df
+        except Exception:
+            pass
+    return build_5y_history_cache()
+
 def build_stocks_350_real_json(output_path=None):
     """Legacy builder wrapper for backwards compatibility."""
     return build_10y_split_datasets()

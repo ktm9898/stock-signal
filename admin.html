@@ -1993,6 +1993,10 @@
         document.getElementById('kpi-single-grid').style.display = 'grid';
         document.getElementById('kpi-compare-grid').style.display = 'none';
 
+        const priorityIndicatorVal = document.getElementById('opt-priority-indicator')?.value || "";
+        const priorityOrderVal = document.getElementById('opt-priority-order')?.value || "DESC";
+        const maxBuyCountVal = document.getElementById('opt-max-buy-count')?.value ? parseInt(document.getElementById('opt-max-buy-count').value, 10) : null;
+
         const allExecutedTrades = simulateTradesForRules(
           currentBuyGroups,
           currentSellGroups,
@@ -2006,7 +2010,10 @@
           endDateStr,
           tradeAmount,
           scaleInDropVal,
-          scaleInMultVal
+          scaleInMultVal,
+          priorityIndicatorVal,
+          priorityOrderVal,
+          maxBuyCountVal
         );
 
         allExecutedTrades.forEach((t, idx) => t._origIdx = idx + 1);
@@ -3397,7 +3404,7 @@
       }
     }
 
-    function simulateTradesForRules(buyRules, sellRules, buyOp, sellOp, stopLoss, takeProfit, cooldownDays, market, startDateStr, endDateStr, tradeAmount, scaleInDrop, scaleInMultiplier) {
+    function simulateTradesForRules(buyRules, sellRules, buyOp, sellOp, stopLoss, takeProfit, cooldownDays, market, startDateStr, endDateStr, tradeAmount, scaleInDrop, scaleInMultiplier, priorityIndicator, priorityOrder, maxBuyCount) {
       if (!REAL_PRELOADED_DATA) return [];
       const allExecutedTrades = [];
       const feeRate = 0.0015 + 0.0010;
@@ -3408,6 +3415,14 @@
 
       const normalizedBuyGroups = normalizeRulesToGroups(buyRules, 'buy');
       const normalizedSellGroups = normalizeRulesToGroups(sellRules, 'sell');
+
+      const maxBuys = (maxBuyCount !== null && maxBuyCount !== undefined && maxBuyCount !== "") ? parseInt(maxBuyCount, 10) : null;
+      const prInd = priorityIndicator || "";
+      const prOrd = priorityOrder || "DESC";
+
+      // 1. Prepare chronological stock data and signal masks
+      const stocks = [];
+      const allDatesSet = new Set();
 
       tickers.forEach(ticker => {
         if (ticker === '069500' || ticker === 'KOSPI' || ticker === 'KOSDAQ') return;
@@ -3422,106 +3437,144 @@
         const rows = allRows.filter(r => r.date >= startDateStr && r.date <= endDateStr);
         if (rows.length < 5) return;
 
-        let inPosition = false;
-        let initialBuyPrice = 0;
-        let avgPrice = 0;
-        let entryDate = "";
-        let entrySignalDate = "";
-        let lastStopLossDate = "";
-        let hasScaleIn = false;
-        let scaleInDate = "";
-        let scaleInPrice = 0;
-        let scaleInSignalDate = "";
-        let totalInvested = tradeAmount;
-        let totalQty = 0;
+        // Calculate buy/sell signals on each day
+        const buySignals = new Array(rows.length).fill(false);
+        const sellSignals = new Array(rows.length).fill(false);
 
-        for (let i = 0; i < rows.length - 1; i++) {
+        for (let i = 0; i < rows.length; i++) {
           const curr = rows[i];
-          const nextDay = rows[i + 1];
+          const prev = rows[i - 1] || null;
+          
+          buySignals[i] = normalizedBuyGroups.length > 0 && normalizedBuyGroups.some(group => 
+            group.rules && group.rules.length > 0 && group.rules.every(r => checkSingleRule(r, curr, prev))
+          );
+          sellSignals[i] = normalizedSellGroups.length > 0 && normalizedSellGroups.some(group => 
+            group.rules && group.rules.length > 0 && group.rules.every(r => checkSingleRule(r, curr, prev, { avgPrice: curr.close, buyPrice: curr.close }))
+          );
+          allDatesSet.add(curr.date);
+        }
 
-          let isCooldown = false;
-          if (cooldownVal > 0 && lastStopLossDate) {
-            const diffDays = Math.round((new Date(curr.date) - new Date(lastStopLossDate)) / (1000 * 60 * 60 * 24));
-            if (diffDays < cooldownVal) {
-              isCooldown = true;
-            }
-          }
+        stocks.push({
+          ticker: ticker,
+          name: stockInfo.name,
+          market: stockInfo.market,
+          rows: rows,
+          buySignals: buySignals,
+          sellSignals: sellSignals
+        });
+      });
 
-          const isBuySignal = !isCooldown && normalizedBuyGroups.length > 0 && normalizedBuyGroups.some(group => 
-            group.rules && group.rules.length > 0 && group.rules.every(r => checkSingleRule(r, curr, rows[i - 1]))
+      const sortedDates = Array.from(allDatesSet).sort();
+      const dateToIndexMap = {};
+      sortedDates.forEach((d, idx) => { dateToIndexMap[d] = idx; });
+
+      // Track active positions: ticker -> position
+      const activePositions = {};
+      const lastStopLossDates = {}; // ticker -> last stop loss date string
+
+      function getIndicatorValue(item, ind) {
+        if (!item) return 0;
+        if (ind === 'volume_ratio' || ind === 'VolumeRatio') {
+          return Number(item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : (item.vr || 0))));
+        }
+        if (ind === 'rsi' || ind === 'RSI') {
+          return Number(item.RSI !== undefined ? item.RSI : (item.rsi || 50));
+        }
+        if (ind === 'adx' || ind === 'ADX') {
+          return Number(item.ADX !== undefined ? item.ADX : (item.adx || 0));
+        }
+        if (ind === 'minus_di' || ind === 'Minus_DI' || ind === 'minusDi') {
+          return Number(item.Minus_DI !== undefined ? item.Minus_DI : (item.minus_di !== undefined ? item.minus_di : (item.minusDi || 0)));
+        }
+        if (ind === 'plus_di' || ind === 'Plus_DI' || ind === 'plusDi') {
+          return Number(item.Plus_DI !== undefined ? item.Plus_DI : (item.plus_di !== undefined ? item.plus_di : (item.plusDi || 0)));
+        }
+        if (ind === 'b_band_pct' || ind === 'BB_Pct') {
+          const rawBB = (item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : (item['BB_%b'] || 0.5)));
+          return Number(rawBB);
+        }
+        if (ind === 'close' || ind === 'ClosePrice') {
+          return Number(item.close || item.ClosePrice || 0);
+        }
+        return 0;
+      }
+
+      // 2. Day-by-Day chronological simulation
+      for (let dayIdx = 0; dayIdx < sortedDates.length - 1; dayIdx++) {
+        const currDateStr = sortedDates[dayIdx];
+        const nextDateStr = sortedDates[dayIdx + 1];
+
+        // A. Evaluate Exits on currDate close -> Exit nextDate open
+        stocks.forEach(s => {
+          const pos = activePositions[s.ticker];
+          if (!pos) return;
+
+          // Find row for currDate
+          const sRowIdx = s.rows.findIndex(r => r.date === currDateStr);
+          if (sRowIdx < 0) return;
+          const currRow = s.rows[sRowIdx];
+          const nextRow = s.rows[sRowIdx + 1];
+          if (!nextRow || nextRow.open <= 0) return;
+
+          const currClose = currRow.close;
+          const paperReturnPct = ((currClose - pos.avgPrice) / pos.avgPrice) * 100;
+          let isExit = false;
+          let triggerType = "SIGNAL";
+
+          const isSellSignal = normalizedSellGroups.length > 0 && normalizedSellGroups.some(group => 
+            group.rules && group.rules.length > 0 && group.rules.every(r => checkSingleRule(r, currRow, s.rows[sRowIdx - 1], { avgPrice: pos.avgPrice, buyPrice: pos.initialBuyPrice }))
           );
 
-          if (!inPosition) {
-            if (isBuySignal && nextDay.open > 0) {
-              inPosition = true;
-              initialBuyPrice = nextDay.open * (1 + feeRate);
-              avgPrice = initialBuyPrice;
-              entrySignalDate = curr.date;
-              entryDate = nextDay.date;
-              hasScaleIn = false;
-              scaleInDate = "";
-              scaleInPrice = 0;
-              scaleInSignalDate = "";
-              totalInvested = tradeAmount;
-              totalQty = tradeAmount / initialBuyPrice;
-            }
+          if (stopLoss !== null && stopLoss !== undefined && stopLoss !== "" && paperReturnPct <= -Math.abs(Number(stopLoss))) {
+            isExit = true;
+            triggerType = "STOP_LOSS";
+            lastStopLossDates[s.ticker] = nextDateStr;
+          } else if (takeProfit !== null && takeProfit !== undefined && takeProfit !== "" && paperReturnPct >= Math.abs(Number(takeProfit))) {
+            isExit = true;
+            triggerType = "TAKE_PROFIT";
+          } else if (isSellSignal) {
+            isExit = true;
+            triggerType = "SIGNAL";
+          }
+
+          if (isExit) {
+            const exitPrice = nextRow.open * (1 - feeRate);
+            const actualReturnPct = ((exitPrice - pos.avgPrice) / pos.avgPrice) * 100;
+            const actualNetProfit = (exitPrice * pos.totalQty) - pos.totalInvested;
+            const holdingDays = Math.max(1, Math.round((new Date(nextDateStr) - new Date(pos.entryDate)) / (1000 * 60 * 60 * 24)));
+
+            let exitReason = "매도전략";
+            if (triggerType === "STOP_LOSS") exitReason = "손절신호";
+            else if (triggerType === "TAKE_PROFIT") exitReason = "익절신호";
+            if (pos.hasScaleIn) exitReason += " (물타기)";
+
+            allExecutedTrades.push({
+              ticker: s.ticker,
+              name: s.name,
+              market: s.market,
+              signalDate: pos.entrySignalDate,
+              entryDate: pos.entryDate,
+              entryPrice: Math.round(pos.initialBuyPrice),
+              avgPrice: Math.round(pos.avgPrice),
+              hasScaleIn: pos.hasScaleIn,
+              scaleInDate: pos.scaleInDate,
+              scaleInPrice: Math.round(pos.scaleInPrice),
+              scaleInMult: scaleMultVal,
+              totalInvested: Math.round(pos.totalInvested),
+              exitDate: nextDateStr,
+              exitPrice: Math.round(exitPrice),
+              returnPct: parseFloat(actualReturnPct.toFixed(2)),
+              netProfit: Math.round(actualNetProfit),
+              holdingDays: holdingDays,
+              reason: exitReason,
+              win: actualReturnPct >= 0
+            });
+            delete activePositions[s.ticker];
           } else {
-            const currClose = curr.close;
-
-            // Check Scale-In condition on current day close (vs initial entry price)
-            let isScaleInSignal = false;
-            if (!hasScaleIn && scaleDropVal !== null && scaleDropVal > 0) {
-              const returnVsInitial = ((currClose - initialBuyPrice) / initialBuyPrice) * 100;
+            // Check Scale-In condition on currDate close (vs initial entry price)
+            if (!pos.hasScaleIn && scaleDropVal !== null && scaleDropVal > 0) {
+              const returnVsInitial = ((currClose - pos.initialBuyPrice) / pos.initialBuyPrice) * 100;
               if (returnVsInitial <= -scaleDropVal) {
-                isScaleInSignal = true;
-              }
-            }
-
-            // Check Exit conditions on current day close (vs current avg price)
-            const paperReturnPct = ((currClose - avgPrice) / avgPrice) * 100;
-            let isExit = false;
-            let triggerType = "SIGNAL";
-
-            const isSellSignal = normalizedSellGroups.length > 0 && normalizedSellGroups.some(group => 
-              group.rules && group.rules.length > 0 && group.rules.every(r => checkSingleRule(r, curr, rows[i - 1], { avgPrice: avgPrice, buyPrice: initialBuyPrice }))
-            );
-
-            if (stopLoss !== null && stopLoss !== undefined && stopLoss !== "" && paperReturnPct <= -Math.abs(Number(stopLoss))) {
-              isExit = true;
-              triggerType = "STOP_LOSS";
-              lastStopLossDate = nextDay.date;
-            } else if (takeProfit !== null && takeProfit !== undefined && takeProfit !== "" && paperReturnPct >= Math.abs(Number(takeProfit))) {
-              isExit = true;
-              triggerType = "TAKE_PROFIT";
-            } else if (isSellSignal) {
-              isExit = true;
-              triggerType = "SIGNAL";
-            }
-
-            if (isExit && nextDay.open > 0) {
-              const exitPrice = nextDay.open * (1 - feeRate);
-              const actualReturnPct = ((exitPrice - avgPrice) / avgPrice) * 100;
-              const actualNetProfit = (exitPrice * totalQty) - totalInvested;
-              const d1 = new Date(entryDate);
-              const d2 = new Date(nextDay.date);
-              const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
-
-              let exitReason = "매도전략";
-              if (triggerType === "STOP_LOSS") exitReason = "손절신호";
-              else if (triggerType === "TAKE_PROFIT") exitReason = "익절신호";
-              if (hasScaleIn) exitReason += " (물타기)";
-
-              allExecutedTrades.push({
-                ticker: ticker,
-                name: stockInfo.name,
-                market: stockInfo.market,
-                signalDate: entrySignalDate,
-                entryDate: entryDate,
-                entryPrice: Math.round(initialBuyPrice),
-                avgPrice: Math.round(avgPrice),
-                hasScaleIn: hasScaleIn,
-                scaleInDate: scaleInDate,
-                scaleInPrice: Math.round(scaleInPrice),
                 scaleInMult: scaleMultVal,
                 totalInvested: Math.round(totalInvested),
                 exitDate: nextDay.date,
@@ -3697,7 +3750,10 @@
           endDateStr, 
           tradeAmount,
           slotScaleInDrop,
-          slotScaleInMult
+          slotScaleInMult,
+          slot.priorityIndicator || priorityIndicatorVal,
+          slot.priorityOrder || priorityOrderVal,
+          (slot.maxBuyCount !== undefined && slot.maxBuyCount !== null && slot.maxBuyCount !== "") ? slot.maxBuyCount : maxBuyCountVal
         );
 
         let dailyEngagedCapitalSum = 0;

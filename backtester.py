@@ -160,9 +160,29 @@ def evaluate_rule_group(df, group_config):
             res = res & m
     return res
 
+def evaluate_strategy_rules(df, rules_groups):
+    """
+    Evaluate multiple groups of rules (buyRules or sellRules array).
+    Groups are combined with OR (any group matches), rules within each group are combined with AND (all rules match).
+    """
+    if not rules_groups:
+        return pd.Series(False, index=df.index)
+    
+    combined = pd.Series(False, index=df.index)
+    for group in rules_groups:
+        rules = group.get("rules", [])
+        if not rules:
+            continue
+        group_mask = pd.Series(True, index=df.index)
+        for r in rules:
+            m = evaluate_single_rule(df, r)
+            group_mask = group_mask & m
+        combined = combined | group_mask
+    return combined
+
 def run_backtest_simulation(history_df=None, strategy=None, start_date=None, end_date=None):
     """
-    Run realistic portfolio backtest across 350 components.
+    Run realistic portfolio backtest across 350 components day-by-day.
     Execution: Signal generated on Day t (Close) -> Enter/Exit on Day t+1 (Open).
     """
     if history_df is None:
@@ -175,18 +195,44 @@ def run_backtest_simulation(history_df=None, strategy=None, start_date=None, end
         strategy = DEFAULT_STRATEGY
 
     execution = strategy.get("execution", {})
-    fee_rate = float(execution.get("fee_pct", 0.15)) / 100.0
-    slippage_rate = float(execution.get("slippage_pct", 0.1)) / 100.0
-    total_cost_per_trade = fee_rate + slippage_rate  # applied on entry and exit
-    
-    raw_sl = execution.get("stop_loss_pct")
-    raw_tp = execution.get("take_profit_pct")
+    fee_rate = float(execution.get("fee_pct", strategy.get("fee_pct", 0.15))) / 100.0
+    slippage_rate = float(execution.get("slippage_pct", strategy.get("slippage_pct", 0.1))) / 100.0
+    total_cost_per_trade = fee_rate + slippage_rate
+
+    raw_sl = strategy.get("stopLoss", strategy.get("stop_loss", execution.get("stop_loss_pct")))
+    raw_tp = strategy.get("takeProfit", strategy.get("take_profit", execution.get("take_profit_pct")))
     stop_loss_pct = float(raw_sl) if (raw_sl is not None and str(raw_sl).strip() != "") else None
     take_profit_pct = float(raw_tp) if (raw_tp is not None and str(raw_tp).strip() != "") else None
 
-    init_capital = float(execution.get("initial_capital", 10000000))
-    buy_config = strategy.get("buy_conditions", {})
-    sell_config = strategy.get("sell_conditions", {})
+    cooldown_days = strategy.get("cooldownDays", strategy.get("cooldown_days", execution.get("cooldown_days", 0)))
+    if cooldown_days is not None and str(cooldown_days).strip() != "":
+        cooldown_days = int(cooldown_days)
+    else:
+        cooldown_days = 0
+
+    scale_in_drop = strategy.get("scaleInDrop", strategy.get("scale_in_drop"))
+    if scale_in_drop is not None and str(scale_in_drop).strip() != "":
+        scale_in_drop = float(scale_in_drop)
+    else:
+        scale_in_drop = None
+
+    scale_in_mult = strategy.get("scaleInMultiplier", strategy.get("scale_in_multiplier"))
+    if scale_in_mult is not None and str(scale_in_mult).strip() != "":
+        scale_in_mult = float(scale_in_mult)
+    else:
+        scale_in_mult = 1.0
+
+    priority_indicator = strategy.get("priorityIndicator", strategy.get("priority_indicator", ""))
+    priority_order = strategy.get("priorityOrder", strategy.get("priority_order", "DESC"))
+    
+    max_buy_count = strategy.get("maxBuyCount", strategy.get("max_buy_count"))
+    if max_buy_count is not None and str(max_buy_count).strip() != "":
+        max_buy_count = int(max_buy_count)
+    else:
+        max_buy_count = None
+
+    init_capital = float(strategy.get("tradeAmount", strategy.get("trade_amount", execution.get("trade_amount", execution.get("initial_capital", 1000000)))))
+    trade_amount = init_capital
 
     # Ensure Date sorting
     if 'Date' in history_df.columns:
@@ -197,8 +243,11 @@ def run_backtest_simulation(history_df=None, strategy=None, start_date=None, end
     if end_date:
         history_df = history_df[history_df['Date'] <= pd.to_datetime(end_date)]
 
-    all_trades = []
     unique_tickers = history_df['Ticker'].unique()
+
+    # 1. Evaluate buy/sell masks for each stock and prepare data
+    stocks = []
+    all_dates_set = set()
 
     for ticker in unique_tickers:
         stock_df = history_df[history_df['Ticker'] == ticker].sort_values('Date').copy()
@@ -210,77 +259,275 @@ def run_backtest_simulation(history_df=None, strategy=None, start_date=None, end
         market = stock_df['Market'].iloc[0] if 'Market' in stock_df.columns else "KOSPI200"
 
         # Generate signals
-        buy_mask = evaluate_rule_group(stock_df, buy_config)
-        sell_mask = evaluate_rule_group(stock_df, sell_config)
+        if "buyRules" in strategy or "buy_rules" in strategy:
+            buy_mask = evaluate_strategy_rules(stock_df, strategy.get("buyRules", strategy.get("buy_rules")))
+        else:
+            buy_mask = evaluate_rule_group(stock_df, strategy.get("buy_conditions", {}))
 
-        in_position = False
-        entry_idx = 0
-        entry_price = 0.0
-        entry_signal_date = None
-        entry_exec_date = None
+        if "sellRules" in strategy or "sell_rules" in strategy:
+            sell_mask = evaluate_strategy_rules(stock_df, strategy.get("sellRules", strategy.get("sell_rules")))
+        else:
+            sell_mask = evaluate_rule_group(stock_df, strategy.get("sell_conditions", {}))
 
-        n_candles = len(stock_df)
-        for i in range(n_candles - 1):  # iterate up to n-2 so i+1 (next day open) is valid
-            curr_row = stock_df.iloc[i]
-            next_row = stock_df.iloc[i + 1]
+        # Add dates to global timeline
+        for d in stock_df['Date']:
+            all_dates_set.add(d)
 
-            if not in_position:
-                # Check Buy Signal on Day i -> Buy on Day i+1 Open
-                if buy_mask.iloc[i]:
-                    raw_open = next_row['시가']
-                    if raw_open > 0:
-                        in_position = True
-                        entry_idx = i + 1
-                        entry_price = raw_open * (1.0 + total_cost_per_trade)
-                        entry_signal_date = curr_row['Date']
-                        entry_exec_date = next_row['Date']
+        stocks.append({
+            "ticker": ticker,
+            "name": name,
+            "market": market,
+            "df": stock_df,
+            "buy_mask": buy_mask,
+            "sell_mask": sell_mask
+        })
+
+    sorted_dates = sorted(list(all_dates_set))
+    date_str_list = [d.strftime("%Y-%m-%d") for d in sorted_dates]
+
+    # Map stock dfs to Date -> row index for O(1) lookup
+    for s in stocks:
+        s_df = s['df']
+        s['date_to_idx'] = dict(zip(s_df['Date'], s_df.index))
+
+    # Helper function to get indicator value from stock row
+    def get_indicator_value(row, ind):
+        if row is None:
+            return 0.0
+        ind_lower = ind.lower()
+        if ind_lower in ['volume_ratio', 'volumeratio', 'vr']:
+            val = row.get('VolumeRatio', row.get('volume_ratio', row.get('vr', row.get('VR', 0.0))))
+        elif ind_lower in ['rsi']:
+            val = row.get('RSI', row.get('rsi', 50.0))
+        elif ind_lower in ['adx']:
+            val = row.get('ADX', row.get('adx', 0.0))
+        elif ind_lower in ['minus_di', 'minusdi', 'minus_di']:
+            val = row.get('Minus_DI', row.get('minus_di', row.get('minusDi', 0.0)))
+        elif ind_lower in ['plus_di', 'plusdi', 'plus_di']:
+            val = row.get('Plus_DI', row.get('plus_di', row.get('plusDi', 0.0)))
+        elif ind_lower in ['b_band_pct', 'bb_pct', 'bb_%b']:
+            val = row.get('b_band_pct', row.get('BB_Pct', row.get('BB_%b', 0.5)))
+        elif ind_lower in ['close', 'closeprice']:
+            val = row.get('종가', row.get('ClosePrice', row.get('close', 0.0)))
+        else:
+            val = row.get(ind, 0.0)
+        try:
+            return float(val) if pd.notna(val) else 0.0
+        except (ValueError, TypeError):
+            return 0.0
+
+    active_positions = {}  # ticker -> pos_info
+    last_stop_loss_dates = {}  # ticker -> date_str
+    all_trades = []
+    daily_exposures = []
+
+    # 2. Day-by-Day Portfolio Simulation
+    for day_idx in range(len(sorted_dates) - 1):
+        curr_date = sorted_dates[day_idx]
+        next_date = sorted_dates[day_idx + 1]
+        curr_date_str = curr_date.strftime("%Y-%m-%d")
+        next_date_str = next_date.strftime("%Y-%m-%d")
+
+        # A. Evaluate Exits on curr_date close -> exit on next_date open
+        for s in stocks:
+            ticker = s['ticker']
+            pos = active_positions.get(ticker)
+            if not pos:
+                continue
+
+            curr_idx = s['date_to_idx'].get(curr_date)
+            next_idx = s['date_to_idx'].get(next_date)
+            if curr_idx is None or next_idx is None:
+                continue
+
+            curr_row = s['df'].iloc[curr_idx]
+            next_row = s['df'].iloc[next_idx]
+
+            raw_open = next_row['시가']
+            if raw_open <= 0:
+                continue
+
+            curr_close = curr_row['종가']
+            paper_return_pct = ((curr_close - pos['avg_price']) / pos['avg_price']) * 100.0
+
+            is_exit = False
+            exit_reason = "매도전략"
+
+            # Check SL/TP
+            if stop_loss_pct is not None and paper_return_pct <= -abs(stop_loss_pct):
+                is_exit = True
+                exit_reason = f"손절 (-{abs(stop_loss_pct):.1f}%)"
+                last_stop_loss_dates[ticker] = next_date_str
+            elif take_profit_pct is not None and paper_return_pct >= abs(take_profit_pct):
+                is_exit = True
+                exit_reason = f"익절 (+{abs(take_profit_pct):.1f}%)"
+            elif s['sell_mask'].iloc[curr_idx]:
+                is_exit = True
+                exit_reason = "매도전략"
+
+            if is_exit:
+                actual_exit_price = raw_open * (1.0 - total_cost_per_trade)
+                ret_pct = ((actual_exit_price - pos['avg_price']) / pos['avg_price']) * 100.0
+                net_profit = (actual_exit_price * pos['total_qty']) - pos['total_invested']
+                holding_days = (next_date - pos['entry_date_obj']).days
+
+                if pos['has_scale_in']:
+                    exit_reason += " (물타기)"
+
+                all_trades.append({
+                    "ticker": ticker,
+                    "name": s['name'],
+                    "market": s['market'],
+                    "signal_date": pos['entry_signal_date'],
+                    "entry_date": pos['entry_date'],
+                    "entry_price": int(round(pos['initial_buy_price'])),
+                    "avg_price": int(round(pos['avg_price'])),
+                    "has_scale_in": pos['has_scale_in'],
+                    "scale_in_date": pos['scale_in_date'],
+                    "scale_in_price": int(round(pos['scale_in_price'])),
+                    "scale_in_mult": scale_in_mult,
+                    "total_invested": int(round(pos['total_invested'])),
+                    "exit_date": next_date_str,
+                    "exit_price": int(round(actual_exit_price)),
+                    "return_pct": round(ret_pct, 2),
+                    "net_profit": int(round(net_profit)),
+                    "holding_days": max(1, holding_days),
+                    "exit_reason": exit_reason,
+                    "win": ret_pct > 0
+                })
+                del active_positions[ticker]
             else:
-                # We are in position. Check Exit conditions on Day i:
-                curr_close = curr_row['종가']
-                paper_return_pct = ((curr_close - entry_price) / entry_price) * 100.0
+                # Check scale-in on curr_date close
+                if not pos['has_scale_in'] and scale_in_drop is not None and scale_in_drop > 0:
+                    ret_vs_initial = ((curr_close - pos['initial_buy_price']) / pos['initial_buy_price']) * 100.0
+                    if ret_vs_initial <= -scale_in_drop:
+                        pos['has_scale_in'] = True
+                        pos['scale_in_date'] = next_date_str
+                        pos['scale_in_price'] = raw_open * (1.0 + total_cost_per_trade)
+                        add_invested = trade_amount * scale_in_mult
+                        add_qty = add_invested / pos['scale_in_price']
+                        pos['total_invested'] += add_invested
+                        pos['total_qty'] += add_qty
+                        pos['avg_price'] = pos['total_invested'] / pos['total_qty']
 
-                is_exit = False
-                exit_reason = "매도신호"
+        # B. Evaluate Entries on curr_date close -> Enter next_date open
+        new_buys = []
+        for s in stocks:
+            ticker = s['ticker']
+            if ticker in active_positions:
+                continue
 
-                # 1. Check Stop Loss trigger on Day i
-                if stop_loss_pct is not None and paper_return_pct <= -abs(stop_loss_pct):
-                    is_exit = True
-                    exit_reason = f"손절 (-{abs(stop_loss_pct):.1f}%)"
+            curr_idx = s['date_to_idx'].get(curr_date)
+            next_idx = s['date_to_idx'].get(next_date)
+            if curr_idx is None or next_idx is None:
+                continue
 
-                # 2. Check Take Profit trigger on Day i
-                elif take_profit_pct is not None and paper_return_pct >= abs(take_profit_pct):
-                    is_exit = True
-                    exit_reason = f"익절 (+{abs(take_profit_pct):.1f}%)"
+            curr_row = s['df'].iloc[curr_idx]
+            next_row = s['df'].iloc[next_idx]
 
-                # 3. Check Technical Sell Signal on Day i
-                elif sell_mask.iloc[i]:
-                    is_exit = True
-                    exit_reason = "매도전략"
+            raw_open = next_row['시가']
+            if raw_open <= 0:
+                continue
 
-                if is_exit:
-                    exit_exec_date = next_row['Date']
-                    raw_exit_open = next_row['시가']
-                    actual_exit_price = raw_exit_open * (1.0 - total_cost_per_trade)
-                    ret_pct = ((actual_exit_price - entry_price) / entry_price) * 100.0
-                    holding_days = (exit_exec_date - entry_exec_date).days
+            last_sl_str = last_stop_loss_dates.get(ticker)
+            if cooldown_days > 0 and last_sl_str:
+                last_sl_dt = pd.to_datetime(last_sl_str)
+                if (curr_date - last_sl_dt).days < cooldown_days:
+                    continue
 
-                    all_trades.append({
-                        "ticker": ticker,
-                        "name": name,
-                        "market": market,
-                        "signal_date": entry_signal_date.strftime("%Y-%m-%d"),
-                        "entry_date": entry_exec_date.strftime("%Y-%m-%d"),
-                        "entry_price": int(round(entry_price)),
-                        "exit_date": exit_exec_date.strftime("%Y-%m-%d"),
-                        "exit_price": int(round(actual_exit_price)),
-                        "return_pct": round(ret_pct, 2),
-                        "holding_days": max(1, holding_days),
-                        "exit_reason": exit_reason,
-                        "win": ret_pct > 0
-                    })
-                    in_position = False
+            if s['buy_mask'].iloc[curr_idx]:
+                new_buys.append({
+                    "stock": s,
+                    "row": curr_row,
+                    "next_row": next_row
+                })
 
-    # Process overall portfolio analytics
+        if new_buys:
+            if max_buy_count is not None and len(new_buys) > max_buy_count:
+                sort_ind = priority_indicator if priority_indicator else "volume_ratio"
+                new_buys.sort(
+                    key=lambda item: get_indicator_value(item['row'], sort_ind),
+                    reverse=(priority_order == "DESC")
+                )
+                new_buys = new_buys[:max_buy_count]
+
+            for item in new_buys:
+                s = item['stock']
+                ticker = s['ticker']
+                raw_open = item['next_row']['시가']
+                initial_buy_price = raw_open * (1.0 + total_cost_per_trade)
+                active_positions[ticker] = {
+                    "ticker": ticker,
+                    "entry_signal_date": curr_date_str,
+                    "entry_date": next_date_str,
+                    "entry_date_obj": next_date,
+                    "initial_buy_price": initial_buy_price,
+                    "avg_price": initial_buy_price,
+                    "has_scale_in": False,
+                    "scale_in_date": "",
+                    "scale_in_price": 0.0,
+                    "total_invested": trade_amount,
+                    "total_qty": trade_amount / initial_buy_price
+                }
+
+        # Log daily exposure weight sum
+        exposure_weight = 0.0
+        for pos in active_positions.values():
+            if pos['has_scale_in']:
+                exposure_weight += (1.0 + scale_in_mult)
+            else:
+                exposure_weight += 1.0
+        daily_exposures.append(exposure_weight)
+
+    # Close remaining open positions at final close price
+    if len(sorted_dates) > 0:
+        final_date = sorted_dates[-1]
+        final_date_str = final_date.strftime("%Y-%m-%d")
+        for s in stocks:
+            ticker = s['ticker']
+            pos = active_positions.get(ticker)
+            if not pos:
+                continue
+
+            final_idx = s['date_to_idx'].get(final_date)
+            if final_idx is None:
+                continue
+
+            final_row = s['df'].iloc[final_idx]
+            final_close = final_row['종가']
+
+            actual_exit_price = final_close * (1.0 - total_cost_per_trade)
+            ret_pct = ((actual_exit_price - pos['avg_price']) / pos['avg_price']) * 100.0
+            net_profit = (actual_exit_price * pos['total_qty']) - pos['total_invested']
+            holding_days = (final_date - pos['entry_date_obj']).days
+
+            exit_reason = "백테스트종료"
+            if pos['has_scale_in']:
+                exit_reason += " (물타기)"
+
+            all_trades.append({
+                "ticker": ticker,
+                "name": s['name'],
+                "market": s['market'],
+                "signal_date": pos['entry_signal_date'],
+                "entry_date": pos['entry_date'],
+                "entry_price": int(round(pos['initial_buy_price'])),
+                "avg_price": int(round(pos['avg_price'])),
+                "has_scale_in": pos['has_scale_in'],
+                "scale_in_date": pos['scale_in_date'],
+                "scale_in_price": int(round(pos['scale_in_price'])),
+                "scale_in_mult": scale_in_mult,
+                "total_invested": int(round(pos['total_invested'])),
+                "exit_date": final_date_str,
+                "exit_price": int(round(actual_exit_price)),
+                "return_pct": round(ret_pct, 2),
+                "net_profit": int(round(net_profit)),
+                "holding_days": max(1, holding_days),
+                "exit_reason": exit_reason,
+                "win": ret_pct > 0
+            })
+
+    # 3. Calculate metrics and final reports
     if not all_trades:
         return {
             "success": True,
@@ -294,68 +541,91 @@ def run_backtest_simulation(history_df=None, strategy=None, start_date=None, end
             "avg_trade_return": 0.0,
             "trades": [],
             "equity_curve": [],
-            "message": "해당 조건으로 체결된 거래 내역이 없습니다. (조건 완화 권장)"
+            "message": "해당 조건으로 체결된 거래 내역이 없습니다."
         }
 
     trades_df = pd.DataFrame(all_trades).sort_values("entry_date").reset_index(drop=True)
-    
     total_trades = len(trades_df)
     win_trades = len(trades_df[trades_df['win'] == True])
     loss_trades = total_trades - win_trades
-    win_rate = (win_trades / total_trades) * 100.0 if total_trades > 0 else 0.0
+    win_rate = (win_trades / total_trades) * 100.0
 
-    gross_profit = trades_df[trades_df['return_pct'] > 0]['return_pct'].sum()
-    gross_loss = abs(trades_df[trades_df['return_pct'] < 0]['return_pct'].sum())
+    avg_exposure_weight = sum(daily_exposures) / len(daily_exposures) if daily_exposures else 0.0
+    average_balance = max(trade_amount, avg_exposure_weight * trade_amount)
+    total_net_profit = sum(t['net_profit'] for t in all_trades)
+    total_return_pct = (total_net_profit / average_balance) * 100.0
+
+    gross_profit = sum(t['net_profit'] for t in all_trades if t['net_profit'] > 0)
+    gross_loss = abs(sum(t['net_profit'] for t in all_trades if t['net_profit'] < 0))
     profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (gross_profit if gross_profit > 0 else 1.0)
 
-    # Build Daily Portfolio Equity Curve
-    all_dates = sorted(history_df['Date'].dt.strftime("%Y-%m-%d").unique())
-    capital = init_capital
-    peak_capital = init_capital
-    max_drawdown = 0.0
+    # Construct equity_curve
+    nav = 100.0
+    peak_nav = 100.0
+    max_nav_dd = 0.0
     equity_curve = []
-
-    # Map daily returns proportionally
-    trades_by_exit_date = {}
-    for t in all_trades:
-        d = t['exit_date']
-        trades_by_exit_date.setdefault(d, []).append(t['return_pct'])
-
-    # Assume max 10 concurrent portfolio positions (10% allocation per trade)
-    allocation_fraction = 0.10
-
-    for d in all_dates:
-        if d in trades_by_exit_date:
-            rets = trades_by_exit_date[d]
-            for r in rets:
-                trade_pnl = (capital * allocation_fraction) * (r / 100.0)
-                capital += trade_pnl
+    
+    price_map = {}
+    for s in stocks:
+        price_map[s['ticker']] = dict(zip(s['df']['Date'].dt.strftime("%Y-%m-%d"), s['df']['종가']))
+    
+    for idx, d_str in enumerate(date_str_list):
+        if idx == 0:
+            equity_curve.append({
+                "date": d_str,
+                "capital": int(round(nav * (average_balance / 100.0))),
+                "return_pct": 0.0,
+                "drawdown": 0.0
+            })
+            continue
         
-        if capital > peak_capital:
-            peak_capital = capital
-        dd = ((peak_capital - capital) / peak_capital) * 100.0
-        if dd > max_drawdown:
-            max_drawdown = dd
-
+        prev_d_str = date_str_list[idx - 1]
+        stock_rets = []
+        
+        for t in all_trades:
+            ticker = t['ticker']
+            e_date = t['entry_date']
+            x_date = t['exit_date']
+            
+            if e_date == d_str and x_date == d_str:
+                stock_rets.append((t['exit_price'] - t['entry_price']) / t['entry_price'])
+            elif e_date == d_str:
+                close_p = price_map.get(ticker, {}).get(d_str, t['entry_price'])
+                stock_rets.append((close_p - t['entry_price']) / t['entry_price'])
+            elif e_date < d_str and x_date > d_str:
+                p_close = price_map.get(ticker, {}).get(prev_d_str, t['entry_price'])
+                c_close = price_map.get(ticker, {}).get(d_str, p_close)
+                if p_close > 0:
+                    stock_rets.append((c_close - p_close) / p_close)
+            elif x_date == d_str:
+                p_close = price_map.get(ticker, {}).get(prev_d_str, t['entry_price'])
+                if p_close > 0:
+                    stock_rets.append((t['exit_price'] - p_close) / p_close)
+        
+        day_ret = sum(stock_rets) / len(stock_rets) if stock_rets else 0.0
+        nav = nav * (1.0 + day_ret)
+        if nav > peak_nav:
+            peak_nav = nav
+        dd = ((peak_nav - nav) / peak_nav) * 100.0 if peak_nav > 0 else 0.0
+        if dd > max_nav_dd:
+            max_nav_dd = dd
+            
         equity_curve.append({
-            "date": d,
-            "capital": int(round(capital)),
-            "return_pct": round(((capital - init_capital) / init_capital) * 100.0, 2),
+            "date": d_str,
+            "capital": int(round(nav * (average_balance / 100.0))),
+            "return_pct": round(nav - 100.0, 2),
             "drawdown": round(dd, 2)
         })
 
-    final_capital = equity_curve[-1]['capital']
-    total_return_pct = ((final_capital - init_capital) / init_capital) * 100.0
-
     # Calculate CAGR
-    start_dt = pd.to_datetime(all_dates[0])
-    end_dt = pd.to_datetime(all_dates[-1])
+    start_dt = sorted_dates[0]
+    end_dt = sorted_dates[-1]
     years = max(0.5, (end_dt - start_dt).days / 365.25)
-    cagr_pct = (((final_capital / init_capital) ** (1.0 / years)) - 1.0) * 100.0 if final_capital > 0 else -100.0
+    cagr_pct = (((nav / 100.0) ** (1.0 / years)) - 1.0) * 100.0 if nav > 0 else -100.0
 
     # Sample down equity curve for fast JSON payload (1 point per 5 trading days + endpoints)
     sampled_curve = [equity_curve[0]]
-    for i in range(1, len(equity_curve) - 1, 3):
+    for i in range(1, len(equity_curve) - 1, 5):
         sampled_curve.append(equity_curve[i])
     sampled_curve.append(equity_curve[-1])
 
@@ -369,11 +639,11 @@ def run_backtest_simulation(history_df=None, strategy=None, start_date=None, end
         "profit_factor": round(profit_factor, 2),
         "total_return_pct": round(total_return_pct, 2),
         "cagr_pct": round(cagr_pct, 2),
-        "mdd_pct": round(max_drawdown, 2),
+        "mdd_pct": round(max_nav_dd, 2),
         "avg_trade_return": round(trades_df['return_pct'].mean(), 2),
         "avg_holding_days": round(trades_df['holding_days'].mean(), 1),
-        "initial_capital": int(init_capital),
-        "final_capital": int(final_capital),
+        "initial_capital": int(round(average_balance)),
+        "final_capital": int(round(average_balance + total_net_profit)),
         "equity_curve": sampled_curve,
         "recent_trades": all_trades[-100:]  # Latest 100 trades for clean table rendering
     }
@@ -382,6 +652,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run 5-year Quant Backtest")
     parser.add_argument("--json", type=str, help="Strategy JSON string or file path")
     args = parser.parse_args()
+
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
 
     strat = DEFAULT_STRATEGY
     if args.json:
