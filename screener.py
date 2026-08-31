@@ -407,7 +407,7 @@ def check_group_match(group, df, buy_price=None):
 
 def evaluate_buy_signal(df, active_slot=None):
     """
-    Evaluate Buy Signal based on active strategy slot (or default ADX reversal).
+    Evaluate Buy Signal based on active strategy slot.
     """
     if len(df) < 2 or 'adx' not in df.columns:
         return None
@@ -429,10 +429,8 @@ def evaluate_buy_signal(df, active_slot=None):
         if is_buy:
             priority = "전략매수"
     else:
-        # Fallback to default Strategy #1 (ADX >= 30 and -DI cross below ADX)
-        prev_adx = df['adx'].iloc[-2]
-        prev_mdi = df['minus_di'].iloc[-2]
-        is_buy = (curr_adx >= 30.0) and (prev_mdi > prev_adx) and (curr_mdi <= curr_adx)
+        # No fallback buy signal if active strategy rules are missing/empty
+        return None
 
     if not is_buy:
         return None
@@ -510,8 +508,6 @@ def evaluate_sell_signal(df, buy_price, active_slot=None):
     is_strategy_sell = False
     if active_slot and active_slot.get('sellRules') and len(active_slot['sellRules']) > 0:
         is_strategy_sell = any(check_group_match(g, df, buy_price=buy_price) for g in active_slot['sellRules'])
-    else:
-        is_strategy_sell = (curr_rsi >= 65.0)
 
     if is_stop_loss:
         level = "손절매도"
@@ -611,24 +607,37 @@ if __name__ == "__main__":
 
     # Fetch Active Strategy Slot from GAS
     active_slot = None
-    if gas_url:
-        try:
-            print("[INFO] Fetching active strategy slot from Google Apps Script...")
-            resp = requests.get(f"{gas_url}?action=get_strategy_slots", timeout=10)
-            if resp.status_code == 200:
-                slot_data = resp.json()
-                if slot_data.get('success'):
-                    active_id = slot_data.get('activeSlotId', 1)
-                    slots = slot_data.get('slots', [])
-                    active_slot = next((s for s in slots if s.get('id') == active_id), None)
-                    if active_slot:
-                        print(f" -> Active Strategy Loaded: [Slot {active_slot.get('id')}] {active_slot.get('name')}")
-                        if active_slot.get('buyRules'):
-                            print(f"    Buy Rules: {len(active_slot['buyRules'])} groups")
-                        if active_slot.get('sellRules'):
-                            print(f"    Sell Rules: {len(active_slot['sellRules'])} groups")
-        except Exception as e:
-            print(f"[WARN] Failed to fetch active strategy slot: {e}")
+    if not gas_url:
+        print("[ERROR] GAS_WEBAPP_URL environment variable is not set. Exiting.")
+        sys.exit(1)
+
+    try:
+        print("[INFO] Fetching active strategy slot from Google Apps Script...")
+        resp = requests.get(f"{gas_url}?action=get_strategy_slots", timeout=10)
+        if resp.status_code == 200:
+            slot_data = resp.json()
+            if slot_data.get('success'):
+                active_id = slot_data.get('activeSlotId', 1)
+                slots = slot_data.get('slots', [])
+                active_slot = next((s for s in slots if s.get('id') == active_id), None)
+                if active_slot:
+                    print(f" -> Active Strategy Loaded: [Slot {active_slot.get('id')}] {active_slot.get('name')}")
+                    if active_slot.get('buyRules'):
+                        print(f"    Buy Rules: {len(active_slot['buyRules'])} groups")
+                    if active_slot.get('sellRules'):
+                        print(f"    Sell Rules: {len(active_slot['sellRules'])} groups")
+                else:
+                    print(f"[ERROR] Active strategy slot ID {active_id} not found in fetched slots. Exiting.")
+                    sys.exit(1)
+            else:
+                print(f"[ERROR] GAS failed to retrieve strategy slots: {slot_data.get('message')}. Exiting.")
+                sys.exit(1)
+        else:
+            print(f"[ERROR] GAS returned HTTP {resp.status_code} for strategy slots. Exiting.")
+            sys.exit(1)
+    except Exception as e:
+        print(f"[ERROR] Exception occurred while fetching active strategy slot: {e}. Exiting.")
+        sys.exit(1)
 
     # Pre-fetch User Holdings early to filter out existing holdings from duplicate buy candidates
     holdings_list = []
