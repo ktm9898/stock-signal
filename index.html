@@ -2645,10 +2645,10 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           return !isWatchlist;
         });
 
-        // 1) For past dates: always assign rank based on sheet sequence order
-        // 2) For today's date (latestDateStr): only assign rank if activeSlot.priorityIndicator is set
+        // 1) ONLY show rank numbers for today's (latestDateStr) signals
+        // 2) AND only if activeSlot.priorityIndicator is set
         const isLatestDate = (dateStr === latestDateStr);
-        const shouldShowRank = !isLatestDate || !!activeSlot.priorityIndicator;
+        const shouldShowRank = isLatestDate && !!activeSlot.priorityIndicator;
 
         if (shouldShowRank) {
           buyItems.forEach((item, idx) => {
