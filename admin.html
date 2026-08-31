@@ -680,14 +680,8 @@
                 우선순위 지표
               </label>
               <select id="opt-priority-indicator" class="form-input" style="width: 100%; height: 35px; padding: 4px 8px;">
-                <option value="">미설정 (전체 진입)</option>
-                <option value="volume_ratio">거래량 비율 (VR)</option>
-                <option value="rsi">상대강도지수 (RSI)</option>
-                <option value="adx">ADX</option>
-                <option value="minus_di">-DI</option>
-                <option value="plus_di">+DI</option>
-                <option value="b_band_pct">볼린저밴드 %B</option>
-                <option value="close">종가</option>
+                <option value="">미설정</option>
+                <!-- Will be dynamically populated from INDICATOR_OPTIONS -->
               </select>
             </div>
             <div>
@@ -695,8 +689,8 @@
                 정렬 방식
               </label>
               <select id="opt-priority-order" class="form-input" style="width: 100%; height: 35px; padding: 4px 8px;">
-                <option value="DESC">큰 순서대로 (내림차순)</option>
-                <option value="ASC">작은 순서대로 (오름차순)</option>
+                <option value="DESC">큰 순서대로</option>
+                <option value="ASC">작은 순서대로</option>
               </select>
             </div>
             <div>
@@ -1549,6 +1543,16 @@
         ];
       }
       return [];
+    }
+
+    function populatePriorityIndicators() {
+      const select = document.getElementById('opt-priority-indicator');
+      if (!select) return;
+      let html = '<option value="">미설정</option>';
+      INDICATOR_OPTIONS.forEach(opt => {
+        html += `<option value="${opt.id}">${opt.name}</option>`;
+      });
+      select.innerHTML = html;
     }
 
     function loadDefaultBuyRules() {
@@ -3459,6 +3463,49 @@
       const prInd = priorityIndicator || "";
       const prOrd = priorityOrder || "DESC";
 
+      function getIndicatorValue(item, ind) {
+        if (!item) return 0;
+        const ind_lower = String(ind).toLowerCase();
+        if (ind_lower === 'volume_ratio' || ind_lower === 'volumeratio' || ind_lower === 'vr') {
+          return Number(item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : (item.vr || 0))));
+        }
+        if (ind_lower === 'rsi') {
+          return Number(item.RSI !== undefined ? item.RSI : (item.rsi || 50));
+        }
+        if (ind_lower === 'adx') {
+          return Number(item.ADX !== undefined ? item.ADX : (item.adx || 0));
+        }
+        if (ind_lower === 'minus_di' || ind_lower === 'minusdi') {
+          return Number(item.Minus_DI !== undefined ? item.Minus_DI : (item.minus_di !== undefined ? item.minus_di : (item.minusDi || 0)));
+        }
+        if (ind_lower === 'plus_di' || ind_lower === 'plusdi') {
+          return Number(item.Plus_DI !== undefined ? item.Plus_DI : (item.plus_di !== undefined ? item.plus_di : (item.plusDi || 0)));
+        }
+        if (ind_lower === 'bb_pct' || ind_lower === 'b_band_pct' || ind_lower === 'bb_pct') {
+          const rawBB = (item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : (item.bb_pct !== undefined ? item.bb_pct : (item['BB_%b'] || 0.5))));
+          return Number(rawBB);
+        }
+        if (ind_lower === 'disparity20' || ind_lower === 'disparity') {
+          return Number(item.Disparity20 !== undefined ? item.Disparity20 : (item.disparity20 !== undefined ? item.disparity20 : (item.disparity || 100)));
+        }
+        if (ind_lower === 'macd') {
+          return Number(item.MACD !== undefined ? item.MACD : (item.macd || 0));
+        }
+        if (ind_lower === 'macd_osc' || ind_lower === 'macdosc') {
+          return Number(item.MACD_Osc !== undefined ? item.MACD_Osc : (item.macd_osc || 0));
+        }
+        if (ind_lower === 'stoch_k' || ind_lower === 'stochk') {
+          return Number(item.Stoch_K !== undefined ? item.Stoch_K : (item.stoch_k || 50));
+        }
+        if (ind_lower === 'stoch_d' || ind_lower === 'stochd') {
+          return Number(item.Stoch_D !== undefined ? item.Stoch_D : (item.stoch_d || 50));
+        }
+        if (ind_lower === 'close' || ind_lower === 'closeprice') {
+          return Number(item.close || item.ClosePrice || 0);
+        }
+        return 0;
+      }
+
       // 1. Prepare chronological stock data and signal masks
       const stocks = [];
       const allDatesSet = new Set();
@@ -3508,33 +3555,6 @@
       // Track active positions: ticker -> position
       const activePositions = {};
       const lastStopLossDates = {}; // ticker -> last stop loss date string
-
-      function getIndicatorValue(item, ind) {
-        if (!item) return 0;
-        if (ind === 'volume_ratio' || ind === 'VolumeRatio') {
-          return Number(item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : (item.vr || 0))));
-        }
-        if (ind === 'rsi' || ind === 'RSI') {
-          return Number(item.RSI !== undefined ? item.RSI : (item.rsi || 50));
-        }
-        if (ind === 'adx' || ind === 'ADX') {
-          return Number(item.ADX !== undefined ? item.ADX : (item.adx || 0));
-        }
-        if (ind === 'minus_di' || ind === 'Minus_DI' || ind === 'minusDi') {
-          return Number(item.Minus_DI !== undefined ? item.Minus_DI : (item.minus_di !== undefined ? item.minus_di : (item.minusDi || 0)));
-        }
-        if (ind === 'plus_di' || ind === 'Plus_DI' || ind === 'plusDi') {
-          return Number(item.Plus_DI !== undefined ? item.Plus_DI : (item.plus_di !== undefined ? item.plus_di : (item.plusDi || 0)));
-        }
-        if (ind === 'b_band_pct' || ind === 'BB_Pct') {
-          const rawBB = (item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : (item['BB_%b'] || 0.5)));
-          return Number(rawBB);
-        }
-        if (ind === 'close' || ind === 'ClosePrice') {
-          return Number(item.close || item.ClosePrice || 0);
-        }
-        return 0;
-      }
 
       // 2. Day-by-Day chronological simulation
       for (let dayIdx = 0; dayIdx < sortedDates.length - 1; dayIdx++) {
@@ -4522,6 +4542,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+      populatePriorityIndicators();
       loadDefaultBuyRules();
       loadDefaultSellRules();
       initStrategySlots();

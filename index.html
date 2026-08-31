@@ -1492,8 +1492,26 @@
             <div style="font-weight:700; font-size:0.80rem; color:#0284c7;">${cooldownText}</div>
           </div>
         </div>
-        <div style="border-top:1px solid #e2e8f0; padding-top:10px; margin-top:10px; display:flex; justify-content:space-between; font-size:0.75rem; color:#64748b;">
-          <div>우선순위: <span style="font-weight:700; color:#475569;">${slot.priorityIndicator ? slot.priorityIndicator.toUpperCase() + ' (' + (slot.priorityOrder === 'DESC' ? '내림차순' : '오름차순') + ')' : '없음'}</span></div>
+         <div style="border-top:1px solid #e2e8f0; padding-top:10px; margin-top:10px; display:flex; justify-content:space-between; font-size:0.75rem; color:#64748b;">
+          <div>우선순위: <span style="font-weight:700; color:#475569;">${
+            slot.priorityIndicator ? (
+              {
+                'adx': 'ADX',
+                'minus_di': '-DI',
+                'plus_di': '+DI',
+                'rsi': 'RSI',
+                'bb_pct': '볼린저 %b',
+                'b_band_pct': '볼린저 %b',
+                'macd': 'MACD',
+                'macd_osc': 'MACD 오실레이터',
+                'stoch_k': '스토캐스틱 %K',
+                'stoch_d': '스토캐스틱 %D',
+                'disparity20': '이격도',
+                'volume_ratio': '거래량비율',
+                'return_rate': '수익률'
+              }[slot.priorityIndicator.toLowerCase()] || slot.priorityIndicator
+            ) + ' ' + (slot.priorityOrder === 'DESC' ? '큰 순서대로' : '작은 순서대로') : '없음'
+          }</span></div>
           <div>최대 매수: <span style="font-weight:700; color:#475569;">${slot.maxBuyCount ? slot.maxBuyCount + '개' : '무제한'}</span></div>
         </div>
       `;
@@ -2558,27 +2576,45 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       const order = activeSlot.priorityOrder || 'DESC';
 
       function getIndicatorValue(item, ind) {
-        if (ind === 'volume_ratio' || ind === 'VolumeRatio') {
+        if (!item) return 0;
+        const ind_lower = String(ind).toLowerCase();
+        if (ind_lower === 'volume_ratio' || ind_lower === 'volumeratio' || ind_lower === 'vr') {
           const rawVR = (item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr)));
           return Number(rawVR !== undefined && rawVR !== null && rawVR !== '' && !isNaN(Number(rawVR)) ? rawVR : 0);
         }
-        if (ind === 'rsi' || ind === 'RSI') {
+        if (ind_lower === 'rsi') {
           return Number(item.RSI !== undefined ? item.RSI : (item.rsi || 50));
         }
-        if (ind === 'adx' || ind === 'ADX') {
+        if (ind_lower === 'adx') {
           return Number(item.ADX !== undefined ? item.ADX : (item.adx || 0));
         }
-        if (ind === 'minus_di' || ind === 'Minus_DI' || ind === 'minusDi') {
+        if (ind_lower === 'minus_di' || ind_lower === 'minusdi') {
           return Number(item.Minus_DI !== undefined ? item.Minus_DI : (item.minus_di !== undefined ? item.minus_di : (item.minusDi || 0)));
         }
-        if (ind === 'plus_di' || ind === 'Plus_DI' || ind === 'plusDi') {
+        if (ind_lower === 'plus_di' || ind_lower === 'plusdi') {
           return Number(item.Plus_DI !== undefined ? item.Plus_DI : (item.plus_di !== undefined ? item.plus_di : (item.plusDi || 0)));
         }
-        if (ind === 'b_band_pct' || ind === 'BB_Pct') {
-          const rawBB = (item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']));
+        if (ind_lower === 'bb_pct' || ind_lower === 'b_band_pct' || ind_lower === 'bb_pct') {
+          const rawBB = (item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : (item.bb_pct !== undefined ? item.bb_pct : item['BB_%b'])));
           return Number(rawBB !== undefined && rawBB !== null && rawBB !== '' && !isNaN(Number(rawBB)) ? rawBB : 0.5);
         }
-        if (ind === 'close' || ind === 'ClosePrice') {
+        if (ind_lower === 'disparity20' || ind_lower === 'disparity') {
+          const rawDisp = (item.Disparity20 !== undefined ? item.Disparity20 : (item.disparity20 !== undefined ? item.disparity20 : item.disparity));
+          return Number(rawDisp !== undefined && rawDisp !== null && rawDisp !== '' && !isNaN(Number(rawDisp)) ? rawDisp : 100);
+        }
+        if (ind_lower === 'macd') {
+          return Number(item.MACD !== undefined ? item.MACD : (item.macd || 0));
+        }
+        if (ind_lower === 'macd_osc' || ind_lower === 'macdosc') {
+          return Number(item.MACD_Osc !== undefined ? item.MACD_Osc : (item.macd_osc || 0));
+        }
+        if (ind_lower === 'stoch_k' || ind_lower === 'stochk') {
+          return Number(item.Stoch_K !== undefined ? item.Stoch_K : (item.stoch_k || 50));
+        }
+        if (ind_lower === 'stoch_d' || ind_lower === 'stochd') {
+          return Number(item.Stoch_D !== undefined ? item.Stoch_D : (item.stoch_d || 50));
+        }
+        if (ind_lower === 'close' || ind_lower === 'closeprice') {
           return Number(item.ClosePrice || item.price || item.close || 0);
         }
         return 0;
