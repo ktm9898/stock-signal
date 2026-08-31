@@ -500,7 +500,7 @@ def run_backtest_simulation(history_df=None, strategy=None, start_date=None, end
             net_profit = (actual_exit_price * pos['total_qty']) - pos['total_invested']
             holding_days = (final_date - pos['entry_date_obj']).days
 
-            exit_reason = "백테스트종료"
+            exit_reason = "기간종료"
             if pos['has_scale_in']:
                 exit_reason += " (물타기)"
 
