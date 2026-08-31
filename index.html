@@ -2620,6 +2620,15 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         return 0;
       }
 
+      // Find the latest date string in uniqueList
+      let latestDateStr = "";
+      uniqueList.forEach(item => {
+        const dateStr = formatDateOnly(item.Date || item.date || item.Timestamp);
+        if (!latestDateStr || dateStr > latestDateStr) {
+          latestDateStr = dateStr;
+        }
+      });
+
       const dateGroups = {};
       uniqueList.forEach(item => {
         const dateStr = formatDateOnly(item.Date || item.date || item.Timestamp);
@@ -2636,15 +2645,12 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           return !isWatchlist;
         });
 
-        const hasPriority = !!activeSlot.priorityIndicator;
+        // 1) For past dates: always assign rank based on sheet sequence order
+        // 2) For today's date (latestDateStr): only assign rank if activeSlot.priorityIndicator is set
+        const isLatestDate = (dateStr === latestDateStr);
+        const shouldShowRank = !isLatestDate || !!activeSlot.priorityIndicator;
 
-        if (hasPriority) {
-          buyItems.sort((a, b) => {
-            const valA = getIndicatorValue(a, indicator);
-            const valB = getIndicatorValue(b, indicator);
-            return order === 'DESC' ? valB - valA : valA - valB;
-          });
-
+        if (shouldShowRank) {
           buyItems.forEach((item, idx) => {
             item.computed_rank = idx + 1;
           });
