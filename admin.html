@@ -3171,6 +3171,15 @@
       if (slot.tradeAmount && document.getElementById('opt-initial-capital')) {
         document.getElementById('opt-initial-capital').value = slot.tradeAmount;
       }
+      if (document.getElementById('opt-priority-indicator')) {
+        document.getElementById('opt-priority-indicator').value = slot.priorityIndicator || "";
+      }
+      if (document.getElementById('opt-priority-order')) {
+        document.getElementById('opt-priority-order').value = slot.priorityOrder || "DESC";
+      }
+      if (document.getElementById('opt-max-buy-count')) {
+        document.getElementById('opt-max-buy-count').value = (slot.maxBuyCount !== undefined && slot.maxBuyCount !== null) ? slot.maxBuyCount : "";
+      }
     }
 
     function initStrategySlots() {
@@ -3303,7 +3312,10 @@
         tradeAmount: tradeAmount,
         buyRules: JSON.parse(JSON.stringify(currentBuyGroups)),
         sellRules: JSON.parse(JSON.stringify(currentSellGroups)),
-        updatedAt: timeStr
+        updatedAt: timeStr,
+        priorityIndicator: document.getElementById('opt-priority-indicator')?.value || "",
+        priorityOrder: document.getElementById('opt-priority-order')?.value || "DESC",
+        maxBuyCount: document.getElementById('opt-max-buy-count')?.value ? parseInt(document.getElementById('opt-max-buy-count').value, 10) : null
       };
 
       localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
