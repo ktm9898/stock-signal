@@ -443,10 +443,9 @@ def run_backtest_simulation(history_df=None, strategy=None, start_date=None, end
                 })
 
         if new_buys:
-            if max_buy_count is not None and len(new_buys) > max_buy_count:
-                sort_ind = priority_indicator if priority_indicator else "volume_ratio"
+            if priority_indicator and max_buy_count is not None and len(new_buys) > max_buy_count:
                 new_buys.sort(
-                    key=lambda item: get_indicator_value(item['row'], sort_ind),
+                    key=lambda item: get_indicator_value(item['row'], priority_indicator),
                     reverse=(priority_order == "DESC")
                 )
                 new_buys = new_buys[:max_buy_count]

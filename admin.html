@@ -3677,13 +3677,12 @@
         });
 
         if (newBuys.length > 0) {
-          // Sort new buys by priority indicator if maxBuys is set
-          if (maxBuys !== null && maxBuys > 0 && newBuys.length > maxBuys) {
-            const sortInd = prInd || "volume_ratio";
+          // Sort new buys by priority indicator if maxBuys is set and priority indicator is set
+          if (prInd && maxBuys !== null && maxBuys > 0 && newBuys.length > maxBuys) {
             const sortOrd = prOrd;
             newBuys.sort((a, b) => {
-              const valA = getIndicatorValue(a.row, sortInd);
-              const valB = getIndicatorValue(b.row, sortInd);
+              const valA = getIndicatorValue(a.row, prInd);
+              const valB = getIndicatorValue(b.row, prInd);
               return sortOrd === 'DESC' ? valB - valA : valA - valB;
             });
             // Slice to keep only top maxBuys

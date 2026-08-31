@@ -813,32 +813,32 @@ if __name__ == "__main__":
     priority_ind = active_slot.get('priorityIndicator', '') if active_slot else ''
     priority_ord = active_slot.get('priorityOrder', 'DESC') if active_slot else 'DESC'
 
-    if not priority_ind:
-        # Default fallback for ranking display: sort by volume_ratio descending
-        priority_ind = 'volume_ratio'
-        priority_ord = 'DESC'
-
-    def get_sort_value(cand):
-        val = cand.get(priority_ind)
-        if val is None:
-            return -999999 if priority_ord == 'DESC' else 999999
-        try:
-            return float(val)
-        except (ValueError, TypeError):
-            return -999999 if priority_ord == 'DESC' else 999999
-
-    reverse_sort = (priority_ord == 'DESC')
-
     # Separate real buy signals from watchlist items (관심종목)
     real_buys = [c for c in buy_candidates if '관심종목' not in str(c.get('priority', '')) and '관심종목' not in str(c.get('stage', '')) and '진입대기' not in str(c.get('stage', ''))]
     watch_items = [c for c in buy_candidates if c not in real_buys]
 
-    real_buys.sort(key=get_sort_value, reverse=reverse_sort)
+    if priority_ind:
+        def get_sort_value(cand):
+            val = cand.get(priority_ind)
+            if val is None:
+                return -999999 if priority_ord == 'DESC' else 999999
+            try:
+                return float(val)
+            except (ValueError, TypeError):
+                return -999999 if priority_ord == 'DESC' else 999999
 
-    # Assign priority rank (1-indexed) only to real buy signals
-    for idx, cand in enumerate(real_buys):
-        cand['priority_rank'] = idx + 1
-        cand['score'] = idx + 1  # Map to score for compatibility
+        reverse_sort = (priority_ord == 'DESC')
+        real_buys.sort(key=get_sort_value, reverse=reverse_sort)
+
+        # Assign priority rank (1-indexed) only to real buy signals
+        for idx, cand in enumerate(real_buys):
+            cand['priority_rank'] = idx + 1
+            cand['score'] = idx + 1  # Map to score for compatibility
+    else:
+        # If no priority indicator is selected, do not assign rankings
+        for cand in real_buys:
+            cand['priority_rank'] = None
+            cand['score'] = 9999
 
     for cand in watch_items:
         cand['priority_rank'] = None
