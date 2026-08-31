@@ -2341,7 +2341,7 @@
       let totalSellsSum = 0;
       let totalRealizedProfit = 0;
 
-      const isActualExit = (t) => !t.reason || !t.reason.startsWith('기간종료');
+      const isActualExit = (t) => !t.reason || (!t.reason.startsWith('기간종료') && !t.reason.startsWith('백테스트종료'));
 
       const rowsHtml = sortedMonths.map(m => {
         const newBuys = trades.filter(t => t.entryDate && t.entryDate.startsWith(m)).length;
