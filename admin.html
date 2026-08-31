@@ -797,8 +797,7 @@
               백테스트 기간
             </label>
             <select id="opt-backtest-period" class="form-select" style="width: 100%; font-weight: 600;" onchange="toggleCustomDateInputs(this.value)">
-              <option value="ALL_HISTORY">전체 기간 (2011~현재)</option>
-              <option value="15Y">최근 15년</option>
+              <option value="ALL_HISTORY">전체 기간 (2016~현재)</option>
               <option value="10Y" selected>최근 10년</option>
               <option value="5Y">최근 5년</option>
               <option value="3Y">최근 3년</option>
@@ -809,7 +808,7 @@
 
           <div>
             <label style="display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px;">시작일</label>
-            <input type="date" id="opt-start-date" class="form-input" value="2016-08-21" disabled style="width: 100%; font-size: 0.78rem;">
+            <input type="date" id="opt-start-date" class="form-input" value="2016-08-21" min="2016-01-04" disabled style="width: 100%; font-size: 0.78rem;">
           </div>
 
           <div>
@@ -1138,11 +1137,11 @@
 
   <script>
     let REAL_PRELOADED_DATA = {};
-    let LOADED_CHUNKS = { '2011_2015': false, '2016_2020': false, '2021_2025': false, '2026_current': false };
-    let RAW_CHUNK_DATA = { '2011_2015': {}, '2016_2020': {}, '2021_2025': {}, '2026_current': {} };
+    let LOADED_CHUNKS = { '2016_2020': false, '2021_2025': false, '2026_current': false };
+    let RAW_CHUNK_DATA = { '2016_2020': {}, '2021_2025': {}, '2026_current': {} };
     let ALL_350_STOCKS = [];
 
-    async function ensureMarketDataLoaded(targetMarket = 'ALL', startDateStr = '2011-01-01') {
+    async function ensureMarketDataLoaded(targetMarket = 'ALL', startDateStr = '2016-01-04') {
       // 1. Ensure metadata is loaded
       if (!ALL_350_STOCKS || ALL_350_STOCKS.length === 0) {
         try {
@@ -1158,10 +1157,8 @@
       requiredChunks.push('2026_current');
       if (startDateStr <= '2025-12-31') requiredChunks.push('2021_2025');
       if (startDateStr <= '2020-12-31') requiredChunks.push('2016_2020');
-      if (startDateStr <= '2015-12-31') requiredChunks.push('2011_2015');
 
       const chunkFiles = {
-        '2011_2015': 'data/history_2011_2015.json',
         '2016_2020': 'data/history_2016_2020.json',
         '2021_2025': 'data/history_2021_2025.json',
         '2026_current': 'data/history_2026_current.json'
@@ -1194,7 +1191,7 @@
 
       // Assemble unified chronological array per symbol
       const assembled = {};
-      const chunkOrder = ['2011_2015', '2016_2020', '2021_2025', '2026_current'];
+      const chunkOrder = ['2016_2020', '2021_2025', '2026_current'];
       for (const chunkKey of chunkOrder) {
         if (LOADED_CHUNKS[chunkKey] && RAW_CHUNK_DATA[chunkKey]) {
           const chunkData = RAW_CHUNK_DATA[chunkKey];
@@ -1955,13 +1952,13 @@
       endInput.value = endStr;
 
       if (val === 'ALL_HISTORY') {
-        startInput.value = "2011-01-03";
+        startInput.value = "2016-01-04";
         startInput.disabled = true;
         endInput.disabled = true;
-      } else if (val === '15Y') {
+      } else if (false) { // 15Y 옵션 제거됨
         const d = new Date(endStr);
         d.setFullYear(d.getFullYear() - 15);
-        startInput.value = formatToDateOnly(d, "2011-08-21");
+        startInput.value = formatToDateOnly(d, "2016-01-04");
         startInput.disabled = true;
         endInput.disabled = true;
       } else if (val === '10Y') {
