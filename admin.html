@@ -669,6 +669,45 @@
           <i class="fa-solid fa-plus"></i> 매수 조건 추가
         </button>
 
+        <!-- Priority & Max Buy Sub-section inside Buy Rules (Placed above Scale-in) -->
+        <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
+          <div style="font-size: 0.80rem; font-weight: 700; color: #334155; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-arrow-down-wide-short" style="color: #64748b;"></i> 우선순위 및 최대 매수 설정
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px;">
+            <div>
+              <label style="display: block; font-size: 0.76rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                우선순위 지표
+              </label>
+              <select id="opt-priority-indicator" class="form-input" style="width: 100%; height: 35px; padding: 4px 8px;">
+                <option value="">미설정 (전체 진입)</option>
+                <option value="volume_ratio">거래량 비율 (VR)</option>
+                <option value="rsi">상대강도지수 (RSI)</option>
+                <option value="adx">ADX</option>
+                <option value="minus_di">-DI</option>
+                <option value="plus_di">+DI</option>
+                <option value="b_band_pct">볼린저밴드 %B</option>
+                <option value="close">종가</option>
+              </select>
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.76rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                정렬 방식
+              </label>
+              <select id="opt-priority-order" class="form-input" style="width: 100%; height: 35px; padding: 4px 8px;">
+                <option value="DESC">큰 순서대로 (내림차순)</option>
+                <option value="ASC">작은 순서대로 (오름차순)</option>
+              </select>
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.76rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                최대 매수
+              </label>
+              <input type="number" id="opt-max-buy-count" class="form-input" placeholder="예: 5" style="width: 100%;">
+            </div>
+          </div>
+        </div>
+
         <!-- Scale-in (물타기) Sub-section inside Buy Rules -->
         <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
           <div style="font-size: 0.80rem; font-weight: 700; color: #334155; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
@@ -3465,8 +3504,6 @@
       });
 
       const sortedDates = Array.from(allDatesSet).sort();
-      const dateToIndexMap = {};
-      sortedDates.forEach((d, idx) => { dateToIndexMap[d] = idx; });
 
       // Track active positions: ticker -> position
       const activePositions = {};
@@ -3575,67 +3612,121 @@
             if (!pos.hasScaleIn && scaleDropVal !== null && scaleDropVal > 0) {
               const returnVsInitial = ((currClose - pos.initialBuyPrice) / pos.initialBuyPrice) * 100;
               if (returnVsInitial <= -scaleDropVal) {
-                scaleInMult: scaleMultVal,
-                totalInvested: Math.round(totalInvested),
-                exitDate: nextDay.date,
-                exitPrice: Math.round(exitPrice),
-                returnPct: parseFloat(actualReturnPct.toFixed(2)),
-                netProfit: Math.round(actualNetProfit),
-                holdingDays: holdingDays,
-                reason: exitReason,
-                win: actualReturnPct >= 0
-              });
-              inPosition = false;
-            } else if (isScaleInSignal && nextDay.open > 0) {
-              // Execute 1-time Scale-in at nextDay.open
-              hasScaleIn = true;
-              scaleInSignalDate = curr.date;
-              scaleInDate = nextDay.date;
-              scaleInPrice = nextDay.open * (1 + feeRate);
-              const addInvested = tradeAmount * scaleMultVal;
-              const addQty = addInvested / scaleInPrice;
-              totalInvested += addInvested;
-              totalQty += addQty;
-              avgPrice = totalInvested / totalQty;
+                // Execute 1-time Scale-in at nextDate open
+                pos.hasScaleIn = true;
+                pos.scaleInDate = nextDateStr;
+                pos.scaleInPrice = nextRow.open * (1 + feeRate);
+                const addInvested = tradeAmount * scaleMultVal;
+                const addQty = addInvested / pos.scaleInPrice;
+                pos.totalInvested += addInvested;
+                pos.totalQty += addQty;
+                pos.avgPrice = pos.totalInvested / pos.totalQty;
+              }
             }
           }
-        }
+        });
 
-        if (inPosition && rows.length > 0) {
-          const lastRow = rows[rows.length - 1];
-          const exitPrice = lastRow.close * (1 - feeRate);
-          const actualReturnPct = ((exitPrice - avgPrice) / avgPrice) * 100;
-          const actualNetProfit = (exitPrice * totalQty) - totalInvested;
-          const d1 = new Date(entryDate);
-          const d2 = new Date(lastRow.date);
-          const holdingDays = Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)));
+        // B. Evaluate Entries on currDate close -> Buy nextDate open
+        const newBuys = [];
+        stocks.forEach(s => {
+          if (activePositions[s.ticker]) return; // already holding
 
-          let exitReason = "기간종료";
-          if (hasScaleIn) exitReason += " (물타기)";
+          // Find row for currDate
+          const sRowIdx = s.rows.findIndex(r => r.date === currDateStr);
+          if (sRowIdx < 0) return;
+          const currRow = s.rows[sRowIdx];
+          const nextRow = s.rows[sRowIdx + 1];
+          if (!nextRow || nextRow.open <= 0) return;
 
-          allExecutedTrades.push({
-            ticker: ticker,
-            name: stockInfo.name,
-            market: stockInfo.market,
-            signalDate: entrySignalDate,
-            entryDate: entryDate,
-            entryPrice: Math.round(initialBuyPrice),
-            avgPrice: Math.round(avgPrice),
-            hasScaleIn: hasScaleIn,
-            scaleInDate: scaleInDate,
-            scaleInPrice: Math.round(scaleInPrice),
-            scaleInMult: scaleMultVal,
-            totalInvested: Math.round(totalInvested),
-            exitDate: lastRow.date,
-            exitPrice: Math.round(exitPrice),
-            returnPct: parseFloat(actualReturnPct.toFixed(2)),
-            netProfit: Math.round(actualNetProfit),
-            holdingDays: holdingDays,
-            reason: exitReason,
-            win: actualReturnPct >= 0
+          // Cooldown check
+          let isCooldown = false;
+          const lastSLDate = lastStopLossDates[s.ticker];
+          if (cooldownVal > 0 && lastSLDate) {
+            const diffDays = Math.round((new Date(currDateStr) - new Date(lastSLDate)) / (1000 * 60 * 60 * 24));
+            if (diffDays < cooldownVal) isCooldown = true;
+          }
+
+          const isBuy = !isCooldown && s.buySignals[sRowIdx];
+          if (isBuy) {
+            newBuys.push({
+              stock: s,
+              row: currRow,
+              nextRow: nextRow
+            });
+          }
+        });
+
+        if (newBuys.length > 0) {
+          // Sort new buys by priority indicator if maxBuys is set
+          if (maxBuys !== null && maxBuys > 0 && newBuys.length > maxBuys) {
+            const sortInd = prInd || "volume_ratio";
+            const sortOrd = prOrd;
+            newBuys.sort((a, b) => {
+              const valA = getIndicatorValue(a.row, sortInd);
+              const valB = getIndicatorValue(b.row, sortInd);
+              return sortOrd === 'DESC' ? valB - valA : valA - valB;
+            });
+            // Slice to keep only top maxBuys
+            newBuys.splice(maxBuys);
+          }
+
+          // Enter selected buys
+          newBuys.forEach(item => {
+            const s = item.stock;
+            const initialBuyPrice = item.nextRow.open * (1 + feeRate);
+            activePositions[s.ticker] = {
+              ticker: s.ticker,
+              name: s.name,
+              market: s.market,
+              entrySignalDate: item.row.date,
+              entryDate: item.nextRow.date,
+              initialBuyPrice: initialBuyPrice,
+              avgPrice: initialBuyPrice,
+              hasScaleIn: false,
+              scaleInDate: "",
+              scaleInPrice: 0,
+              totalInvested: tradeAmount,
+              totalQty: tradeAmount / initialBuyPrice
+            };
           });
-          inPosition = false;
         }
+      }
+
+      // Close remaining open positions at the end of the simulation
+      const lastDateStr = sortedDates[sortedDates.length - 1];
+      stocks.forEach(s => {
+        const pos = activePositions[s.ticker];
+        if (!pos) return;
+
+        const sRowIdx = s.rows.findIndex(r => r.date === lastDateStr);
+        if (sRowIdx < 0) return;
+        const lastRow = s.rows[sRowIdx];
+        const exitPrice = lastRow.close * (1 - feeRate);
+        const actualReturnPct = ((exitPrice - pos.avgPrice) / pos.avgPrice) * 100;
+        const actualNetProfit = (exitPrice * pos.totalQty) - pos.totalInvested;
+        const holdingDays = Math.max(1, Math.round((new Date(lastDateStr) - new Date(pos.entryDate)) / (1000 * 60 * 60 * 24)));
+
+        allExecutedTrades.push({
+          ticker: s.ticker,
+          name: s.name,
+          market: s.market,
+          signalDate: pos.entrySignalDate,
+          entryDate: pos.entryDate,
+          entryPrice: Math.round(pos.initialBuyPrice),
+          avgPrice: Math.round(pos.avgPrice),
+          hasScaleIn: pos.hasScaleIn,
+          scaleInDate: pos.scaleInDate,
+          scaleInPrice: Math.round(pos.scaleInPrice),
+          scaleInMult: scaleMultVal,
+          totalInvested: Math.round(pos.totalInvested),
+          exitDate: lastDateStr,
+          exitPrice: Math.round(exitPrice),
+          returnPct: parseFloat(actualReturnPct.toFixed(2)),
+          netProfit: Math.round(actualNetProfit),
+          holdingDays: holdingDays,
+          reason: "백테스트종료",
+          win: actualReturnPct >= 0
+        });
       });
 
       allExecutedTrades.sort((a, b) => b.entryDate.localeCompare(a.entryDate) || b.signalDate.localeCompare(a.signalDate));

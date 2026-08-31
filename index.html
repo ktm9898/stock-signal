@@ -2593,13 +2593,29 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
       Object.keys(dateGroups).forEach(dateStr => {
         const arr = dateGroups[dateStr];
-        arr.sort((a, b) => {
+        // Only rank real buy signals, excluding 관심종목 / 진입대기 / 추세강함
+        const buyItems = arr.filter(item => {
+          const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || '전략매수');
+          const isWatchlist = rawStage.includes('관심종목') || rawStage.includes('추세강함') || rawStage.includes('진입대기');
+          return !isWatchlist;
+        });
+
+        buyItems.sort((a, b) => {
           const valA = getIndicatorValue(a, indicator);
           const valB = getIndicatorValue(b, indicator);
           return order === 'DESC' ? valB - valA : valA - valB;
         });
-        arr.forEach((item, idx) => {
+
+        buyItems.forEach((item, idx) => {
           item.computed_rank = idx + 1;
+        });
+
+        arr.forEach(item => {
+          const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || '전략매수');
+          const isWatchlist = rawStage.includes('관심종목') || rawStage.includes('추세강함') || rawStage.includes('진입대기');
+          if (isWatchlist) {
+            item.computed_rank = null;
+          }
         });
       });
 

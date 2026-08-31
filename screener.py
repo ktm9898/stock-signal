@@ -828,12 +828,23 @@ if __name__ == "__main__":
             return -999999 if priority_ord == 'DESC' else 999999
 
     reverse_sort = (priority_ord == 'DESC')
-    buy_candidates.sort(key=get_sort_value, reverse=reverse_sort)
 
-    # Assign priority rank (1-indexed)
-    for idx, cand in enumerate(buy_candidates):
+    # Separate real buy signals from watchlist items (관심종목)
+    real_buys = [c for c in buy_candidates if '관심종목' not in str(c.get('priority', '')) and '관심종목' not in str(c.get('stage', '')) and '진입대기' not in str(c.get('stage', ''))]
+    watch_items = [c for c in buy_candidates if c not in real_buys]
+
+    real_buys.sort(key=get_sort_value, reverse=reverse_sort)
+
+    # Assign priority rank (1-indexed) only to real buy signals
+    for idx, cand in enumerate(real_buys):
         cand['priority_rank'] = idx + 1
         cand['score'] = idx + 1  # Map to score for compatibility
+
+    for cand in watch_items:
+        cand['priority_rank'] = None
+        cand['score'] = 9999
+
+    buy_candidates = real_buys + watch_items
 
     print(f" -> Found {len(buy_candidates)} buy candidate stocks across KOSPI 200 & KOSDAQ 150.")
     print(f" -> Calculated indicators for KOSPI 200 ({len(kospi_stocks)}) and KOSDAQ 150 ({len(kosdaq_stocks)}).")
