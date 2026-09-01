@@ -729,6 +729,24 @@
       th { font-size: 0.72rem !important; padding: 7px 4px !important; white-space: nowrap !important; }
       td { font-size: 0.80rem !important; padding: 7px 4px !important; white-space: nowrap !important; }
     }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 10px 18px;
+      border-radius: 8px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+      display: none;
+      align-items: center;
+      gap: 8px;
+      z-index: 10000;
+    }
   </style>
 </head>
 <body>
@@ -2125,16 +2143,59 @@
       }
     }
 
+    function showToast(msg) {
+      const toast = document.getElementById('toastMessage');
+      if (!toast) return;
+      const toastText = document.getElementById('toastText');
+      if (toastText) toastText.textContent = msg;
+      toast.style.display = 'flex';
+      clearTimeout(window.__toastTimeout);
+      window.__toastTimeout = setTimeout(() => {
+        toast.style.display = 'none';
+      }, 3500);
+    }
+
     async function refreshDataUI(btn) {
       const targetBtn = btn || document.querySelector('.btn-header-refresh');
-      if (targetBtn) {
-        const icon = targetBtn.querySelector('i');
-        if (icon) icon.classList.add('fa-spin');
-      }
-      await loadDataFromGAS(getStoredPin());
-      if (targetBtn) {
-        const icon = targetBtn.querySelector('i');
+      const icon = targetBtn ? targetBtn.querySelector('i') : null;
+      if (icon) icon.classList.add('fa-spin');
+      if (targetBtn) targetBtn.disabled = true;
+
+      showToast("강력 새로고침 & 최신 데이터 갱신 중...");
+
+      try {
+        // 1. Evict all CacheStorage (Service Worker / PWA caches)
+        if ('caches' in window) {
+          try {
+            const cacheKeys = await caches.keys();
+            await Promise.all(cacheKeys.map(k => caches.delete(k)));
+          } catch (e) {}
+        }
+
+        // 2. Clear in-memory dataset caches
+        window.REAL_PRELOADED_DATA = null;
+        window.latestMetricsCacheData = null;
+        window.latestKosdaqMetricsCacheData = null;
+
+        // 3. Force Service Worker update
+        if ('serviceWorker' in navigator) {
+          try {
+            const reg = await navigator.serviceWorker.getRegistration();
+            if (reg) await reg.update();
+          } catch (e) {}
+        }
+
+        // 4. Refetch fresh data from GAS & preloaded history chunks with cache-busting
+        await loadDataFromGAS(getStoredPin(), true);
+        await loadPreloadedRealData(true);
+
+        showToast("최신 데이터로 강력 새로고침이 완료되었습니다!");
+      } catch (err) {
+        console.error("데이터 새로고침 실패:", err);
+        showToast("데이터 새로고침 실패: " + (err.message || err));
+      } finally {
         if (icon) icon.classList.remove('fa-spin');
+        if (targetBtn) targetBtn.disabled = false;
       }
     }
 
@@ -2147,11 +2208,15 @@
       return str.replace(/[^0-9]/g, '');
     }
 
-    async function loadDataFromGAS(pin = getStoredPin()) {
+    async function loadDataFromGAS(pin = getStoredPin(), forceReload = false) {
       const cleanPin = String(pin || getStoredPin() || '').trim();
       try {
-        const url = GAS_WEBAPP_URL + "?action=all" + (cleanPin ? "&pin=" + encodeURIComponent(cleanPin) : "");
-        const resp = await fetch(url);
+        let url = GAS_WEBAPP_URL + "?action=all" + (cleanPin ? "&pin=" + encodeURIComponent(cleanPin) : "");
+        if (forceReload) {
+          url += "&_t=" + Date.now();
+        }
+        const fetchOptions = forceReload ? { cache: 'no-store' } : {};
+        const resp = await fetch(url, fetchOptions);
         const data = await resp.json();
         
         if ((data.pinRequired && data.status === "error") || data.status === "error" || data.success === false) {
@@ -2217,7 +2282,7 @@
           document.getElementById('sync-time').textContent = `최근 갱신: ${formatShortDate(lastLog.Timestamp || lastLog.date)}`;
         }
 
-        loadPreloadedRealData();
+        loadPreloadedRealData(forceReload);
 
         return { success: true };
       } catch (err) {
@@ -2226,15 +2291,17 @@
       }
     }
 
-    async function loadPreloadedRealData() {
-      if (window.REAL_PRELOADED_DATA && Object.keys(window.REAL_PRELOADED_DATA).length > 0) return;
+    async function loadPreloadedRealData(forceReload = false) {
+      if (!forceReload && window.REAL_PRELOADED_DATA && Object.keys(window.REAL_PRELOADED_DATA).length > 0) return;
       try {
         window.REAL_PRELOADED_DATA = {};
+        const t = Date.now();
+        const fetchOptions = forceReload ? { cache: 'no-store' } : {};
         
         // Load recent chunks for dashboard display
         const [resCurr, resRecent] = await Promise.allSettled([
-          fetch(`data/history_2026_current.json?t=${Date.now()}`).then(r => r.ok ? r.json() : null),
-          fetch(`data/history_2021_2025.json?t=${Date.now()}`).then(r => r.ok ? r.json() : null)
+          fetch(`data/history_2026_current.json?t=${t}`, fetchOptions).then(r => r.ok ? r.json() : null),
+          fetch(`data/history_2021_2025.json?t=${t}`, fetchOptions).then(r => r.ok ? r.json() : null)
         ]);
 
         const assembled = {};
@@ -2256,8 +2323,8 @@
         } else {
           // Fallback to legacy split files
           const [resK, resKq] = await Promise.allSettled([
-            fetch(`data/stocks_kospi200_real.json?t=${Date.now()}`).then(r => r.ok ? r.json() : null),
-            fetch(`data/stocks_kosdaq150_real.json?t=${Date.now()}`).then(r => r.ok ? r.json() : null)
+            fetch(`data/stocks_kospi200_real.json?t=${t}`, fetchOptions).then(r => r.ok ? r.json() : null),
+            fetch(`data/stocks_kosdaq150_real.json?t=${t}`, fetchOptions).then(r => r.ok ? r.json() : null)
           ]);
           if (resK.status === 'fulfilled' && resK.value && resK.value.preloaded_data) {
             Object.assign(window.REAL_PRELOADED_DATA, resK.value.preloaded_data);
@@ -3369,6 +3436,12 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         <button class="btn-sm-action" onclick="closeInfoModal()" style="background:#2563eb; color:#fff; padding:6px 16px; border:none; border-radius:6px; font-weight:600; cursor:pointer;">확인</button>
       </div>
     </div>
+  </div>
+
+  <!-- Toast Message -->
+  <div class="toast" id="toastMessage">
+    <i class="fa-solid fa-circle-check" style="color:#10b981;"></i>
+    <span id="toastText">작업이 완료되었습니다.</span>
   </div>
 </body>
 </html>
