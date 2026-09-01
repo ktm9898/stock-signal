@@ -604,6 +604,7 @@ if __name__ == "__main__":
     print("[INFO] KOSPI 200 & KOSDAQ 150 Stock Signal Screener Engine Starting...")
     
     gas_url = os.environ.get("GAS_WEBAPP_URL", "")
+    auth_pin = os.environ.get("AUTH_PIN", "").strip()
 
     # Fetch Active Strategy Slot from GAS
     active_slot = None
@@ -613,7 +614,10 @@ if __name__ == "__main__":
 
     try:
         print("[INFO] Fetching active strategy slot from Google Apps Script...")
-        resp = requests.get(f"{gas_url}?action=get_strategy_slots", timeout=10)
+        strategy_url = f"{gas_url}?action=get_strategy_slots"
+        if auth_pin:
+            strategy_url += f"&pin={auth_pin}"
+        resp = requests.get(strategy_url, timeout=10)
         if resp.status_code == 200:
             slot_data = resp.json()
             if slot_data.get('success'):
@@ -645,10 +649,9 @@ if __name__ == "__main__":
     held_names = set()
     if gas_url:
         try:
-            pin = os.environ.get("AUTH_PIN", "")
             req_url = f"{gas_url}?action=holdings"
-            if pin:
-                req_url += f"&pin={pin}"
+            if auth_pin:
+                req_url += f"&pin={auth_pin}"
             h_res = requests.get(req_url, timeout=15)
             if h_res.status_code == 200:
                 res_json = h_res.json()
@@ -871,10 +874,9 @@ if __name__ == "__main__":
     if gas_url:
         print("[4/4] Evaluating Indicators & Sell Signals for User Holdings...")
         try:
-            pin = os.environ.get("AUTH_PIN", "")
             req_url = f"{gas_url}?action=holdings"
-            if pin:
-                req_url += f"&pin={pin}"
+            if auth_pin:
+                req_url += f"&pin={auth_pin}"
             h_res = requests.get(req_url, timeout=15)
             print(f" -> Fetch Holdings Response: Status {h_res.status_code} | {h_res.text[:150]}")
 

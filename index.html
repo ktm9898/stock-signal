@@ -1287,7 +1287,9 @@
 
     async function fetchGoogleSheetSlotsForDashboard() {
       try {
-        const resp = await fetch(GAS_WEBAPP_URL + "?action=get_strategy_slots");
+        const pin = getStoredPin();
+        const pinParam = pin ? `&pin=${encodeURIComponent(pin)}` : '';
+        const resp = await fetch(GAS_WEBAPP_URL + `?action=get_strategy_slots${pinParam}`);
         const data = await resp.json();
         if (data && data.success && Array.isArray(data.slots) && data.slots.length === 10) {
           strategySlots = data.slots;

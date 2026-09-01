@@ -23,6 +23,7 @@ jobs:
       - name: Run Screener Engine
         env:
           GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
+          AUTH_PIN: ${{ secrets.AUTH_PIN }}
           KRX_ID: ${{ secrets.KRX_ID }}
           KRX_PW: ${{ secrets.KRX_PW }}
         run: |
