@@ -1800,16 +1800,19 @@
         finalBuyList.push(itemObj);
       });
 
-      // 2) Real-time evaluated signals for currently active strategy (with '전략매수 ★')
+      // 2) Real-time evaluated signals for currently active strategy (with '전략매수 ★' only for unsaved dynamic simulation signals)
       evaluatedBuyCandidates.forEach(item => {
         const tk = formatTicker(item.Ticker || item.ticker || item.code);
         const dt = formatShortDate(item.Date || item.date || item.Timestamp);
         const key = `${tk}_${dt}`;
         if (seenBuyMap.has(key)) {
+          // Officially recorded in Google Sheets! Keep Stage as '전략매수' (no star)
           const existing = seenBuyMap.get(key);
-          existing.Stage = '전략매수 ★';
-          existing.Reason = item.Reason || existing.Reason;
+          if (item.Reason && (!existing.Reason || existing.Reason === '-')) {
+            existing.Reason = item.Reason;
+          }
         } else {
+          // Dynamic simulation signal not saved in Google Sheets -> '전략매수 ★'
           seenBuyMap.set(key, item);
           finalBuyList.push(item);
         }
