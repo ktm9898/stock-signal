@@ -916,7 +916,7 @@ if __name__ == "__main__":
                 ai_prob = None
         
         cand['ai_prob'] = ai_prob
-        prob_str = f" | AI 승률: {ai_prob}%" if ai_prob is not None else ""
+        prob_str = f" | AI 점수: {ai_prob}점" if ai_prob is not None else ""
         print(f"  🔥 [BUY SIGNAL] [{cand_market}] {cand['name']} ({cand['ticker']}) - {cand['priority']}{prob_str} | ADX: {cand['adx']} | RSI: {cand['rsi']}")
 
     # Sort buy candidates based on active strategy priority indicator
