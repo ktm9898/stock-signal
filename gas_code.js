@@ -45,8 +45,8 @@ function setupSheets() {
 
   // 8. Strategy Slots Sheet Header Enforce
   let slotsSheet = ss.getSheetByName("Strategy_Slots") || ss.insertSheet("Strategy_Slots");
-  slotsSheet.getRange("A1:S1").setValues([["SlotID", "Name", "Memo", "Market", "Period", "StartDate", "EndDate", "ScaleInDrop", "ScaleInMultiplier", "StopLoss", "TakeProfit", "TradeAmount", "BuyRules", "SellRules", "UpdatedAt", "IsActive", "PriorityIndicator", "PriorityOrder", "MaxBuyCount"]]);
-  slotsSheet.getRange("A1:S1").setFontWeight("bold").setBackground("#dbeafe");
+  slotsSheet.getRange("A1:T1").setValues([["SlotID", "Name", "Memo", "Market", "Period", "StartDate", "EndDate", "ScaleInDrop", "ScaleInMultiplier", "StopLoss", "TakeProfit", "TradeAmount", "BuyRules", "SellRules", "UpdatedAt", "IsActive", "PriorityIndicator", "PriorityOrder", "MaxBuyCount", "CutoffScore"]]);
+  slotsSheet.getRange("A1:T1").setFontWeight("bold").setBackground("#dbeafe");
 }
 
 function doGet(e) {
