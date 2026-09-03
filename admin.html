@@ -3870,9 +3870,9 @@
           tradeAmount,
           slotScaleInDrop,
           slotScaleInMult,
-          slot.priorityIndicator || priorityIndicatorVal,
-          slot.priorityOrder || priorityOrderVal,
-          (slot.maxBuyCount !== undefined && slot.maxBuyCount !== null && slot.maxBuyCount !== "") ? slot.maxBuyCount : maxBuyCountVal
+          slot.priorityIndicator || "",
+          slot.priorityOrder || "DESC",
+          (slot.maxBuyCount !== undefined && slot.maxBuyCount !== null && slot.maxBuyCount !== "") ? slot.maxBuyCount : null
         );
 
         let dailyEngagedCapitalSum = 0;

@@ -810,7 +810,114 @@ if __name__ == "__main__":
                     kospi_stocks.append(stock_item)
                 if buy_item:
                     buy_candidates.append(buy_item)
-                    print(f"  🔥 [BUY SIGNAL] [{market}] {buy_item['name']} ({buy_item['ticker']}) - {buy_item['priority']} | ADX: {buy_item['adx']} | RSI: {buy_item['rsi']}")
+
+    # Calculate AI Win Probability for all Buy Candidates using pre-trained LightGBM model
+    model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "meta_lgbm_model.pkl")
+    if not os.path.exists(model_path):
+        model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "scratch", "meta_lgbm_model.pkl")
+
+    loaded_ai_bundle = None
+    if os.path.exists(model_path):
+        try:
+            import joblib
+            loaded_ai_bundle = joblib.load(model_path)
+            print(f" [INFO] Loaded AI Meta-Labeling Model from {os.path.basename(model_path)}")
+        except Exception as e:
+            print(f" [WARN] Failed loading AI model: {e}")
+
+    for cand in buy_candidates:
+        cand_ticker = cand.get('ticker', '')
+        cand_market = cand.get('market', 'KOSPI200')
+        cand_df = stock_df_map.get(cand_ticker, (None, ''))[0]
+        
+        ai_prob = None
+        if loaded_ai_bundle and cand_df is not None and len(cand_df) >= 25:
+            try:
+                model = loaded_ai_bundle['model']
+                feature_cols = loaded_ai_bundle['feature_cols']
+                
+                idx_key = '229200' if cand_market == 'KOSDAQ150' else '069500'
+                idx_tuple = stock_df_map.get(idx_key) or stock_df_map.get('KOSPI') or stock_df_map.get('KOSDAQ')
+                idx_df = idx_tuple[0] if idx_tuple else None
+                
+                curr = cand_df.iloc[-1]
+                s_close = cand_df['종가'] if '종가' in cand_df.columns else cand_df['close']
+                s_ret1 = s_close.pct_change(1).fillna(0)
+                
+                stock_ret_3d = float(s_close.pct_change(3).iloc[-1] * 100.0) if len(s_close) >= 4 else 0.0
+                stock_ret_5d = float(s_close.pct_change(5).iloc[-1] * 100.0) if len(s_close) >= 6 else 0.0
+                stock_ret_20d = float(s_close.pct_change(20).iloc[-1] * 100.0) if len(s_close) >= 21 else 0.0
+                stock_volatility = float(s_ret1.rolling(20, min_periods=5).std().iloc[-1] * 100.0) if len(s_ret1) >= 5 else 1.0
+                stock_rsi_slope_5d = float(cand_df['rsi'].diff(5).iloc[-1]) if 'rsi' in cand_df.columns and len(cand_df) >= 6 else 0.0
+                stock_disp_slope_5d = float(cand_df['disparity20'].diff(5).iloc[-1]) if 'disparity20' in cand_df.columns and len(cand_df) >= 6 else 0.0
+                
+                if idx_df is not None and len(idx_df) > 0:
+                    i_curr = idx_df.iloc[-1]
+                    i_close = idx_df['종가'] if '종가' in idx_df.columns else idx_df['close']
+                    i_ret1 = i_close.pct_change(1).fillna(0)
+                    idx_rsi = float(i_curr.get('rsi', 50.0))
+                    idx_bb_pct = float(i_curr.get('b_band_pct', 0.5))
+                    idx_disparity20 = float(i_curr.get('disparity20', 100.0))
+                    idx_adx = float(i_curr.get('adx', 20.0))
+                    idx_minus_di = float(i_curr.get('minus_di', 20.0))
+                    idx_plus_di = float(i_curr.get('plus_di', 20.0))
+                    idx_macd_osc = float(i_curr.get('macd_osc', 0.0))
+                    idx_ret_3d = float(i_close.pct_change(3).iloc[-1] * 100.0) if len(i_close) >= 4 else 0.0
+                    idx_ret_5d = float(i_close.pct_change(5).iloc[-1] * 100.0) if len(i_close) >= 6 else 0.0
+                    idx_ret_20d = float(i_close.pct_change(20).iloc[-1] * 100.0) if len(i_close) >= 21 else 0.0
+                    idx_volatility = float(i_ret1.rolling(20, min_periods=5).std().iloc[-1] * 100.0) if len(i_ret1) >= 5 else 1.0
+                else:
+                    idx_rsi, idx_bb_pct, idx_disparity20, idx_adx = 50.0, 0.5, 100.0, 20.0
+                    idx_minus_di, idx_plus_di, idx_macd_osc = 20.0, 20.0, 0.0
+                    idx_ret_3d, idx_ret_5d, idx_ret_20d, idx_volatility = 0.0, 0.0, 0.0, 1.0
+                
+                f_dict = {
+                    'stock_rsi': float(curr.get('rsi', 50.0)),
+                    'stock_bb_pct': float(curr.get('b_band_pct', 0.5)),
+                    'stock_bb_width': float(curr.get('bb_width', 0.1)),
+                    'stock_disparity20': float(curr.get('disparity20', 100.0)),
+                    'stock_volume_ratio': float(curr.get('volume_ratio', 100.0)),
+                    'stock_adx': float(curr.get('adx', 20.0)),
+                    'stock_minus_di': float(curr.get('minus_di', 20.0)),
+                    'stock_plus_di': float(curr.get('plus_di', 20.0)),
+                    'stock_macd_osc': float(curr.get('macd_osc', 0.0)),
+                    'stock_stoch_k': float(curr.get('stoch_k', 50.0)),
+                    'stock_stoch_d': float(curr.get('stoch_d', 50.0)),
+                    'stock_ret_3d': stock_ret_3d,
+                    'stock_ret_5d': stock_ret_5d,
+                    'stock_ret_20d': stock_ret_20d,
+                    'stock_volatility_20d': stock_volatility,
+                    'stock_rsi_slope_5d': stock_rsi_slope_5d,
+                    'stock_disp_slope_5d': stock_disp_slope_5d,
+                    'idx_rsi': idx_rsi,
+                    'idx_bb_pct': idx_bb_pct,
+                    'idx_disparity20': idx_disparity20,
+                    'idx_adx': idx_adx,
+                    'idx_minus_di': idx_minus_di,
+                    'idx_plus_di': idx_plus_di,
+                    'idx_macd_osc': idx_macd_osc,
+                    'idx_ret_3d': idx_ret_3d,
+                    'idx_ret_5d': idx_ret_5d,
+                    'idx_ret_20d': idx_ret_20d,
+                    'idx_volatility_20d': idx_volatility,
+                    'rel_ret_5d': stock_ret_5d - idx_ret_5d,
+                    'rel_ret_20d': stock_ret_20d - idx_ret_20d,
+                    'rel_rsi': float(curr.get('rsi', 50.0)) - idx_rsi,
+                    'rel_disparity': float(curr.get('disparity20', 100.0)) - idx_disparity20,
+                    'concurrent_signals_count': float(len(buy_candidates)),
+                    'trigger_group': 1.0
+                }
+                
+                feat_vals = [f_dict.get(col, 0.0) for col in feature_cols]
+                X_pred = np.array([feat_vals])
+                raw_prob = model.predict(X_pred)[0]
+                ai_prob = round(float(raw_prob) * 100.0, 1)
+            except Exception as e:
+                ai_prob = None
+        
+        cand['ai_prob'] = ai_prob
+        prob_str = f" | AI 승률: {ai_prob}%" if ai_prob is not None else ""
+        print(f"  🔥 [BUY SIGNAL] [{cand_market}] {cand['name']} ({cand['ticker']}) - {cand['priority']}{prob_str} | ADX: {cand['adx']} | RSI: {cand['rsi']}")
 
     # Sort buy candidates based on active strategy priority indicator
     priority_ind = active_slot.get('priorityIndicator', '') if active_slot else ''

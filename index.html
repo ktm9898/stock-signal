@@ -854,15 +854,16 @@
           <colgroup>
             <col style="width: 75px;">
             <col style="width: 135px;">
+            <col style="width: 72px;">
             <col style="width: 65px;">
-            <col style="width: 65px;">
+            <col style="width: 62px;">
+            <col style="width: 52px;">
+            <col style="width: 52px;">
+            <col style="width: 52px;">
+            <col style="width: 52px;">
+            <col style="width: 52px;">
             <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 56px;">
-            <col style="width: 68px;">
+            <col style="width: 76px;">
             <col style="width: 75px;">
           </colgroup>
           <thead>
@@ -871,6 +872,7 @@
               <th>종목</th>
               <th>신호</th>
               <th>우선순위</th>
+              <th>AI 승률</th>
               <th>ADX</th>
               <th>-DI</th>
               <th>+DI</th>
@@ -883,7 +885,7 @@
           </thead>
           <tbody id="buy-candidates-body">
             <tr>
-              <td colspan="12" style="text-align: center; padding: 32px 16px; color: var(--text-sub); font-size: 0.85rem;">
+              <td colspan="13" style="text-align: center; padding: 32px 16px; color: var(--text-sub); font-size: 0.85rem;">
                 <i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary); margin-right: 8px;"></i> 데이터를 불러오는 중입니다...
               </td>
             </tr>
@@ -2781,12 +2783,24 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
         const rankText = item.computed_rank ? `${item.computed_rank}순위` : '-';
 
+        const rawAiProb = item.ai_prob !== undefined ? item.ai_prob : (item.AI_Prob !== undefined ? item.AI_Prob : (item.aiProb !== undefined ? item.aiProb : item.ai_win_prob));
+        let aiProbText = '-';
+        let aiColor = 'var(--text-sub)';
+        if (rawAiProb !== undefined && rawAiProb !== null && rawAiProb !== '' && !isNaN(Number(rawAiProb)) && Number(rawAiProb) > 0 && Number(rawAiProb) <= 100) {
+          const numProb = Math.round(Number(rawAiProb));
+          aiProbText = `${numProb}%`;
+          if (numProb >= 85) aiColor = '#059669';
+          else if (numProb >= 75) aiColor = '#2563eb';
+          else aiColor = '#64748b';
+        }
+
         return `
           <tr>
             <td style="text-align:center;"><span style="color:var(--text-sub); font-size:0.85rem; font-weight:500;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
             <td style="padding-left: 16px;"><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
             <td style="text-align:center;"><span class="badge ${tierClass}" onclick="showDetailsModal('${name}', '${stageText}', '${reason}', '${tierClass}')" title="클릭 시 포착 사유 확인">${stageText}</span></td>
             <td style="text-align:center;"><span style="font-size:0.85rem; font-weight:700; color:#475569;">${rankText}</span></td>
+            <td style="text-align:center;"><span style="font-size:0.85rem; font-weight:700; color:${aiColor};">${aiProbText}</span></td>
             <td style="text-align:center;"><strong style="color:var(--accent-cyan);">${formatDec(item.ADX || item.adx)}</strong></td>
             <td style="text-align:center;">${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}</td>
             <td style="text-align:center;">${formatDec(item.Plus_DI || item.plus_di || item.plusDi)}</td>

@@ -8,8 +8,8 @@ function setupSheets() {
 
   // 1. Buy Candidates Sheet Header Enforce
   let buySheet = ss.getSheetByName("Buy_Candidates") || ss.insertSheet("Buy_Candidates");
-  buySheet.getRange("A1:M1").setValues([["Date", "Ticker", "Name", "Stage", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "RSI", "BB_Pct", "VolumeRatio", "ClosePrice"]]);
-  buySheet.getRange("A1:M1").setFontWeight("bold").setBackground("#e0f2fe");
+  buySheet.getRange("A1:N1").setValues([["Date", "Ticker", "Name", "Stage", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "RSI", "BB_Pct", "VolumeRatio", "ClosePrice", "AI_Prob"]]);
+  buySheet.getRange("A1:N1").setFontWeight("bold").setBackground("#e0f2fe");
 
   // 2. User Holdings Sheet Header Enforce
   let holdingsSheet = ss.getSheetByName("User_Holdings") || ss.insertSheet("User_Holdings");
@@ -311,7 +311,8 @@ function doPost(e) {
               today, c.ticker, c.name, c.priority, c.adx, c.prev_adx, c.minus_di, c.prev_minus_di, c.plus_di, c.rsi, 
               (c.b_band_pct !== undefined ? c.b_band_pct : (c.BB_Pct !== undefined ? c.BB_Pct : '-')),
               (c.volume_ratio !== undefined ? c.volume_ratio : (c.VolumeRatio !== undefined ? c.VolumeRatio : '-')),
-              c.close
+              c.close,
+              (c.ai_prob !== undefined && c.ai_prob !== null ? c.ai_prob : '-')
             ]);
           }
         });
