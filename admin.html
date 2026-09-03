@@ -3687,7 +3687,7 @@
         });
 
         // B. Evaluate Entries on currDate close -> Buy nextDate open
-        const newBuys = [];
+        let newBuys = [];
         stocks.forEach(s => {
           if (activePositions[s.ticker]) return; // already holding
 
