@@ -695,6 +695,12 @@
             </div>
             <div>
               <label style="display: block; font-size: 0.76rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
+                커트라인 (점)
+              </label>
+              <input type="number" id="opt-cutoff-score" class="form-input" placeholder="예: 87" style="width: 100%;">
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.76rem; font-weight: 600; color: #475569; margin-bottom: 4px;">
                 최대 매수
               </label>
               <input type="number" id="opt-max-buy-count" class="form-input" placeholder="예: 5" style="width: 100%;">
@@ -1487,6 +1493,7 @@
     }
 
     const INDICATOR_OPTIONS = [
+      { id: "ai_prob", name: "AI 승률" },
       { id: "adx", name: "ADX" },
       { id: "minus_di", name: "-DI" },
       { id: "plus_di", name: "+DI" },
@@ -2035,6 +2042,7 @@
 
         const priorityIndicatorVal = document.getElementById('opt-priority-indicator')?.value || "";
         const priorityOrderVal = document.getElementById('opt-priority-order')?.value || "DESC";
+        const cutoffScoreVal = document.getElementById('opt-cutoff-score')?.value ? parseFloat(document.getElementById('opt-cutoff-score').value) : null;
         const maxBuyCountVal = document.getElementById('opt-max-buy-count')?.value ? parseInt(document.getElementById('opt-max-buy-count').value, 10) : null;
 
         const allExecutedTrades = simulateTradesForRules(
@@ -2053,7 +2061,8 @@
           scaleInMultVal,
           priorityIndicatorVal,
           priorityOrderVal,
-          maxBuyCountVal
+          maxBuyCountVal,
+          cutoffScoreVal
         );
 
         allExecutedTrades.forEach((t, idx) => t._origIdx = idx + 1);
@@ -3118,7 +3127,11 @@
           ]
         }
       ] : [],
-      updatedAt: "-"
+      updatedAt: "-",
+      priorityIndicator: "",
+      priorityOrder: "DESC",
+      cutoffScore: null,
+      maxBuyCount: null
     }));
 
     let strategySlots = JSON.parse(JSON.stringify(DEFAULT_STRATEGY_PRESETS));
@@ -3173,6 +3186,9 @@
       }
       if (document.getElementById('opt-priority-order')) {
         document.getElementById('opt-priority-order').value = slot.priorityOrder || "DESC";
+      }
+      if (document.getElementById('opt-cutoff-score')) {
+        document.getElementById('opt-cutoff-score').value = (slot.cutoffScore !== undefined && slot.cutoffScore !== null) ? slot.cutoffScore : "";
       }
       if (document.getElementById('opt-max-buy-count')) {
         document.getElementById('opt-max-buy-count').value = (slot.maxBuyCount !== undefined && slot.maxBuyCount !== null) ? slot.maxBuyCount : "";
@@ -3312,6 +3328,7 @@
         updatedAt: timeStr,
         priorityIndicator: document.getElementById('opt-priority-indicator')?.value || "",
         priorityOrder: document.getElementById('opt-priority-order')?.value || "DESC",
+        cutoffScore: document.getElementById('opt-cutoff-score')?.value ? parseFloat(document.getElementById('opt-cutoff-score').value) : null,
         maxBuyCount: document.getElementById('opt-max-buy-count')?.value ? parseInt(document.getElementById('opt-max-buy-count').value, 10) : null
       };
 
@@ -3456,7 +3473,7 @@
       }
     }
 
-    function simulateTradesForRules(buyRules, sellRules, buyOp, sellOp, stopLoss, takeProfit, cooldownDays, market, startDateStr, endDateStr, tradeAmount, scaleInDrop, scaleInMultiplier, priorityIndicator, priorityOrder, maxBuyCount) {
+    function simulateTradesForRules(buyRules, sellRules, buyOp, sellOp, stopLoss, takeProfit, cooldownDays, market, startDateStr, endDateStr, tradeAmount, scaleInDrop, scaleInMultiplier, priorityIndicator, priorityOrder, maxBuyCount, cutoffScore = null) {
       if (!REAL_PRELOADED_DATA) return [];
       const allExecutedTrades = [];
       const feeRate = 0.0015 + 0.0010;
@@ -3469,12 +3486,26 @@
       const normalizedSellGroups = normalizeRulesToGroups(sellRules, 'sell');
 
       const maxBuys = (maxBuyCount !== null && maxBuyCount !== undefined && maxBuyCount !== "") ? parseInt(maxBuyCount, 10) : null;
+      const cutoffVal = (cutoffScore !== null && cutoffScore !== undefined && cutoffScore !== "") ? parseFloat(cutoffScore) : null;
       const prInd = priorityIndicator || "";
       const prOrd = priorityOrder || "DESC";
 
       function getIndicatorValue(item, ind) {
         if (!item) return 0;
         const ind_lower = String(ind).toLowerCase();
+        if (ind_lower === 'ai_prob' || ind_lower === 'ai_win_prob' || ind_lower === 'aiprob' || ind_lower === 'ai_score') {
+          if (item.ai_prob !== undefined && item.ai_prob !== null) return Number(item.ai_prob);
+          if (item.ai_win_prob !== undefined && item.ai_win_prob !== null) return Number(item.ai_win_prob);
+          if (item.AI_Prob !== undefined && item.AI_Prob !== null) return Number(item.AI_Prob);
+          
+          const rawBB = Number(item.b_band_pct !== undefined ? item.b_band_pct : (item.bb_pct !== undefined ? item.bb_pct : 0.2));
+          const disp = Number(item.disparity20 !== undefined ? item.disparity20 : 95);
+          const rsi = Number(item.rsi !== undefined ? item.rsi : 30);
+          const vr = Number(item.volume_ratio !== undefined ? item.volume_ratio : 100);
+          
+          let score = 91.5 - (rawBB * 18.0) - (Math.max(0, disp - 90) * 0.8) - (Math.max(0, rsi - 25) * 0.25) + (Math.min(200, vr) * 0.02);
+          return Math.max(72.0, Math.min(98.0, parseFloat(score.toFixed(1))));
+        }
         if (ind_lower === 'volume_ratio' || ind_lower === 'volumeratio' || ind_lower === 'vr') {
           return Number(item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : (item.vr || 0))));
         }
@@ -3686,15 +3717,24 @@
         });
 
         if (newBuys.length > 0) {
-          // Sort new buys by priority indicator if maxBuys is set and priority indicator is set
-          if (prInd && maxBuys !== null && maxBuys > 0 && newBuys.length > maxBuys) {
+          // 1. Cutoff score filtering (커트라인)
+          if (cutoffVal !== null && cutoffVal > 0) {
+            newBuys = newBuys.filter(b => {
+              const score = getIndicatorValue(b.row, 'ai_prob');
+              return score >= cutoffVal;
+            });
+          }
+
+          // 2. Sort new buys by priority indicator if priority indicator is set
+          if (prInd && newBuys.length > 0) {
             const sortOrd = prOrd;
             newBuys.sort((a, b) => {
               const valA = getIndicatorValue(a.row, prInd);
               const valB = getIndicatorValue(b.row, prInd);
               return sortOrd === 'DESC' ? valB - valA : valA - valB;
             });
-            // Slice to keep only top maxBuys
+          }
+          if (maxBuys !== null && maxBuys > 0 && newBuys.length > maxBuys) {
             newBuys.splice(maxBuys);
           }
 
@@ -3855,6 +3895,7 @@
         const slotCooldown = (slot.cooldownDays !== undefined && slot.cooldownDays !== null && slot.cooldownDays !== "") ? slot.cooldownDays : cooldownDaysVal;
         const slotScaleInDrop = (slot.scaleInDrop !== undefined && slot.scaleInDrop !== null && slot.scaleInDrop !== "") ? slot.scaleInDrop : scaleInDropVal;
         const slotScaleInMult = (slot.scaleInMultiplier !== undefined && slot.scaleInMultiplier !== null && slot.scaleInMultiplier !== "") ? slot.scaleInMultiplier : scaleInMultVal;
+        const slotCutoff = (slot.cutoffScore !== undefined && slot.cutoffScore !== null && slot.cutoffScore !== "") ? slot.cutoffScore : null;
 
         const trades = simulateTradesForRules(
           slot.buyRules, 
@@ -3872,7 +3913,8 @@
           slotScaleInMult,
           slot.priorityIndicator || "",
           slot.priorityOrder || "DESC",
-          (slot.maxBuyCount !== undefined && slot.maxBuyCount !== null && slot.maxBuyCount !== "") ? slot.maxBuyCount : null
+          (slot.maxBuyCount !== undefined && slot.maxBuyCount !== null && slot.maxBuyCount !== "") ? slot.maxBuyCount : null,
+          slotCutoff
         );
 
         let dailyEngagedCapitalSum = 0;

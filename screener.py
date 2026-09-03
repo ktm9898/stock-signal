@@ -931,6 +931,13 @@ if __name__ == "__main__":
         def get_sort_value(cand):
             val = cand.get(priority_ind)
             if val is None:
+                if priority_ind.lower() in ['ai_prob', 'ai_win_prob', 'aiprob', 'ai_score']:
+                    val = cand.get('ai_prob')
+                elif priority_ind.lower() in ['bb_pct', 'b_band_pct', 'bb']:
+                    val = cand.get('bb_pct') or cand.get('b_band_pct')
+                elif priority_ind.lower() in ['disparity20', 'disparity']:
+                    val = cand.get('disparity20')
+            if val is None:
                 return -999999 if priority_ord == 'DESC' else 999999
             try:
                 return float(val)

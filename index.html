@@ -1514,10 +1514,12 @@
             <div style="font-weight:700; font-size:0.80rem; color:#0284c7;">${cooldownText}</div>
           </div>
         </div>
-         <div style="border-top:1px solid #e2e8f0; padding-top:10px; margin-top:10px; display:flex; justify-content:space-between; font-size:0.75rem; color:#64748b;">
+         <div style="border-top:1px solid #e2e8f0; padding-top:10px; margin-top:10px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; font-size:0.75rem; color:#64748b;">
           <div>우선순위: <span style="font-weight:700; color:#475569;">${
             slot.priorityIndicator ? (
               {
+                'ai_prob': 'AI 승률',
+                'ai_win_prob': 'AI 승률',
                 'adx': 'ADX',
                 'minus_di': '-DI',
                 'plus_di': '+DI',
@@ -1534,6 +1536,7 @@
               }[slot.priorityIndicator.toLowerCase()] || slot.priorityIndicator
             ) + ' ' + (slot.priorityOrder === 'DESC' ? '큰 순서대로' : '작은 순서대로') : '없음'
           }</span></div>
+          <div>커트라인: <span style="font-weight:700; color:#475569;">${slot.cutoffScore ? slot.cutoffScore + '점' : '없음'}</span></div>
           <div>최대 매수: <span style="font-weight:700; color:#475569;">${slot.maxBuyCount ? slot.maxBuyCount + '개' : '무제한'}</span></div>
         </div>
       `;

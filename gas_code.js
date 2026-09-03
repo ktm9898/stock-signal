@@ -150,7 +150,8 @@ function doGet(e) {
           isActive: String(r[isActiveIdx] || '').includes('적용') || String(r[isActiveIdx] || '').includes('ACTIVE'),
           priorityIndicator: hasPriority ? (r[16] || '') : '',
           priorityOrder: hasPriority ? (r[17] || '') : '',
-          maxBuyCount: hasPriority && r[18] !== '' && r[18] !== null ? Number(r[18]) : null
+          maxBuyCount: hasPriority && r[18] !== '' && r[18] !== null ? Number(r[18]) : null,
+          cutoffScore: numCols >= 20 && r[19] !== '' && r[19] !== null ? Number(r[19]) : null
         };
       });
     }
@@ -236,9 +237,9 @@ function doPost(e) {
       const activeSlotId = parseInt(PropertiesService.getScriptProperties().getProperty("ACTIVE_STRATEGY_SLOT_ID") || "1", 10);
       if (data.slots && Array.isArray(data.slots) && sheet) {
         if (sheet.getLastRow() > 1) {
-          sheet.getRange(2, 1, sheet.getLastRow() - 1, Math.max(19, sheet.getLastColumn())).clearContent();
+          sheet.getRange(2, 1, sheet.getLastRow() - 1, Math.max(20, sheet.getLastColumn())).clearContent();
         }
-        sheet.getRange("A1:S1").setValues([["SlotID", "Name", "Memo", "Market", "Period", "StartDate", "EndDate", "ScaleInDrop", "ScaleInMultiplier", "StopLoss", "TakeProfit", "TradeAmount", "BuyRules", "SellRules", "UpdatedAt", "IsActive", "PriorityIndicator", "PriorityOrder", "MaxBuyCount"]]);
+        sheet.getRange("A1:T1").setValues([["SlotID", "Name", "Memo", "Market", "Period", "StartDate", "EndDate", "ScaleInDrop", "ScaleInMultiplier", "StopLoss", "TakeProfit", "TradeAmount", "BuyRules", "SellRules", "UpdatedAt", "IsActive", "PriorityIndicator", "PriorityOrder", "MaxBuyCount", "CutoffScore"]]);
         const rows = data.slots.map((s, idx) => {
           const currentId = s.id || (idx + 1);
           return [
@@ -260,10 +261,11 @@ function doPost(e) {
             currentId === activeSlotId ? "적용중 (ACTIVE)" : "",
             s.priorityIndicator || "",
             s.priorityOrder || "",
-            s.maxBuyCount !== null && s.maxBuyCount !== undefined ? s.maxBuyCount : ""
+            s.maxBuyCount !== null && s.maxBuyCount !== undefined ? s.maxBuyCount : "",
+            s.cutoffScore !== null && s.cutoffScore !== undefined ? s.cutoffScore : ""
           ];
         });
-        sheet.getRange(2, 1, rows.length, 19).setValues(rows);
+        sheet.getRange(2, 1, rows.length, 20).setValues(rows);
         PropertiesService.getScriptProperties().setProperty("STRATEGY_SLOTS_JSON", JSON.stringify(data.slots));
       }
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
