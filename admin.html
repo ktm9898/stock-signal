@@ -446,8 +446,10 @@
     .tag-loss { color: var(--primary); font-weight: 700; }
 
     .label-desktop { display: inline; }
+    .label-mobile { display: none; }
     @media (max-width: 768px) {
       .label-desktop { display: none !important; }
+      .label-mobile { display: inline-block !important; }
     }
 
     @media (max-width: 1024px) {
@@ -649,10 +651,19 @@
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
           <span style="font-size: 0.95rem; font-weight: 700; color: #1e293b;">전략 설정</span>
 
-          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <button class="btn-sm-action" style="background:#2563eb; color:#fff; font-weight:600; padding:6px 14px; font-size:0.8rem;" onclick="openSaveModal()">저장</button>
-            <button class="btn-sm-action" style="background:#059669; color:#fff; font-weight:600; padding:6px 14px; font-size:0.8rem;" onclick="openLoadModal()">불러오기</button>
-            <button class="btn-sm-action" style="background:#475569; color:#fff; font-weight:600; padding:6px 14px; font-size:0.8rem;" onclick="openCompareModal()">전략비교</button>
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+            <button class="btn-sm-action" style="background:#dc2626; color:#fff; font-weight:600; padding:6px 12px; font-size:0.8rem; border:none; display:inline-flex; align-items:center; gap:5px;" onclick="resetStrategyConditions()" title="조건 초기화" aria-label="초기화">
+              <i class="fa-solid fa-rotate-left label-mobile"></i><span class="label-desktop">초기화</span>
+            </button>
+            <button class="btn-sm-action" style="background:#2563eb; color:#fff; font-weight:600; padding:6px 12px; font-size:0.8rem; border:none; display:inline-flex; align-items:center; gap:5px;" onclick="openSaveModal()" title="전략 저장" aria-label="저장">
+              <i class="fa-solid fa-floppy-disk label-mobile"></i><span class="label-desktop">저장</span>
+            </button>
+            <button class="btn-sm-action" style="background:#059669; color:#fff; font-weight:600; padding:6px 12px; font-size:0.8rem; border:none; display:inline-flex; align-items:center; gap:5px;" onclick="openLoadModal()" title="전략 불러오기" aria-label="불러오기">
+              <i class="fa-solid fa-folder-open label-mobile"></i><span class="label-desktop">불러오기</span>
+            </button>
+            <button class="btn-sm-action" style="background:#475569; color:#fff; font-weight:600; padding:6px 12px; font-size:0.8rem; border:none; display:inline-flex; align-items:center; gap:5px;" onclick="openCompareModal()" title="전략비교" aria-label="전략비교">
+              <i class="fa-solid fa-code-compare label-mobile"></i><span class="label-desktop">전략비교</span>
+            </button>
           </div>
         </div>
       </div>
@@ -1626,6 +1637,38 @@
       if (takeProfitEl) takeProfitEl.value = "";
       const cooldownEl = document.getElementById('opt-cooldown-days');
       if (cooldownEl) cooldownEl.value = "";
+      renderRules();
+    }
+
+    function resetStrategyConditions() {
+      if (!confirm("설정된 모든 매수/매도 조건 및 세부 옵션을 초기화하시겠습니까?")) {
+        return;
+      }
+      currentBuyGroups = [];
+      currentSellGroups = [];
+
+      // Scale-in & Stop Loss / Take Profit / Cooldown
+      const scaleDropEl = document.getElementById('opt-scale-in-drop');
+      if (scaleDropEl) scaleDropEl.value = "";
+      const scaleMultEl = document.getElementById('opt-scale-in-mult');
+      if (scaleMultEl) scaleMultEl.value = "";
+      const stopLossEl = document.getElementById('opt-stop-loss');
+      if (stopLossEl) stopLossEl.value = "";
+      const takeProfitEl = document.getElementById('opt-take-profit');
+      if (takeProfitEl) takeProfitEl.value = "";
+      const cooldownEl = document.getElementById('opt-cooldown-days');
+      if (cooldownEl) cooldownEl.value = "";
+
+      // Priority & Cutoff Score & Max Buy Count
+      const priorityIndEl = document.getElementById('opt-priority-indicator');
+      if (priorityIndEl) priorityIndEl.value = "";
+      const priorityOrderEl = document.getElementById('opt-priority-order');
+      if (priorityOrderEl) priorityOrderEl.value = "DESC";
+      const cutoffScoreEl = document.getElementById('opt-cutoff-score');
+      if (cutoffScoreEl) cutoffScoreEl.value = "";
+      const maxBuyCountEl = document.getElementById('opt-max-buy-count');
+      if (maxBuyCountEl) maxBuyCountEl.value = "";
+
       renderRules();
     }
 
