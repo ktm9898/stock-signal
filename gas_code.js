@@ -69,8 +69,9 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // 1. PIN Authorization Check for Protected Endpoints
-  if (authPin && inputPin !== authPin) {
+  // 1. PIN Authorization Check for Protected Endpoints (Write Actions)
+  const isProtectedGetAction = (action === "set_active_strategy_slot");
+  if (isProtectedGetAction && authPin && inputPin !== authPin) {
     return ContentService.createTextOutput(JSON.stringify({ 
       success: false, 
       status: "error", 

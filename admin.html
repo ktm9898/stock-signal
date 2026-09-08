@@ -622,9 +622,14 @@
       <a href="#" class="brand">
         <span class="brand-title">StockSignal 퀀트 랩</span>
       </a>
-      <a href="index.html" class="btn-return">
-        실전 대시보드
-      </a>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button id="admin-header-login-btn" onclick="showPinAuthModal()" style="display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; font-size: 0.82rem; font-weight: 600; border-radius: 8px; border: 1px solid #bfdbfe; background: #eff6ff; color: #2563eb; cursor: pointer;">
+          <i class="fa-solid fa-key"></i> <span class="label-desktop">관리자</span>
+        </button>
+        <a href="index.html" class="btn-return">
+          실전 대시보드
+        </a>
+      </div>
     </div>
   </header>
 
@@ -3068,6 +3073,28 @@
       if (modal) modal.style.display = 'none';
     }
 
+    function isGuest() {
+      return !getStoredPin();
+    }
+
+    function updateAdminHeaderAuthUI() {
+      const btn = document.getElementById('admin-header-login-btn');
+      if (!btn) return;
+      if (isGuest()) {
+        btn.innerHTML = `<i class="fa-solid fa-key"></i> <span class="label-desktop">관리자</span>`;
+        btn.title = "관리자 로그인";
+        btn.style.background = "#eff6ff";
+        btn.style.color = "#2563eb";
+        btn.style.borderColor = "#bfdbfe";
+      } else {
+        btn.innerHTML = `<i class="fa-solid fa-shield"></i> <span class="label-desktop">관리자</span>`;
+        btn.title = "관리자 인증됨";
+        btn.style.background = "#dcfce7";
+        btn.style.color = "#15803d";
+        btn.style.borderColor = "#bbf7d0";
+      }
+    }
+
     async function submitPinAuth() {
       const input = document.getElementById('pinAuthInput');
       const errEl = document.getElementById('pinAuthError');
@@ -3075,68 +3102,70 @@
       const pinVal = input ? input.value.trim() : '';
 
       if (!pinVal) {
-        if (errEl) {
-          errEl.textContent = '비밀번호를 입력해주세요.';
-          errEl.style.display = 'block';
-        }
+        enterGuestModeInAdmin();
         return;
       }
 
       if (btn) {
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 전략 불러오는 중...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 확인 중...';
       }
       if (errEl) errEl.style.display = 'none';
 
       try {
-        saveStoredPin(pinVal);
-        const resp = await fetch(buildGasUrl("get_strategy_slots"));
-        const data = await resp.json();
+        const verifyResp = await fetch(GAS_WEBAPP_URL_ADMIN + `?action=verify_pin&pin=${encodeURIComponent(pinVal)}`);
+        const verifyData = await verifyResp.json();
 
-        if ((data.pinRequired && data.status === "error") || data.status === "error" || data.success === false) {
+        if (verifyData && verifyData.valid === true) {
+          saveStoredPin(pinVal);
+          hidePinAuthModal();
+          updateAdminHeaderAuthUI();
+          fetchGoogleSheetSlots();
+        } else {
           clearStoredPin();
+          updateAdminHeaderAuthUI();
           if (errEl) {
-            errEl.textContent = data.message || '비밀번호가 올바르지 않습니다.';
+            errEl.textContent = (verifyData && verifyData.message) ? verifyData.message : '비밀번호가 올바르지 않습니다.';
             errEl.style.display = 'block';
           }
           if (input) {
             input.value = '';
             input.focus();
           }
-          return;
         }
-
-        if (data && data.success && Array.isArray(data.slots) && data.slots.length === 10) {
-          strategySlots = data.slots;
-          localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
-
-          let activeIdx = 0;
-          if (data.activeSlotId) {
-            activeIdx = data.activeSlotId - 1;
-            localStorage.setItem(ACTIVE_STRATEGY_KEY, String(activeIdx));
-          } else {
-            const savedActive = localStorage.getItem(ACTIVE_STRATEGY_KEY);
-            if (savedActive !== null) activeIdx = parseInt(savedActive, 10) || 0;
-          }
-
-          const activeSlot = strategySlots[activeIdx] || strategySlots[0];
-          if (activeSlot && !activeSlot.isEmpty && activeSlot.buyRules && activeSlot.buyRules.length > 0) {
-            applySlotToEditor(activeSlot);
-          }
-        }
-        hidePinAuthModal();
       } catch (err) {
-        clearStoredPin();
-        if (errEl) {
-          errEl.textContent = '서버 연결 실패. 다시 시도해주세요.';
-          errEl.style.display = 'block';
+        try {
+          saveStoredPin(pinVal);
+          const resp = await fetch(buildGasUrl("get_strategy_slots"));
+          const data = await resp.json();
+          if (data && data.success) {
+            hidePinAuthModal();
+            updateAdminHeaderAuthUI();
+            fetchGoogleSheetSlots();
+          } else {
+            throw new Error((data && data.message) || '인증 실패');
+          }
+        } catch(fallbackErr) {
+          clearStoredPin();
+          updateAdminHeaderAuthUI();
+          if (errEl) {
+            errEl.textContent = '확인 중 오류가 발생했습니다: ' + fallbackErr.message;
+            errEl.style.display = 'block';
+          }
         }
       } finally {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-key"></i> 인증하기';
+          btn.innerHTML = '<i class="fa-solid fa-key"></i> 관리자 로그인';
         }
       }
+    }
+
+    async function enterGuestModeInAdmin() {
+      clearStoredPin();
+      hidePinAuthModal();
+      updateAdminHeaderAuthUI();
+      fetchGoogleSheetSlots();
     }
 
     const DEFAULT_STRATEGY_PRESETS = Array.from({ length: 10 }, (_, i) => ({
@@ -3337,6 +3366,11 @@
     }
 
     function executeSaveSlotFromModal() {
+      if (isGuest()) {
+        alert("전략을 구글 시트에 영구 저장하려면 관리자 로그인이 필요합니다.");
+        showPinAuthModal();
+        return;
+      }
       const idx = parseInt(document.getElementById('save-slot-select').value);
       const name = document.getElementById('save-slot-name').value.trim() || `전략 ${idx + 1}`;
       const memo = document.getElementById('save-slot-memo').value.trim() || "설명 없음";
@@ -3438,6 +3472,11 @@
     }
 
     function clearSlot(idx) {
+      if (isGuest()) {
+        alert("전략 슬롯을 삭제하려면 관리자 로그인이 필요합니다.");
+        showPinAuthModal();
+        return;
+      }
       if (!confirm(`[전략 ${idx + 1}]을(를) 정말 삭제하시겠습니까?`)) return;
       strategySlots[idx] = {
         id: idx + 1,
@@ -4641,24 +4680,32 @@
       loadDefaultSellRules();
       initStrategySlots();
       initDataViewer();
+      updateAdminHeaderAuthUI();
     });
   </script>
 
   <!-- PIN Authentication Modal -->
   <div class="modal-overlay" id="pinAuthModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; background:rgba(15,23,42,0.75); backdrop-filter:blur(8px); justify-content:center; align-items:center;">
-    <div class="modal-card" style="background:#fff; border-radius:14px; width:90%; max-width:380px; padding:28px 24px; text-align:center; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+    <div class="modal-card" style="background:#fff; border-radius:14px; width:90%; max-width:380px; padding:28px 24px; text-align:center; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); position:relative;">
+      <button onclick="hidePinAuthModal()" style="position:absolute; top:12px; right:14px; background:none; border:none; font-size:1.25rem; color:#94a3b8; cursor:pointer; padding:4px; line-height:1;" title="닫기">&times;</button>
       <div style="width:52px; height:52px; border-radius:50%; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:22px; margin:0 auto 16px auto;">
         <i class="fa-solid fa-lock"></i>
       </div>
       <h3 style="font-size:17px; font-weight:700; color:#0f172a; margin:0 0 6px 0;">보안 인증 (PIN)</h3>
-      <p style="font-size:12.5px; color:#64748b; margin-bottom:18px;">스튜디오 접속을 위해 비밀번호(PIN)를 입력해주세요.</p>
+      <p style="font-size:12.5px; color:#64748b; margin-bottom:18px;">비밀번호를 입력하거나, 게스트로 바로 둘러보실 수 있습니다.</p>
       <div style="margin-bottom:14px;">
-        <input type="password" id="pinAuthInput" maxlength="20" placeholder="PIN 번호 입력" style="width:100%; box-sizing:border-box; text-align:center; font-size:19px; font-weight:700; letter-spacing:4px; padding:12px 14px; border-radius:10px; border:1px solid #cbd5e1; outline:none; background:#f8fafc;" onkeydown="if(event.key==='Enter') submitPinAuth()">
+        <input type="password" id="pinAuthInput" maxlength="20" placeholder="PIN 번호 입력" style="width:100%; box-sizing:border-box; text-align:center; font-size:19px; font-weight:700; letter-spacing:4px; padding:12px 14px; border-radius:10px; border:1px solid #cbd5e1; outline:none; background:#f8fafc;" onkeydown="if(event.key==='Enter'){ this.value.trim() ? submitPinAuth() : enterGuestModeInAdmin(); }">
         <div id="pinAuthError" style="color:#e11d48; font-size:12px; font-weight:600; margin-top:8px; display:none;">비밀번호가 올바르지 않습니다.</div>
       </div>
-      <button type="button" id="pinAuthSubmitBtn" onclick="submitPinAuth()" style="width:100%; padding:12px; border-radius:10px; background:#2563eb; color:#fff; font-size:14px; font-weight:700; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
-        <i class="fa-solid fa-key"></i> 인증하기
-      </button>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button type="button" id="pinAuthSubmitBtn" onclick="submitPinAuth()" style="width:100%; padding:12px; border-radius:10px; background:#2563eb; color:#fff; font-size:14px; font-weight:700; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
+          <i class="fa-solid fa-key"></i> 관리자 로그인
+        </button>
+        <button type="button" id="pinAuthGuestBtn" onclick="enterGuestModeInAdmin()" style="width:100%; padding:10px; border-radius:10px; background:#f1f5f9; color:#475569; font-size:13px; font-weight:600; border:1px solid #cbd5e1; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+          <i class="fa-regular fa-compass"></i> 게스트로 둘러보기
+        </button>
+      </div>
+      <p style="font-size:11px; color:#94a3b8; margin:12px 0 0 0;">비밀번호 없이 엔터를 치시면 읽기 및 시뮬레이션 전용(게스트)으로 즉시 진입합니다.</p>
     </div>
   </div>
 

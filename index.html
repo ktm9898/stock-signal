@@ -846,10 +846,18 @@
       </div>
     </div>
 
-    <!-- Tab 1: Buy Signals -->
-    <!-- Tab 1: Buy Signals -->
-    <div id="buy-tab" class="tab-content">
-      <div class="table-container">
+    <!-- Global Centered Loading Indicator (Always visible at screen center without horizontal scroll) -->
+    <div id="global-loading-box" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 52px 16px; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 14px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+      <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.2rem; color: #2563eb; margin-bottom: 14px;"></i>
+      <div style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin-bottom: 5px;">데이터를 불러오는 중입니다...</div>
+      <div style="font-size: 0.83rem; color: #64748b;">최신 시장 데이터 및 퀀트 신호를 분석하고 있습니다.</div>
+    </div>
+
+    <!-- Main Tab Contents Wrapper (Hidden while initial loading) -->
+    <div id="main-tab-contents-wrapper" style="display: none;">
+      <!-- Tab 1: Buy Signals -->
+      <div id="buy-tab" class="tab-content">
+        <div class="table-container">
         <table class="buy-signals-table">
           <colgroup>
             <col style="width: 75px;">
@@ -1079,6 +1087,7 @@
       </div>
     </div>
   </div>
+  </div>
 
   <!-- Info/Details Modal -->
   <div class="modal-overlay" id="info-modal">
@@ -1131,18 +1140,27 @@
 
   <!-- PIN Modal -->
   <div class="modal-overlay" id="pin-modal" style="display: none;">
-    <div class="modal-content" style="text-align: center; max-width: 380px;">
+    <div class="modal-content" style="text-align: center; max-width: 380px; position: relative;">
+      <button onclick="hidePinAuthModal()" style="position: absolute; top: 12px; right: 14px; background: none; border: none; font-size: 1.25rem; color: #94a3b8; cursor: pointer; padding: 4px; line-height: 1;" title="닫기">&times;</button>
       <div class="brand-icon" style="margin: 0 auto 16px auto; width: 44px; height: 44px; font-size: 1.3rem;">
         <i class="fa-solid fa-lock"></i>
       </div>
-      <h3 style="font-size: 1.25rem; margin-bottom: 8px;">보안 비밀번호 입력</h3>
-      <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 16px;">대시보드에 접근하려면 비밀번호를 입력하세요.</p>
+      <h3 style="font-size: 1.25rem; margin-bottom: 6px;">보안 인증 / 로그인</h3>
+      <p style="color: var(--text-sub); font-size: 0.85rem; margin-bottom: 16px;">비밀번호를 입력하거나, 게스트로 바로 둘러보실 수 있습니다.</p>
       
-      <div class="form-group" style="margin-top: 10px;">
-        <input type="password" class="form-input" id="input-pin" placeholder="••••••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; font-weight: 700; padding: 10px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
+      <div class="form-group" style="margin-top: 10px; margin-bottom: 10px;">
+        <input type="password" class="form-input" id="input-pin" placeholder="••••••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; font-weight: 700; padding: 10px;" onkeyup="if(event.key==='Enter'){ this.value.trim() ? verifyPin() : enterGuestMode(); }" autofocus>
       </div>
       <div id="pin-error" style="color: var(--accent-red); font-size: 0.85rem; margin-bottom: 12px; display: none;">비밀번호가 올바르지 않습니다.</div>
-      <button class="btn-buy-reg" id="btn-pin-submit" style="width: 100%; padding: 10px; font-size: 0.95rem;" onclick="verifyPin()">대시보드 열기</button>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button class="btn-buy-reg" id="btn-pin-submit" style="width: 100%; padding: 11px; font-size: 0.95rem; font-weight: 700;" onclick="verifyPin()"><i class="fa-solid fa-key"></i> 관리자 로그인</button>
+        <button type="button" id="btn-guest-enter" style="width: 100%; padding: 10px; font-size: 0.88rem; font-weight: 600; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="enterGuestMode()">
+          <i class="fa-regular fa-compass"></i> 게스트로 둘러보기
+        </button>
+      </div>
+      <div style="font-size: 0.76rem; color: #94a3b8; margin-top: 12px; line-height: 1.4;">
+        비밀번호 없이 엔터를 치시면 읽기 및 시뮬레이션 전용(게스트)으로 즉시 진입합니다.
+      </div>
     </div>
   </div>
 
@@ -2094,6 +2112,30 @@
       document.getElementById('count-holdings').textContent = holdingsData.length;
       document.getElementById('count-profit').textContent = profitCount;
       document.getElementById('count-loss').textContent = lossCount;
+
+      // Reveal Main Tab Contents & Hide Global Loader
+      const globalLoader = document.getElementById('global-loading-box');
+      const tabWrapper = document.getElementById('main-tab-contents-wrapper');
+      if (globalLoader) globalLoader.style.display = 'none';
+      if (tabWrapper) tabWrapper.style.display = 'block';
+    }
+
+    function isGuest() {
+      return !getStoredPin();
+    }
+
+    function updateHeaderAuthButton() {
+      const btn = document.getElementById('manual-trigger-btn');
+      if (!btn) return;
+      if (isGuest()) {
+        btn.innerHTML = `<i class="fa-solid fa-key"></i> <span class="label-desktop">관리자</span>`;
+        btn.title = "관리자 로그인";
+        btn.onclick = () => showPinAuthModal();
+      } else {
+        btn.innerHTML = `<i class="fa-solid fa-play"></i> <span class="label-desktop">수동 실행</span>`;
+        btn.title = "수동 스크리닝 분석 실행";
+        btn.onclick = () => triggerManualScreening();
+      }
     }
 
     async function verifyPin() {
@@ -2103,31 +2145,33 @@
       const pinVal = input ? input.value.trim() : '';
 
       if (!pinVal) {
-        if (errorEl) {
-          errorEl.textContent = '비밀번호를 입력해주세요.';
-          errorEl.style.display = 'block';
-        }
+        enterGuestMode();
         return;
       }
 
       if (pinBtn) {
         pinBtn.disabled = true;
-        pinBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 6px;"></i> 데이터 로딩 중...`;
+        pinBtn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin" style="margin-right: 6px;"></i> 확인 중...`;
       }
       if (errorEl) errorEl.style.display = 'none';
 
       try {
-        const res = await loadDataFromGAS(pinVal);
+        const verifyResp = await fetch(GAS_WEBAPP_URL + `?action=verify_pin&pin=${encodeURIComponent(pinVal)}`);
+        const verifyData = await verifyResp.json();
 
-        if (res && res.success !== false) {
+        if (verifyData && verifyData.valid === true) {
           saveStoredPin(pinVal);
           userPin = pinVal;
           hidePinAuthModal();
+          updateHeaderAuthButton();
+          showToast("관리자로 로그인되었습니다.");
+          loadDataFromGAS(pinVal);
         } else {
           clearStoredPin();
           userPin = "";
+          updateHeaderAuthButton();
           if (errorEl) {
-            errorEl.textContent = (res && res.message) ? res.message : '비밀번호가 올바르지 않습니다.';
+            errorEl.textContent = (verifyData && verifyData.message) ? verifyData.message : '비밀번호가 올바르지 않습니다.';
             errorEl.style.display = 'block';
           }
           if (input) {
@@ -2136,16 +2180,38 @@
           }
         }
       } catch (err) {
-        if (errorEl) {
-          errorEl.textContent = '확인 중 오류가 발생했습니다: ' + err.message;
-          errorEl.style.display = 'block';
+        try {
+          const res = await loadDataFromGAS(pinVal);
+          if (res && res.success !== false) {
+            saveStoredPin(pinVal);
+            userPin = pinVal;
+            hidePinAuthModal();
+            updateHeaderAuthButton();
+            showToast("관리자로 로그인되었습니다.");
+          } else {
+            throw new Error((res && res.message) || '비밀번호 확인 실패');
+          }
+        } catch (fallbackErr) {
+          if (errorEl) {
+            errorEl.textContent = '확인 중 오류가 발생했습니다: ' + fallbackErr.message;
+            errorEl.style.display = 'block';
+          }
         }
       } finally {
         if (pinBtn) {
           pinBtn.disabled = false;
-          pinBtn.innerHTML = `대시보드 열기`;
+          pinBtn.innerHTML = `<i class="fa-solid fa-key"></i> 관리자 로그인`;
         }
       }
+    }
+
+    function enterGuestMode() {
+      clearStoredPin();
+      userPin = "";
+      hidePinAuthModal();
+      updateHeaderAuthButton();
+      showToast("게스트(체험) 모드로 접속했습니다.");
+      loadDataFromGAS("");
     }
 
     function showToast(msg) {
@@ -2239,6 +2305,7 @@
           saveStoredPin(cleanPin);
           userPin = cleanPin;
         }
+        updateHeaderAuthButton();
 
         buyCandidatesData = data.buyCandidates || [];
         holdingsData = data.userHoldings || [];
@@ -3253,6 +3320,11 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
     });
 
     function openRegisterModal() { 
+      if (isGuest()) {
+        showInfoModal('관리자 권한 필요', '보유 종목을 등록하려면 관리자 로그인이 필요합니다.');
+        showPinAuthModal();
+        return;
+      }
       document.getElementById('register-modal').style.display = 'flex'; 
       const resultsDiv = document.getElementById('stock-search-results');
       if (resultsDiv) resultsDiv.style.display = 'none';
@@ -3264,6 +3336,11 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
     }
 
     function quickRegister(name, ticker, price) {
+      if (isGuest()) {
+        showInfoModal('관리자 권한 필요', '보유 종목을 등록하려면 관리자 로그인이 필요합니다.');
+        showPinAuthModal();
+        return;
+      }
       const cleanTicker = formatTicker(ticker);
       document.getElementById('reg-stock-name').value = `${name} (${cleanTicker})`;
       document.getElementById('reg-stock-price').value = price || '';
@@ -3337,6 +3414,11 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
     }
 
     async function deleteHolding(ticker) {
+      if (isGuest()) {
+        showInfoModal('관리자 권한 필요', '보유 종목을 삭제하려면 관리자 로그인이 필요합니다.');
+        showPinAuthModal();
+        return;
+      }
       const confirmed = await showConfirmModal('보유 종목 삭제', `종목코드 [${ticker}] 보유 종목을 삭제할까요?`);
       if (!confirmed) return;
       try {
@@ -3361,6 +3443,11 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
     }
 
     async function triggerManualScreening() {
+      if (isGuest()) {
+        showInfoModal('관리자 권한 필요', '수동 스크리닝은 깃허브 서버를 가동하는 관리자 전용 기능입니다.\n관리자 로그인이 필요합니다.');
+        showPinAuthModal();
+        return;
+      }
       const confirmed = await showConfirmModal('수동 스크리닝', 'KOSPI 200 수동 스크리닝을 실행할까요?\n(약 1~2분 소요)');
       if (!confirmed) return;
       
@@ -3431,6 +3518,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
     // Startup check: attempt silent data fetch with stored PIN or show PIN modal
     const currentPin = getStoredPin();
+    updateHeaderAuthButton();
     if (currentPin) {
       loadDataFromGAS(currentPin);
     } else {
