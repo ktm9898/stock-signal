@@ -3316,8 +3316,11 @@
 
         if ((data.pinRequired && data.status === "error") || data.status === "error" || data.success === false) {
           if (data.pinRequired || (data.message && data.message.includes("Invalid PIN"))) {
-            clearStoredPin();
-            showPinAuthModal();
+            if (!isGuest()) {
+              clearStoredPin();
+              updateAdminHeaderAuthUI();
+              showPinAuthModal();
+            }
             return;
           }
           console.warn("Google Sheets Auth/Fetch Error:", data.message);
@@ -4701,7 +4704,7 @@
   </script>
 
   <!-- PIN Authentication Modal -->
-  <div class="modal-overlay" id="pinAuthModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; background:rgba(15,23,42,0.75); backdrop-filter:blur(8px); justify-content:center; align-items:center;">
+  <div class="modal-overlay" id="pinAuthModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; background:rgba(15,23,42,0.75); backdrop-filter:blur(8px); justify-content:center; align-items:center;" onclick="if(event.target === this) hidePinAuthModal()">
     <div class="modal-card" style="background:#fff; border-radius:14px; width:90%; max-width:380px; padding:28px 24px; text-align:center; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); position:relative;">
       <button onclick="hidePinAuthModal()" style="position:absolute; top:12px; right:14px; background:none; border:none; font-size:1.25rem; color:#94a3b8; cursor:pointer; padding:4px; line-height:1;" title="닫기">&times;</button>
       <div style="width:52px; height:52px; border-radius:50%; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:22px; margin:0 auto 16px auto;">
