@@ -109,7 +109,6 @@ function doGet(e) {
 
   if (action === "set_active_strategy_slot") {
     const slotId = parseInt(e.parameter.slotId || "1", 10);
-    PropertiesService.getScriptProperties().setProperty("ACTIVE_STRATEGY_SLOT_ID", String(slotId));
     
     const sheet = ss.getSheetByName("Strategy_Slots");
     if (sheet && sheet.getLastRow() > 1) {
@@ -195,8 +194,8 @@ function doGet(e) {
     }
     
     const activeSlotFromSheet = slots.find(s => s.isActive);
-    const activeSlotId = activeSlotFromSheet ? activeSlotFromSheet.id : parseInt(PropertiesService.getScriptProperties().getProperty("ACTIVE_STRATEGY_SLOT_ID") || "1", 10);
-    return ContentService.createTextOutput(JSON.stringify({ success: true, slots: slots, activeSlotId: parseInt(activeSlotId, 10) }))
+    const activeSlotId = activeSlotFromSheet ? activeSlotFromSheet.id : null;
+    return ContentService.createTextOutput(JSON.stringify({ success: true, slots: slots, activeSlotId: activeSlotId }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
@@ -225,10 +224,7 @@ function doGet(e) {
       }
     }
   }
-  if (!activeSlotId) {
-    activeSlotId = parseInt(PropertiesService.getScriptProperties().getProperty("ACTIVE_STRATEGY_SLOT_ID") || "1", 10);
-  }
-  result.activeSlotId = parseInt(activeSlotId, 10);
+  result.activeSlotId = activeSlotId;
 
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
@@ -258,7 +254,6 @@ function doPost(e) {
 
     if (data.action === "set_active_strategy_slot") {
       const slotId = parseInt(data.slotId || "1", 10);
-      PropertiesService.getScriptProperties().setProperty("ACTIVE_STRATEGY_SLOT_ID", String(slotId));
       
       setupSheets();
       const sheet = ss.getSheetByName("Strategy_Slots");
@@ -280,7 +275,20 @@ function doPost(e) {
     if (data.action === "save_strategy_slots") {
       setupSheets();
       const sheet = ss.getSheetByName("Strategy_Slots");
-      const activeSlotId = parseInt(PropertiesService.getScriptProperties().getProperty("ACTIVE_STRATEGY_SLOT_ID") || "1", 10);
+      let activeSlotId = data.activeSlotId ? parseInt(data.activeSlotId, 10) : null;
+      if (!activeSlotId && sheet && sheet.getLastRow() > 1) {
+        const numCols = sheet.getLastColumn();
+        const existingRows = sheet.getRange(2, 1, sheet.getLastRow() - 1, numCols).getValues();
+        const hasActiveCol = numCols >= 16;
+        const isActiveIdx = hasActiveCol ? 15 : 13;
+        for (let i = 0; i < existingRows.length; i++) {
+          const flag = String(existingRows[i][isActiveIdx] || "");
+          if (flag.includes("적용") || flag.includes("ACTIVE")) {
+            activeSlotId = existingRows[i][0] || (i + 1);
+            break;
+          }
+        }
+      }
       if (data.slots && Array.isArray(data.slots) && sheet) {
         if (sheet.getLastRow() > 1) {
           sheet.getRange(2, 1, sheet.getLastRow() - 1, Math.max(20, sheet.getLastColumn())).clearContent();
@@ -529,7 +537,22 @@ function doPost(e) {
 
     if (data.action === "trigger_screener") {
       if (data.slotId) {
-        PropertiesService.getScriptProperties().setProperty("ACTIVE_STRATEGY_SLOT_ID", String(data.slotId));
+        const slotId = parseInt(data.slotId, 10);
+        setupSheets();
+        const sheet = ss.getSheetByName("Strategy_Slots");
+        if (sheet && sheet.getLastRow() > 1) {
+          const numCols = sheet.getLastColumn();
+          const headers = sheet.getRange(1, 1, 1, numCols).getValues()[0];
+          let isActiveColIdx = headers.indexOf("IsActive") + 1;
+          if (isActiveColIdx <= 0) isActiveColIdx = 16;
+          const lastRow = sheet.getLastRow();
+          const activeFlags = [];
+          for (let i = 2; i <= lastRow; i++) {
+            const rowId = parseInt(sheet.getRange(i, 1).getValue(), 10);
+            activeFlags.push([rowId === slotId ? "적용 (ACTIVE)" : ""]);
+          }
+          sheet.getRange(2, isActiveColIdx, activeFlags.length, 1).setValues(activeFlags);
+        }
       }
       const githubToken = PropertiesService.getScriptProperties().getProperty("GITHUB_TOKEN");
       if (!githubToken) {
@@ -733,8 +756,8 @@ function triggerGitHubScreener() {
  * 수동 실행용 헬퍼 함수: 현재 활성 전략을 시트 N열에 기록하고 동기화합니다.
  */
 function syncActiveStrategyToSheet(slotId) {
-  const targetId = slotId ? parseInt(slotId, 10) : parseInt(PropertiesService.getScriptProperties().getProperty("ACTIVE_STRATEGY_SLOT_ID") || "1", 10);
-  PropertiesService.getScriptProperties().setProperty("ACTIVE_STRATEGY_SLOT_ID", String(targetId));
+  if (!slotId) return;
+  const targetId = parseInt(slotId, 10);
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   setupSheets();
   const sheet = ss.getSheetByName("Strategy_Slots");

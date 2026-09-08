@@ -621,9 +621,13 @@ if __name__ == "__main__":
         if resp.status_code == 200:
             slot_data = resp.json()
             if slot_data.get('success'):
-                active_id = slot_data.get('activeSlotId', 1)
                 slots = slot_data.get('slots', [])
-                active_slot = next((s for s in slots if s.get('id') == active_id), None)
+                active_id = slot_data.get('activeSlotId')
+                # Strictly find active slot from Google Sheet
+                active_slot = next((s for s in slots if s.get('isActive')), None)
+                if not active_slot and active_id is not None:
+                    active_slot = next((s for s in slots if s.get('id') == active_id), None)
+
                 if active_slot:
                     print(f" -> Active Strategy Loaded: [Slot {active_slot.get('id')}] {active_slot.get('name')}")
                     if active_slot.get('buyRules'):
@@ -631,7 +635,7 @@ if __name__ == "__main__":
                     if active_slot.get('sellRules'):
                         print(f"    Sell Rules: {len(active_slot['sellRules'])} groups")
                 else:
-                    print(f"[ERROR] Active strategy slot ID {active_id} not found in fetched slots. Exiting.")
+                    print("[ERROR] No active strategy designated in Google Sheet (Strategy_Slots). Please activate a strategy in Admin page. Exiting.")
                     sys.exit(1)
             else:
                 print(f"[ERROR] GAS failed to retrieve strategy slots: {slot_data.get('message')}. Exiting.")
