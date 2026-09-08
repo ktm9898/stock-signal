@@ -471,7 +471,7 @@
     .stocks-metric-table .col-ind-stoch { width: 84px; }
     .stocks-metric-table .col-ind-disp { width: 64px; }
     .stocks-metric-table .col-ind-vr { width: 60px; }
-    .stocks-metric-table .col-price { width: 76px; }
+    .stocks-metric-table .col-price { width: 80px; }
     .stocks-metric-table .col-status { width: 70px; }
 
     /* Badges & Action Buttons */
@@ -860,7 +860,7 @@
         <div class="table-container">
         <table class="buy-signals-table">
           <colgroup>
-            <col style="width: 75px;">
+            <col style="width: 83px;">
             <col style="width: 135px;">
             <col style="width: 72px;">
             <col style="width: 65px;">
@@ -871,7 +871,7 @@
             <col style="width: 54px;">
             <col style="width: 54px;">
             <col style="width: 56px;">
-            <col style="width: 80px;">
+            <col style="width: 84px;">
             <col style="width: 75px;">
           </colgroup>
           <thead>
@@ -907,10 +907,10 @@
       <div class="table-container">
         <table class="sell-signals-table">
           <colgroup>
-            <col style="width: 75px;">
+            <col style="width: 83px;">
             <col style="width: 140px;">
             <col style="width: 76px;">
-            <col style="width: 76px;">
+            <col style="width: 80px;">
             <col style="width: 72px;">
             <col style="width: 54px;">
             <col style="width: 54px;">
@@ -955,7 +955,7 @@
             <col style="width: 58px;">
             <col style="width: 140px;">
             <col style="width: 76px;">
-            <col style="width: 76px;">
+            <col style="width: 80px;">
             <col style="width: 72px;">
             <col style="width: 54px;">
             <col style="width: 54px;">
@@ -1332,10 +1332,13 @@
         if (data && data.success && Array.isArray(data.slots) && data.slots.length === 10) {
           strategySlots = data.slots;
           localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
-          if (data.activeSlotId) {
+          const activeSlotFromList = strategySlots.find(s => s.isActive);
+          if (activeSlotFromList) {
+            currentActiveStrategySlotIndex = activeSlotFromList.id - 1;
+          } else if (data.activeSlotId) {
             currentActiveStrategySlotIndex = data.activeSlotId - 1;
-            localStorage.setItem(ACTIVE_STRATEGY_KEY, String(currentActiveStrategySlotIndex));
           }
+          localStorage.setItem(ACTIVE_STRATEGY_KEY, String(currentActiveStrategySlotIndex));
           if (window.latestMetricsCacheData && window.latestMetricsCacheData.length > 0) {
             evaluateStrategyForDashboard();
           }
@@ -2315,7 +2318,11 @@
         kosdaqMetricsData = data.kosdaqMetrics || [];
         sellSignalsData = data.sellSignals || [];
 
-        if (data.activeSlotId) {
+        const activeFromSlots = (strategySlots || []).find(s => s.isActive);
+        if (activeFromSlots) {
+          currentActiveStrategySlotIndex = activeFromSlots.id - 1;
+          localStorage.setItem(ACTIVE_STRATEGY_KEY, String(currentActiveStrategySlotIndex));
+        } else if (data.activeSlotId) {
           currentActiveStrategySlotIndex = data.activeSlotId - 1;
           localStorage.setItem(ACTIVE_STRATEGY_KEY, String(currentActiveStrategySlotIndex));
         }

@@ -3316,13 +3316,16 @@
           localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(strategySlots));
 
           let activeIdx = 0;
-          if (data.activeSlotId) {
+          const activeSlotFromList = strategySlots.find(s => s.isActive);
+          if (activeSlotFromList) {
+            activeIdx = activeSlotFromList.id - 1;
+          } else if (data.activeSlotId) {
             activeIdx = data.activeSlotId - 1;
-            localStorage.setItem(ACTIVE_STRATEGY_KEY, String(activeIdx));
           } else {
             const savedActive = localStorage.getItem(ACTIVE_STRATEGY_KEY);
             if (savedActive !== null) activeIdx = parseInt(savedActive, 10) || 0;
           }
+          localStorage.setItem(ACTIVE_STRATEGY_KEY, String(activeIdx));
 
           // Automatically sync and apply latest active strategy from Google Sheets!
           const activeSlot = strategySlots[activeIdx] || strategySlots[0];

@@ -167,7 +167,8 @@ function doGet(e) {
       }
     }
     
-    const activeSlotId = PropertiesService.getScriptProperties().getProperty("ACTIVE_STRATEGY_SLOT_ID") || "1";
+    const activeSlotFromSheet = slots.find(s => s.isActive);
+    const activeSlotId = activeSlotFromSheet ? activeSlotFromSheet.id : parseInt(PropertiesService.getScriptProperties().getProperty("ACTIVE_STRATEGY_SLOT_ID") || "1", 10);
     return ContentService.createTextOutput(JSON.stringify({ success: true, slots: slots, activeSlotId: parseInt(activeSlotId, 10) }))
       .setMimeType(ContentService.MimeType.JSON);
   }
@@ -182,7 +183,24 @@ function doGet(e) {
   if (action === "all" || action === "all_metrics" || action === "kospi_metrics") result.allMetrics = getSheetData(ss.getSheetByName("KOSPI200_All_Metrics"));
   if (action === "all" || action === "kosdaq_metrics") result.kosdaqMetrics = getSheetData(ss.getSheetByName("KOSDAQ150_All_Metrics"));
 
-  const activeSlotId = PropertiesService.getScriptProperties().getProperty("ACTIVE_STRATEGY_SLOT_ID") || "1";
+  let activeSlotId = null;
+  const slotsSheetForActive = ss.getSheetByName("Strategy_Slots");
+  if (slotsSheetForActive && slotsSheetForActive.getLastRow() > 1) {
+    const numCols = slotsSheetForActive.getLastColumn();
+    const rows = slotsSheetForActive.getRange(2, 1, slotsSheetForActive.getLastRow() - 1, numCols).getValues();
+    const hasActiveCol = numCols >= 16;
+    const isActiveIdx = hasActiveCol ? 15 : 13;
+    for (let i = 0; i < rows.length; i++) {
+      const flag = String(rows[i][isActiveIdx] || "");
+      if (flag.includes("적용") || flag.includes("ACTIVE")) {
+        activeSlotId = rows[i][0] || (i + 1);
+        break;
+      }
+    }
+  }
+  if (!activeSlotId) {
+    activeSlotId = parseInt(PropertiesService.getScriptProperties().getProperty("ACTIVE_STRATEGY_SLOT_ID") || "1", 10);
+  }
   result.activeSlotId = parseInt(activeSlotId, 10);
 
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
