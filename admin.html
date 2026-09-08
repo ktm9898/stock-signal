@@ -3086,12 +3086,22 @@
         btn.style.background = "#eff6ff";
         btn.style.color = "#2563eb";
         btn.style.borderColor = "#bfdbfe";
+        btn.onclick = () => showPinAuthModal();
       } else {
         btn.innerHTML = `<i class="fa-solid fa-shield"></i> <span class="label-desktop">관리자</span>`;
-        btn.title = "관리자 인증됨";
+        btn.title = "관리자 인증됨 (클릭 시 로그아웃)";
         btn.style.background = "#dcfce7";
         btn.style.color = "#15803d";
         btn.style.borderColor = "#bbf7d0";
+        btn.onclick = () => handleAdminLogoutInAdmin();
+      }
+    }
+
+    function handleAdminLogoutInAdmin() {
+      if (confirm("관리자 인증을 해제(로그아웃)하고 게스트 모드로 전환하시겠습니까?")) {
+        clearStoredPin();
+        updateAdminHeaderAuthUI();
+        alert("게스트 모드로 전환되었습니다.");
       }
     }
 
@@ -3102,7 +3112,10 @@
       const pinVal = input ? input.value.trim() : '';
 
       if (!pinVal) {
-        enterGuestModeInAdmin();
+        if (errEl) {
+          errEl.textContent = '비밀번호를 입력해주세요.';
+          errEl.style.display = 'block';
+        }
         return;
       }
 
@@ -4694,19 +4707,14 @@
       <div style="width:52px; height:52px; border-radius:50%; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:22px; margin:0 auto 16px auto;">
         <i class="fa-solid fa-lock"></i>
       </div>
-      <h3 style="font-size:17px; font-weight:700; color:#0f172a; margin:0 0 16px 0;">보안 인증 (PIN)</h3>
+      <h3 style="font-size:1.25rem; font-weight:700; color:#0f172a; margin:0 0 16px 0;">보안 인증 / 로그인</h3>
       <div style="margin-bottom:14px;">
-        <input type="password" id="pinAuthInput" maxlength="20" placeholder="PIN 번호 입력" style="width:100%; box-sizing:border-box; text-align:center; font-size:19px; font-weight:700; letter-spacing:4px; padding:12px 14px; border-radius:10px; border:1px solid #cbd5e1; outline:none; background:#f8fafc;" onkeydown="if(event.key==='Enter'){ this.value.trim() ? submitPinAuth() : enterGuestModeInAdmin(); }">
+        <input type="password" id="pinAuthInput" maxlength="20" placeholder="••••••••" style="width:100%; box-sizing:border-box; text-align:center; font-size:1.4rem; letter-spacing:6px; font-weight:700; padding:10px; border-radius:10px; border:1px solid #cbd5e1; outline:none; background:#f8fafc;" onkeydown="if(event.key==='Enter') submitPinAuth()" autofocus>
         <div id="pinAuthError" style="color:#e11d48; font-size:12px; font-weight:600; margin-top:8px; display:none;">비밀번호가 올바르지 않습니다.</div>
       </div>
-      <div style="display:flex; flex-direction:column; gap:8px;">
-        <button type="button" id="pinAuthSubmitBtn" onclick="submitPinAuth()" style="width:100%; padding:12px; border-radius:10px; background:#2563eb; color:#fff; font-size:14px; font-weight:700; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
-          <i class="fa-solid fa-key"></i> 관리자 로그인
-        </button>
-        <button type="button" id="pinAuthGuestBtn" onclick="enterGuestModeInAdmin()" style="width:100%; padding:10px; border-radius:10px; background:#f1f5f9; color:#475569; font-size:13px; font-weight:600; border:1px solid #cbd5e1; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
-          <i class="fa-regular fa-compass"></i> 게스트로 둘러보기
-        </button>
-      </div>
+      <button type="button" id="pinAuthSubmitBtn" onclick="submitPinAuth()" style="width:100%; padding:12px; border-radius:10px; background:#2563eb; color:#fff; font-size:14px; font-weight:700; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
+        <i class="fa-solid fa-key"></i> 관리자 로그인
+      </button>
     </div>
   </div>
 

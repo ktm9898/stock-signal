@@ -1147,16 +1147,11 @@
       </div>
       <h3 style="font-size: 1.25rem; margin-bottom: 16px;">보안 인증 / 로그인</h3>
       
-      <div class="form-group" style="margin-top: 0; margin-bottom: 12px;">
-        <input type="password" class="form-input" id="input-pin" placeholder="••••••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; font-weight: 700; padding: 10px;" onkeyup="if(event.key==='Enter'){ this.value.trim() ? verifyPin() : enterGuestMode(); }" autofocus>
+      <div class="form-group" style="margin-top: 0; margin-bottom: 14px;">
+        <input type="password" class="form-input" id="input-pin" placeholder="••••••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; font-weight: 700; padding: 10px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
       </div>
       <div id="pin-error" style="color: var(--accent-red); font-size: 0.85rem; margin-bottom: 12px; display: none;">비밀번호가 올바르지 않습니다.</div>
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <button class="btn-buy-reg" id="btn-pin-submit" style="width: 100%; padding: 11px; font-size: 0.95rem; font-weight: 700;" onclick="verifyPin()"><i class="fa-solid fa-key"></i> 관리자 로그인</button>
-        <button type="button" id="btn-guest-enter" style="width: 100%; padding: 10px; font-size: 0.88rem; font-weight: 600; background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="enterGuestMode()">
-          <i class="fa-regular fa-compass"></i> 게스트로 둘러보기
-        </button>
-      </div>
+      <button class="btn-buy-reg" id="btn-pin-submit" style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 700;" onclick="verifyPin()"><i class="fa-solid fa-key"></i> 관리자 로그인</button>
     </div>
   </div>
 
@@ -2144,7 +2139,10 @@
       const pinVal = input ? input.value.trim() : '';
 
       if (!pinVal) {
-        enterGuestMode();
+        if (errorEl) {
+          errorEl.textContent = '비밀번호를 입력해주세요.';
+          errorEl.style.display = 'block';
+        }
         return;
       }
 
@@ -3522,11 +3520,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
     // Startup check: attempt silent data fetch with stored PIN or show PIN modal
     const currentPin = getStoredPin();
     updateHeaderAuthButton();
-    if (currentPin) {
-      loadDataFromGAS(currentPin);
-    } else {
-      showPinAuthModal();
-    }
+    loadDataFromGAS(currentPin || "");
   </script>
 
   <!-- Indicator Help Modal -->
