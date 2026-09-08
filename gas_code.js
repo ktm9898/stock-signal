@@ -3,6 +3,11 @@ function getAuthPin() {
   return pin ? String(pin).trim() : "";
 }
 
+function getGuestPin() {
+  const pin = PropertiesService.getScriptProperties().getProperty("GUEST_PIN");
+  return pin ? String(pin).trim() : "";
+}
+
 function setupSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
@@ -55,18 +60,28 @@ function doGet(e) {
   const action = e.parameter.action || "all";
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // 0. Dedicated PIN Verification Action
+  const guestPin = getGuestPin();
+
+  // 0. Dedicated PIN Verification Action (Dual-PIN: Admin vs Guest)
   if (action === "verify_pin") {
-    if (!authPin) {
-      return ContentService.createTextOutput(JSON.stringify({ success: true, pinRequired: false, valid: true, message: "No PIN configured" }))
-        .setMimeType(ContentService.MimeType.JSON);
+    if (!authPin && !guestPin) {
+      return ContentService.createTextOutput(JSON.stringify({ 
+        success: true, role: "admin", pinRequired: false, valid: true, message: "No PIN configured" 
+      })).setMimeType(ContentService.MimeType.JSON);
     }
-    if (inputPin === authPin) {
-      return ContentService.createTextOutput(JSON.stringify({ success: true, pinRequired: true, valid: true, message: "PIN verified" }))
-        .setMimeType(ContentService.MimeType.JSON);
+    if (authPin && inputPin === authPin) {
+      return ContentService.createTextOutput(JSON.stringify({ 
+        success: true, role: "admin", pinRequired: true, valid: true, message: "관리자 인증 성공" 
+      })).setMimeType(ContentService.MimeType.JSON);
     }
-    return ContentService.createTextOutput(JSON.stringify({ success: false, pinRequired: true, valid: false, message: "Invalid PIN" }))
-      .setMimeType(ContentService.MimeType.JSON);
+    if (guestPin && inputPin === guestPin) {
+      return ContentService.createTextOutput(JSON.stringify({ 
+        success: true, role: "guest", pinRequired: true, valid: true, message: "게스트 인증 성공" 
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    return ContentService.createTextOutput(JSON.stringify({ 
+      success: false, role: null, pinRequired: true, valid: false, message: "비밀번호가 올바르지 않습니다." 
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 
   // 1. PIN Authorization Check for Protected Endpoints (Write Actions)
@@ -76,7 +91,19 @@ function doGet(e) {
       success: false, 
       status: "error", 
       pinRequired: true, 
-      message: "Unauthorized: Invalid PIN" 
+      message: "Unauthorized: 관리자 권한이 필요합니다." 
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // 1.5 PIN Authorization Check for Read Endpoints (Requires Admin or Guest PIN)
+  const hasPinConfigured = Boolean(authPin || guestPin);
+  const isAuthorizedUser = !hasPinConfigured || (authPin && inputPin === authPin) || (guestPin && inputPin === guestPin);
+  if (!isAuthorizedUser) {
+    return ContentService.createTextOutput(JSON.stringify({ 
+      success: false, 
+      status: "error", 
+      pinRequired: true, 
+      message: "접근 권한이 없습니다. 비밀번호를 입력해주세요." 
     })).setMimeType(ContentService.MimeType.JSON);
   }
 

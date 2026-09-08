@@ -1145,13 +1145,14 @@
       <div class="brand-icon" style="margin: 0 auto 16px auto; width: 44px; height: 44px; font-size: 1.3rem;">
         <i class="fa-solid fa-lock"></i>
       </div>
-      <h3 style="font-size: 1.25rem; margin-bottom: 16px;">보안 인증 / 로그인</h3>
+      <h3 style="font-size: 1.25rem; margin-bottom: 6px;">보안 인증 / 로그인</h3>
+      <p id="pin-modal-subtitle" style="font-size: 0.82rem; color: var(--text-sub); margin: 0 0 16px 0; line-height: 1.4;">관리자 또는 게스트 비밀번호를 입력해주세요.</p>
       
       <div class="form-group" style="margin-top: 0; margin-bottom: 14px;">
         <input type="password" class="form-input" id="input-pin" placeholder="••••••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; font-weight: 700; padding: 10px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
       </div>
       <div id="pin-error" style="color: var(--accent-red); font-size: 0.85rem; margin-bottom: 12px; display: none;">비밀번호가 올바르지 않습니다.</div>
-      <button class="btn-buy-reg" id="btn-pin-submit" style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 700;" onclick="verifyPin()"><i class="fa-solid fa-key"></i> 관리자 로그인</button>
+      <button class="btn-buy-reg" id="btn-pin-submit" style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 700;" onclick="verifyPin()"><i class="fa-solid fa-key"></i> 로그인</button>
     </div>
   </div>
 
@@ -1224,10 +1225,17 @@
       return url;
     }
 
-    function showPinAuthModal() {
+    function showPinAuthModal(customTitle = "보안 인증 / 로그인", customSubtitle = "") {
       const modal = document.getElementById('pin-modal');
       if (modal) {
         modal.style.display = 'flex';
+        const titleEl = modal.querySelector('h3');
+        if (titleEl) titleEl.textContent = customTitle;
+        const subEl = document.getElementById('pin-modal-subtitle');
+        if (subEl) {
+          subEl.textContent = customSubtitle || "관리자 또는 게스트 비밀번호를 입력해주세요.";
+          subEl.style.display = 'block';
+        }
         const input = document.getElementById('input-pin');
         if (input) {
           input.value = '';
@@ -2114,21 +2122,56 @@
       if (tabWrapper) tabWrapper.style.display = 'block';
     }
 
+    function getStoredRole() {
+      return localStorage.getItem("stock_auth_role") || (getStoredPin() ? "admin" : "");
+    }
+
+    function saveStoredAuth(pin, role = "guest") {
+      saveStoredPin(pin);
+      localStorage.setItem("stock_auth_role", role);
+    }
+
+    function clearStoredAuth() {
+      clearStoredPin();
+      localStorage.removeItem("stock_auth_role");
+    }
+
     function isGuest() {
-      return !getStoredPin();
+      return getStoredRole() !== "admin";
+    }
+
+    function isLoggedIn() {
+      return Boolean(getStoredPin());
     }
 
     function updateHeaderAuthButton() {
       const btn = document.getElementById('manual-trigger-btn');
       if (!btn) return;
-      if (isGuest()) {
-        btn.innerHTML = `<i class="fa-solid fa-key"></i> <span class="label-desktop">관리자</span>`;
-        btn.title = "관리자 로그인";
+      if (!isLoggedIn()) {
+        btn.innerHTML = `<i class="fa-solid fa-key"></i> <span class="label-desktop">로그인</span>`;
+        btn.title = "로그인 (관리자 또는 게스트)";
         btn.onclick = () => showPinAuthModal();
+      } else if (isGuest()) {
+        btn.innerHTML = `<i class="fa-solid fa-user-check"></i> <span class="label-desktop">게스트</span>`;
+        btn.title = "게스트 모드 (클릭 시 관리자 로그인 또는 로그아웃)";
+        btn.onclick = () => handleGuestHeaderClick();
       } else {
         btn.innerHTML = `<i class="fa-solid fa-play"></i> <span class="label-desktop">수동 실행</span>`;
         btn.title = "수동 스크리닝 분석 실행";
         btn.onclick = () => triggerManualScreening();
+      }
+    }
+
+    function handleGuestHeaderClick() {
+      if (confirm("관리자 계정으로 로그인하시겠습니까?\n(취소를 누르면 로그아웃 여부를 확인합니다)")) {
+        showPinAuthModal("관리자 인증", "관리자 비밀번호를 입력해주세요.");
+      } else {
+        if (confirm("게스트 모드에서 로그아웃하시겠습니까?")) {
+          clearStoredAuth();
+          userPin = "";
+          updateHeaderAuthButton();
+          showPinAuthModal();
+        }
       }
     }
 
@@ -2157,14 +2200,19 @@
         const verifyData = await verifyResp.json();
 
         if (verifyData && verifyData.valid === true) {
-          saveStoredPin(pinVal);
+          const role = verifyData.role || "admin";
+          saveStoredAuth(pinVal, role);
           userPin = pinVal;
           hidePinAuthModal();
           updateHeaderAuthButton();
-          showToast("관리자로 로그인되었습니다.");
+          if (role === "admin") {
+            showToast("관리자 모드로 로그인되었습니다.");
+          } else {
+            showToast("게스트 모드로 로그인되었습니다.");
+          }
           loadDataFromGAS(pinVal);
         } else {
-          clearStoredPin();
+          clearStoredAuth();
           userPin = "";
           updateHeaderAuthButton();
           if (errorEl) {
@@ -2180,7 +2228,7 @@
         try {
           const res = await loadDataFromGAS(pinVal);
           if (res && res.success !== false) {
-            saveStoredPin(pinVal);
+            saveStoredAuth(pinVal, "admin");
             userPin = pinVal;
             hidePinAuthModal();
             updateHeaderAuthButton();
@@ -2197,7 +2245,7 @@
       } finally {
         if (pinBtn) {
           pinBtn.disabled = false;
-          pinBtn.innerHTML = `<i class="fa-solid fa-key"></i> 관리자 로그인`;
+          pinBtn.innerHTML = `<i class="fa-solid fa-key"></i> 로그인`;
         }
       }
     }
@@ -2289,12 +2337,10 @@
         
         if ((data.pinRequired && data.status === "error") || data.status === "error" || data.success === false) {
           if (data.pinRequired || (data.message && data.message.includes("Invalid PIN"))) {
-            if (!isGuest()) {
-              clearStoredPin();
-              userPin = "";
-              updateHeaderAuthButton();
-              showPinAuthModal();
-            }
+            clearStoredAuth();
+            userPin = "";
+            updateHeaderAuthButton();
+            showPinAuthModal();
             return { success: false, message: data.message };
           }
           console.warn("GAS Auth/Fetch Error:", data.message);
@@ -3523,7 +3569,11 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
     // Startup check: attempt silent data fetch with stored PIN or show PIN modal
     const currentPin = getStoredPin();
     updateHeaderAuthButton();
-    loadDataFromGAS(currentPin || "");
+    if (!isLoggedIn()) {
+      showPinAuthModal();
+    } else {
+      loadDataFromGAS(currentPin);
+    }
   </script>
 
   <!-- Indicator Help Modal -->

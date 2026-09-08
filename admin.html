@@ -3054,10 +3054,17 @@
       return url;
     }
 
-    function showPinAuthModal() {
+    function showPinAuthModal(customTitle = "보안 인증 / 로그인", customSubtitle = "") {
       const modal = document.getElementById('pinAuthModal');
       if (modal) {
         modal.style.display = 'flex';
+        const titleEl = modal.querySelector('h3');
+        if (titleEl) titleEl.textContent = customTitle;
+        const subEl = document.getElementById('pinAuthSubtitle');
+        if (subEl) {
+          subEl.textContent = customSubtitle || "관리자 또는 게스트 비밀번호를 입력해주세요.";
+          subEl.style.display = 'block';
+        }
         const input = document.getElementById('pinAuthInput');
         if (input) {
           input.value = '';
@@ -3073,20 +3080,45 @@
       if (modal) modal.style.display = 'none';
     }
 
+    function getStoredRole() {
+      return localStorage.getItem("stock_auth_role") || (getStoredPin() ? "admin" : "");
+    }
+
+    function saveStoredAuth(pin, role = "guest") {
+      saveStoredPin(pin);
+      localStorage.setItem("stock_auth_role", role);
+    }
+
+    function clearStoredAuth() {
+      clearStoredPin();
+      localStorage.removeItem("stock_auth_role");
+    }
+
     function isGuest() {
-      return !getStoredPin();
+      return getStoredRole() !== "admin";
+    }
+
+    function isLoggedIn() {
+      return Boolean(getStoredPin());
     }
 
     function updateAdminHeaderAuthUI() {
       const btn = document.getElementById('admin-header-login-btn');
       if (!btn) return;
-      if (isGuest()) {
-        btn.innerHTML = `<i class="fa-solid fa-key"></i> <span class="label-desktop">관리자</span>`;
-        btn.title = "관리자 로그인";
+      if (!isLoggedIn()) {
+        btn.innerHTML = `<i class="fa-solid fa-key"></i> <span class="label-desktop">로그인</span>`;
+        btn.title = "로그인 (관리자 또는 게스트)";
         btn.style.background = "#eff6ff";
         btn.style.color = "#2563eb";
         btn.style.borderColor = "#bfdbfe";
         btn.onclick = () => showPinAuthModal();
+      } else if (isGuest()) {
+        btn.innerHTML = `<i class="fa-solid fa-user-check"></i> <span class="label-desktop">게스트</span>`;
+        btn.title = "게스트 모드 (클릭 시 관리자 로그인 또는 로그아웃)";
+        btn.style.background = "#f1f5f9";
+        btn.style.color = "#475569";
+        btn.style.borderColor = "#cbd5e1";
+        btn.onclick = () => handleGuestHeaderClickInAdmin();
       } else {
         btn.innerHTML = `<i class="fa-solid fa-shield"></i> <span class="label-desktop">관리자</span>`;
         btn.title = "관리자 인증됨 (클릭 시 로그아웃)";
@@ -3097,11 +3129,23 @@
       }
     }
 
+    function handleGuestHeaderClickInAdmin() {
+      if (confirm("관리자 계정으로 로그인하시겠습니까?\n(취소를 누르면 로그아웃 여부를 확인합니다)")) {
+        showPinAuthModal("관리자 인증", "관리자 비밀번호를 입력해주세요.");
+      } else {
+        if (confirm("게스트 모드에서 로그아웃하시겠습니까?")) {
+          clearStoredAuth();
+          updateAdminHeaderAuthUI();
+          showPinAuthModal();
+        }
+      }
+    }
+
     function handleAdminLogoutInAdmin() {
-      if (confirm("관리자 인증을 해제(로그아웃)하고 게스트 모드로 전환하시겠습니까?")) {
-        clearStoredPin();
+      if (confirm("관리자 인증을 해제(로그아웃)하시겠습니까?")) {
+        clearStoredAuth();
         updateAdminHeaderAuthUI();
-        alert("게스트 모드로 전환되었습니다.");
+        showPinAuthModal();
       }
     }
 
@@ -3130,12 +3174,13 @@
         const verifyData = await verifyResp.json();
 
         if (verifyData && verifyData.valid === true) {
-          saveStoredPin(pinVal);
+          const role = verifyData.role || "admin";
+          saveStoredAuth(pinVal, role);
           hidePinAuthModal();
           updateAdminHeaderAuthUI();
           fetchGoogleSheetSlots();
         } else {
-          clearStoredPin();
+          clearStoredAuth();
           updateAdminHeaderAuthUI();
           if (errEl) {
             errEl.textContent = (verifyData && verifyData.message) ? verifyData.message : '비밀번호가 올바르지 않습니다.';
@@ -3169,7 +3214,7 @@
       } finally {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-key"></i> 관리자 로그인';
+          btn.innerHTML = '<i class="fa-solid fa-key"></i> 로그인';
         }
       }
     }
@@ -3316,11 +3361,9 @@
 
         if ((data.pinRequired && data.status === "error") || data.status === "error" || data.success === false) {
           if (data.pinRequired || (data.message && data.message.includes("Invalid PIN"))) {
-            if (!isGuest()) {
-              clearStoredPin();
-              updateAdminHeaderAuthUI();
-              showPinAuthModal();
-            }
+            clearStoredAuth();
+            updateAdminHeaderAuthUI();
+            showPinAuthModal();
             return;
           }
           console.warn("Google Sheets Auth/Fetch Error:", data.message);
@@ -4700,6 +4743,9 @@
       initStrategySlots();
       initDataViewer();
       updateAdminHeaderAuthUI();
+      if (!isLoggedIn()) {
+        showPinAuthModal();
+      }
     });
   </script>
 
@@ -4710,13 +4756,14 @@
       <div style="width:52px; height:52px; border-radius:50%; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:22px; margin:0 auto 16px auto;">
         <i class="fa-solid fa-lock"></i>
       </div>
-      <h3 style="font-size:1.25rem; font-weight:700; color:#0f172a; margin:0 0 16px 0;">보안 인증 / 로그인</h3>
+      <h3 style="font-size:1.25rem; font-weight:700; color:#0f172a; margin:0 0 6px 0;">보안 인증 / 로그인</h3>
+      <p id="pinAuthSubtitle" style="font-size:0.82rem; color:#64748b; margin:0 0 16px 0; line-height:1.4;">관리자 또는 게스트 비밀번호를 입력해주세요.</p>
       <div style="margin-bottom:14px;">
         <input type="password" id="pinAuthInput" maxlength="20" placeholder="••••••••" style="width:100%; box-sizing:border-box; text-align:center; font-size:1.4rem; letter-spacing:6px; font-weight:700; padding:10px; border-radius:10px; border:1px solid #cbd5e1; outline:none; background:#f8fafc;" onkeydown="if(event.key==='Enter') submitPinAuth()" autofocus>
         <div id="pinAuthError" style="color:#e11d48; font-size:12px; font-weight:600; margin-top:8px; display:none;">비밀번호가 올바르지 않습니다.</div>
       </div>
       <button type="button" id="pinAuthSubmitBtn" onclick="submitPinAuth()" style="width:100%; padding:12px; border-radius:10px; background:#2563eb; color:#fff; font-size:14px; font-weight:700; border:none; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; box-shadow:0 4px 12px rgba(37,99,235,0.25);">
-        <i class="fa-solid fa-key"></i> 관리자 로그인
+        <i class="fa-solid fa-key"></i> 로그인
       </button>
     </div>
   </div>
