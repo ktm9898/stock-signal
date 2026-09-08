@@ -747,6 +747,14 @@
       gap: 8px;
       z-index: 10000;
     }
+  
+    .auth-locked {
+      filter: blur(14px) !important;
+      opacity: 0.15 !important;
+      pointer-events: none !important;
+      user-select: none !important;
+      transition: filter 0.3s ease, opacity 0.3s ease;
+    }
   </style>
 </head>
 <body>
@@ -1139,7 +1147,7 @@
   </div>
 
   <!-- PIN Modal -->
-  <div class="modal-overlay" id="pin-modal" style="display: none;" onclick="if(event.target === this) hidePinAuthModal()">
+  <div class="modal-overlay" id="pin-modal" style="display: none;" onclick="if(event.target === this && isLoggedIn()) hidePinAuthModal()">
     <div class="modal-content" style="text-align: center; max-width: 380px; position: relative;">
       <button onclick="hidePinAuthModal()" style="position: absolute; top: 12px; right: 14px; background: none; border: none; font-size: 1.25rem; color: #94a3b8; cursor: pointer; padding: 4px; line-height: 1;" title="닫기">&times;</button>
       <div class="brand-icon" style="margin: 0 auto 16px auto; width: 44px; height: 44px; font-size: 1.3rem;">
@@ -1225,7 +1233,7 @@
       return url;
     }
 
-    function showPinAuthModal(customTitle = "보안 인증 / 로그인", customSubtitle = "") {
+    function showPinAuthModal(customTitle = "보안 인증 / 로그인", customSubtitle = "", isMandatory = !isLoggedIn()) {
       const modal = document.getElementById('pin-modal');
       if (modal) {
         modal.style.display = 'flex';
@@ -1236,10 +1244,14 @@
           subEl.textContent = customSubtitle || "관리자 또는 게스트 비밀번호를 입력해주세요.";
           subEl.style.display = 'block';
         }
+        const closeBtn = modal.querySelector('button[title*="닫기"]') || modal.querySelector('button[onclick*="hidePinAuthModal"]');
+        if (closeBtn) {
+          closeBtn.style.display = isMandatory ? 'none' : 'block';
+        }
         const input = document.getElementById('input-pin');
         if (input) {
           input.value = '';
-          input.focus();
+          setTimeout(() => input.focus(), 100);
         }
         const err = document.getElementById('pin-error');
         if (err) err.style.display = 'none';
@@ -1247,8 +1259,22 @@
     }
 
     function hidePinAuthModal() {
+      if (!isLoggedIn()) {
+        return; // Unauthenticated visitors cannot dismiss the login modal
+      }
       const modal = document.getElementById('pin-modal');
       if (modal) modal.style.display = 'none';
+    }
+
+    function updateAuthLockUI() {
+      const container = document.querySelector('.container');
+      if (container) {
+        if (!isLoggedIn()) {
+          container.classList.add('auth-locked');
+        } else {
+          container.classList.remove('auth-locked');
+        }
+      }
     }
 
     let userPin = getStoredPin();
@@ -2164,13 +2190,14 @@
 
     function handleGuestHeaderClick() {
       if (confirm("관리자 계정으로 로그인하시겠습니까?\n(취소를 누르면 로그아웃 여부를 확인합니다)")) {
-        showPinAuthModal("관리자 인증", "관리자 비밀번호를 입력해주세요.");
+        showPinAuthModal("관리자 인증", "관리자 비밀번호를 입력해주세요.", false);
       } else {
         if (confirm("게스트 모드에서 로그아웃하시겠습니까?")) {
           clearStoredAuth();
           userPin = "";
+          updateAuthLockUI();
           updateHeaderAuthButton();
-          showPinAuthModal();
+          showPinAuthModal("보안 인증 / 로그인", "관리자 또는 게스트 비밀번호를 입력해주세요.", true);
         }
       }
     }
@@ -2203,6 +2230,7 @@
           const role = verifyData.role || "admin";
           saveStoredAuth(pinVal, role);
           userPin = pinVal;
+          updateAuthLockUI();
           hidePinAuthModal();
           updateHeaderAuthButton();
           if (role === "admin") {
@@ -2214,6 +2242,7 @@
         } else {
           clearStoredAuth();
           userPin = "";
+          updateAuthLockUI();
           updateHeaderAuthButton();
           if (errorEl) {
             errorEl.textContent = (verifyData && verifyData.message) ? verifyData.message : '비밀번호가 올바르지 않습니다.';
@@ -3568,9 +3597,10 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
     // Startup check: attempt silent data fetch with stored PIN or show PIN modal
     const currentPin = getStoredPin();
+    updateAuthLockUI();
     updateHeaderAuthButton();
     if (!isLoggedIn()) {
-      showPinAuthModal();
+      showPinAuthModal("보안 인증 / 로그인", "관리자 또는 게스트 비밀번호를 입력해주세요.", true);
     } else {
       loadDataFromGAS(currentPin);
     }

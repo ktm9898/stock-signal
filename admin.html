@@ -612,6 +612,14 @@
     @media (max-width: 480px) {
       .kpi-grid-6 { grid-template-columns: repeat(2, 1fr) !important; }
     }
+  
+    .auth-locked {
+      filter: blur(14px) !important;
+      opacity: 0.15 !important;
+      pointer-events: none !important;
+      user-select: none !important;
+      transition: filter 0.3s ease, opacity 0.3s ease;
+    }
   </style>
 </head>
 <body>
@@ -3054,7 +3062,7 @@
       return url;
     }
 
-    function showPinAuthModal(customTitle = "보안 인증 / 로그인", customSubtitle = "") {
+    function showPinAuthModal(customTitle = "보안 인증 / 로그인", customSubtitle = "", isMandatory = !isLoggedIn()) {
       const modal = document.getElementById('pinAuthModal');
       if (modal) {
         modal.style.display = 'flex';
@@ -3065,19 +3073,37 @@
           subEl.textContent = customSubtitle || "관리자 또는 게스트 비밀번호를 입력해주세요.";
           subEl.style.display = 'block';
         }
+        const closeBtn = modal.querySelector('button[title*="닫기"]') || modal.querySelector('button[onclick*="hidePinAuthModal"]');
+        if (closeBtn) {
+          closeBtn.style.display = isMandatory ? 'none' : 'block';
+        }
         const input = document.getElementById('pinAuthInput');
         if (input) {
           input.value = '';
-          input.focus();
+          setTimeout(() => input.focus(), 100);
         }
-        const err = document.getElementById('pinAuthError');
-        if (err) err.style.display = 'none';
+        const errEl = document.getElementById('pinAuthError');
+        if (errEl) errEl.style.display = 'none';
       }
     }
 
     function hidePinAuthModal() {
+      if (!isLoggedIn()) {
+        return; // Unauthenticated visitors cannot dismiss the login modal
+      }
       const modal = document.getElementById('pinAuthModal');
       if (modal) modal.style.display = 'none';
+    }
+
+    function updateAuthLockUI() {
+      const container = document.querySelector('.container');
+      if (container) {
+        if (!isLoggedIn()) {
+          container.classList.add('auth-locked');
+        } else {
+          container.classList.remove('auth-locked');
+        }
+      }
     }
 
     function getStoredRole() {
@@ -3131,12 +3157,13 @@
 
     function handleGuestHeaderClickInAdmin() {
       if (confirm("관리자 계정으로 로그인하시겠습니까?\n(취소를 누르면 로그아웃 여부를 확인합니다)")) {
-        showPinAuthModal("관리자 인증", "관리자 비밀번호를 입력해주세요.");
+        showPinAuthModal("관리자 인증", "관리자 비밀번호를 입력해주세요.", false);
       } else {
         if (confirm("게스트 모드에서 로그아웃하시겠습니까?")) {
           clearStoredAuth();
+          updateAuthLockUI();
           updateAdminHeaderAuthUI();
-          showPinAuthModal();
+          showPinAuthModal("보안 인증 / 로그인", "관리자 또는 게스트 비밀번호를 입력해주세요.", true);
         }
       }
     }
@@ -3144,8 +3171,9 @@
     function handleAdminLogoutInAdmin() {
       if (confirm("관리자 인증을 해제(로그아웃)하시겠습니까?")) {
         clearStoredAuth();
+        updateAuthLockUI();
         updateAdminHeaderAuthUI();
-        showPinAuthModal();
+        showPinAuthModal("보안 인증 / 로그인", "관리자 또는 게스트 비밀번호를 입력해주세요.", true);
       }
     }
 
@@ -3176,11 +3204,13 @@
         if (verifyData && verifyData.valid === true) {
           const role = verifyData.role || "admin";
           saveStoredAuth(pinVal, role);
+          updateAuthLockUI();
           hidePinAuthModal();
           updateAdminHeaderAuthUI();
           fetchGoogleSheetSlots();
         } else {
           clearStoredAuth();
+          updateAuthLockUI();
           updateAdminHeaderAuthUI();
           if (errEl) {
             errEl.textContent = (verifyData && verifyData.message) ? verifyData.message : '비밀번호가 올바르지 않습니다.';
@@ -4737,6 +4767,7 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+      updateAuthLockUI();
       populatePriorityIndicators();
       loadDefaultBuyRules();
       loadDefaultSellRules();
@@ -4744,13 +4775,13 @@
       initDataViewer();
       updateAdminHeaderAuthUI();
       if (!isLoggedIn()) {
-        showPinAuthModal();
+        showPinAuthModal("보안 인증 / 로그인", "관리자 또는 게스트 비밀번호를 입력해주세요.", true);
       }
     });
   </script>
 
   <!-- PIN Authentication Modal -->
-  <div class="modal-overlay" id="pinAuthModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; background:rgba(15,23,42,0.75); backdrop-filter:blur(8px); justify-content:center; align-items:center;" onclick="if(event.target === this) hidePinAuthModal()">
+  <div class="modal-overlay" id="pinAuthModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10000; background:rgba(15,23,42,0.75); backdrop-filter:blur(8px); justify-content:center; align-items:center;" onclick="if(event.target === this && isLoggedIn()) hidePinAuthModal()">
     <div class="modal-card" style="background:#fff; border-radius:14px; width:90%; max-width:380px; padding:28px 24px; text-align:center; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25); position:relative;">
       <button onclick="hidePinAuthModal()" style="position:absolute; top:12px; right:14px; background:none; border:none; font-size:1.25rem; color:#94a3b8; cursor:pointer; padding:4px; line-height:1;" title="닫기">&times;</button>
       <div style="width:52px; height:52px; border-radius:50%; background:#eff6ff; color:#2563eb; display:flex; align-items:center; justify-content:center; font-size:22px; margin:0 auto 16px auto;">
