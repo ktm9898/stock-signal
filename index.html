@@ -21,6 +21,7 @@
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="scale_in_model.js"></script>
 
   <style>
     :root {
@@ -2374,7 +2375,25 @@
           }
         }
 
+        let scaleInAiScore = null;
         if (signalLevel === '물타기매수') {
+          // Check if screener or Google Sheets already provided an AI score
+          const existingBuy = (typeof buyCandidatesData !== 'undefined' && buyCandidatesData) ? buyCandidatesData.find(b => {
+            const bTk = formatTicker(b.Ticker || b.ticker || b.code);
+            return bTk === rawTicker && (String(b.Stage || b.stage || '').includes('물타기') || String(b.priority || '').includes('물타기'));
+          }) : null;
+          
+          if (existingBuy && (existingBuy.ai_prob !== undefined || existingBuy.AI_Prob !== undefined)) {
+            scaleInAiScore = existingBuy.ai_prob !== undefined ? existingBuy.ai_prob : existingBuy.AI_Prob;
+          } else if (typeof computeScaleInAiScoreFromMetrics === 'function' && metric) {
+            const prevItem = prevRowMap.get(rawTicker) || null;
+            const mktItem = combinedStocks.find(s => {
+              const sTk = formatTicker(s.Ticker || s.ticker || '');
+              return sTk === '069500' || sTk === 'KOSPI' || (s.Name && s.Name.includes('KODEX 200'));
+            }) || null;
+            scaleInAiScore = computeScaleInAiScoreFromMetrics(metric, prevItem, holding, mktItem);
+          }
+
           finalBuyList.push({
             Date: metric ? (metric.Date || metric.date || new Date().toISOString()) : new Date().toISOString(),
             Ticker: rawTicker,
@@ -2382,6 +2401,7 @@
             Stage: '물타기매수',
             priority: '물타기매수',
             score: 999,
+            ai_prob: scaleInAiScore,
             ADX: metric ? (metric.ADX || metric.adx) : '-',
             Minus_DI: metric ? (metric.Minus_DI || metric.minus_di) : '-',
             Plus_DI: metric ? (metric.Plus_DI || metric.plus_di) : '-',
@@ -2407,7 +2427,8 @@
           VolumeRatio: metric ? (metric.VolumeRatio !== undefined ? metric.VolumeRatio : (metric.volume_ratio !== undefined ? metric.volume_ratio : '-')) : '-',
           SignalLevel: signalLevel,
           Status: signalLevel,
-          Details: signalReason
+          Details: signalReason,
+          ai_prob: (signalLevel === '물타기매수') ? scaleInAiScore : undefined
         };
         evaluatedHoldingsStatus.push(holdingStatusObj);
 
@@ -3303,6 +3324,14 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       });
 
       const reversedList = [...uniqueList].reverse();
+      // Ensure 물타기매수 items always sort to the very top (highest priority)
+      reversedList.sort((a, b) => {
+        const isScaleInA = String(a.Stage || a.stage || '').includes('물타기');
+        const isScaleInB = String(b.Stage || b.stage || '').includes('물타기');
+        if (isScaleInA && !isScaleInB) return -1;
+        if (!isScaleInA && isScaleInB) return 1;
+        return 0;
+      });
       tbody.innerHTML = reversedList.map(item => {
         const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || '전략매수');
         let stageText = '전략매수';
@@ -3340,7 +3369,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
         const reason = (item.Reason || item.reason || item.Notes || item.notes || `ADX: ${formatDec(item.ADX || item.adx)}, -DI: ${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}, RSI: ${formatDec(item.RSI || item.rsi)}, 볼린저%b: ${bBandPctStr}, VR: ${vrStr} 조건 충족`).replace(/'/g, "\\'");
 
-        const rankText = item.computed_rank ? `${item.computed_rank}순위` : '-';
+        const rankText = (stageText === '물타기매수') ? '물타기' : (item.computed_rank ? `${item.computed_rank}순위` : '-');
 
         const rawAiProb = item.ai_prob !== undefined ? item.ai_prob : (item.AI_Prob !== undefined ? item.AI_Prob : (item.aiProb !== undefined ? item.aiProb : item.ai_win_prob));
         let aiProbText = '-';

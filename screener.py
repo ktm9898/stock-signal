@@ -559,6 +559,77 @@ def evaluate_sell_signal(df, buy_price, active_slot=None):
         "isAlert": (level != "관망")
     }
 
+def predict_scale_in_ai_score(h_df, h_price, stock_df_map, loaded_scale_in_bundle, h_market="KOSPI200"):
+    """Predict scale-in AI win probability score (0~100) using trained Scale-in LightGBM model."""
+    if not loaded_scale_in_bundle or h_df is None or len(h_df) < 25:
+        return None
+    try:
+        model = loaded_scale_in_bundle['model']
+        feature_cols = loaded_scale_in_bundle['feature_cols']
+
+        idx_key = '229200' if h_market == 'KOSDAQ150' else '069500'
+        idx_tuple = stock_df_map.get(idx_key) or stock_df_map.get('KOSPI') or stock_df_map.get('KOSDAQ')
+        idx_df = idx_tuple[0] if idx_tuple else None
+
+        curr = h_df.iloc[-1]
+        curr_close = curr['종가'] if '종가' in curr else (curr['close'] if 'close' in curr else 0)
+        s_close = h_df['종가'] if '종가' in h_df.columns else h_df['close']
+        s_vol = h_df['거래량'] if '거래량' in h_df.columns else (h_df['volume'] if 'volume' in h_df.columns else pd.Series(dtype=float))
+        s_ret1 = s_close.pct_change(1).fillna(0)
+
+        stock_ret_5d = float(s_close.pct_change(5).iloc[-1] * 100.0) if len(s_close) >= 6 else 0.0
+        stock_ret_20d = float(s_close.pct_change(20).iloc[-1] * 100.0) if len(s_close) >= 21 else 0.0
+        vol_20d = float(s_ret1.rolling(20, min_periods=5).std().iloc[-1] * 100.0) if len(s_ret1) >= 5 else 1.0
+        vr_20d = float(s_vol.iloc[-1] / (s_vol.tail(20).mean() + 1e-6) * 100.0) if len(s_vol) >= 20 else 100.0
+        rsi_diff_5d = float(h_df['rsi'].diff(5).iloc[-1]) if 'rsi' in h_df.columns and len(h_df) >= 6 else 0.0
+
+        drop_pct = ((curr_close - h_price) / h_price) * 100.0 if h_price and h_price > 0 else -20.0
+
+        if idx_df is not None and len(idx_df) >= 20:
+            i_curr = idx_df.iloc[-1]
+            i_close = idx_df['종가'] if '종가' in idx_df.columns else idx_df['close']
+            mkt_ret_5d = float(i_close.pct_change(5).iloc[-1] * 100.0) if len(i_close) >= 6 else 0.0
+            mkt_ret_20d = float(i_close.pct_change(20).iloc[-1] * 100.0) if len(i_close) >= 21 else 0.0
+            mkt_rsi = float(i_curr.get('rsi', 50.0))
+            mkt_bb_pct = float(i_curr.get('b_band_pct', 0.5))
+            mkt_ret_since_entry = mkt_ret_20d
+        else:
+            mkt_ret_5d, mkt_ret_20d, mkt_rsi, mkt_bb_pct, mkt_ret_since_entry = 0.0, 0.0, 50.0, 0.5, 0.0
+
+        rel_ret_from_entry = drop_pct - mkt_ret_since_entry
+
+        f_dict = {
+            'entry_ai_score': 65.0,
+            'days_from_entry': 25.0,
+            'stock_rsi': float(curr.get('rsi', 30.0)),
+            'stock_bb_pct': float(curr.get('b_band_pct', 0.05)),
+            'stock_disparity20': float(curr.get('disparity20', 85.0)),
+            'stock_volume_ratio': float(curr.get('volume_ratio', 100.0)),
+            'stock_volume_ratio_20d': vr_20d,
+            'stock_adx': float(curr.get('adx', 25.0)),
+            'stock_minus_di': float(curr.get('minus_di', 25.0)),
+            'stock_plus_di': float(curr.get('plus_di', 15.0)),
+            'stock_macd_osc': float(curr.get('macd_osc', 0.0)),
+            'stock_stoch_k': float(curr.get('stoch_k', 20.0)),
+            'stock_ret_5d': stock_ret_5d,
+            'stock_ret_20d': stock_ret_20d,
+            'stock_volatility_20d': vol_20d,
+            'stock_rsi_diff_5d': rsi_diff_5d,
+            'mkt_ret_5d': mkt_ret_5d,
+            'mkt_ret_20d': mkt_ret_20d,
+            'mkt_rsi': mkt_rsi,
+            'mkt_bb_pct': mkt_bb_pct,
+            'mkt_ret_since_entry': mkt_ret_since_entry,
+            'rel_ret_from_entry': rel_ret_from_entry
+        }
+        feat_vals = [f_dict.get(col, 0.0) for col in feature_cols]
+        X_pred = np.array([feat_vals])
+        raw_prob = model.predict(X_pred)[0]
+        return round(float(raw_prob) * 100.0, 1)
+    except Exception as e:
+        print(f" [WARN] Failed predicting scale-in AI score: {e}")
+        return None
+
 def check_and_trim_incomplete_candle(df):
     """
     Check if current time is KST weekday market open hours (09:00 ~ 15:30 KST).
@@ -845,6 +916,16 @@ if __name__ == "__main__":
         except Exception as e:
             print(f" [WARN] Failed loading AI model: {e}")
 
+    scale_in_model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "scale_in_lgbm_model.pkl")
+    loaded_scale_in_bundle = None
+    if os.path.exists(scale_in_model_path):
+        try:
+            import joblib
+            loaded_scale_in_bundle = joblib.load(scale_in_model_path)
+            print(f" [INFO] Loaded Scale-in AI Model from {os.path.basename(scale_in_model_path)}")
+        except Exception as e:
+            print(f" [WARN] Failed loading Scale-in AI model: {e}")
+
     for cand in buy_candidates:
         cand_ticker = cand.get('ticker', '')
         cand_market = cand.get('market', 'KOSPI200')
@@ -1072,7 +1153,10 @@ if __name__ == "__main__":
                             if sell_res.get("isAlert"):
                                 sell_signals.append(sell_res)
                                 if sell_res["signalLevel"] == "물타기매수":
-                                    print(f"  [SCALE-IN BUY] {sell_res['name']} ({sell_res['ticker']}) - {sell_res['signalLevel']} | {sell_res['details']}")
+                                    scale_score = predict_scale_in_ai_score(h_df, h_price, stock_df_map, loaded_scale_in_bundle)
+                                    sell_res["ai_prob"] = scale_score
+                                    prob_str = f" | 물타기 AI 점수: {scale_score}점" if scale_score is not None else ""
+                                    print(f"  [SCALE-IN BUY] {sell_res['name']} ({sell_res['ticker']}) - {sell_res['signalLevel']}{prob_str} | {sell_res['details']}")
                                 else:
                                     print(f"  [SELL ALERT] {sell_res['name']} ({sell_res['ticker']}) - {sell_res['signalLevel']} | {sell_res['details']}")
                             else:

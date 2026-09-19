@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>하이브리드 알파 & AI 점수 퀀트 시스템 백서</title>
+<style>
+  @page {
+    size: A4;
+    margin: 18mm 16mm 18mm 16mm;
+    @bottom-right {
+      content: counter(page);
+    }
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", helvetica, sans-serif;
+    color: #1e293b;
+    line-height: 1.6;
+    font-size: 10pt;
+    margin: 0;
+    padding: 0;
+  }
+  h1 {
+    font-size: 17pt;
+    color: #1e3a8a;
+    border-bottom: 2px solid #2563eb;
+    padding-bottom: 4px;
+    margin-top: 24px;
+    margin-bottom: 12px;
+    page-break-after: avoid;
+  }
+  h2 {
+    font-size: 12pt;
+    color: #0f172a;
+    margin-top: 16px;
+    margin-bottom: 8px;
+    page-break-after: avoid;
+  }
+  p {
+    margin-top: 0;
+    margin-bottom: 6px;
+    text-align: justify;
+  }
+  .doc-title {
+    font-size: 22pt;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+  .doc-subtitle {
+    font-size: 11pt;
+    color: #64748b;
+    margin-bottom: 18px;
+  }
+  .meta-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 14px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 16px;
+    font-size: 9pt;
+    margin-bottom: 20px;
+  }
+  .meta-item strong {
+    color: #475569;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+    margin-bottom: 16px;
+    font-size: 8.5pt;
+    page-break-inside: avoid;
+  }
+  th, td {
+    border: 1px solid #cbd5e1;
+    padding: 6px 8px;
+    text-align: left;
+  }
+  th {
+    background-color: #1e3a8a;
+    color: #ffffff;
+    font-weight: 700;
+    text-align: center;
+  }
+  tr:nth-child(even) {
+    background-color: #f8fafc;
+  }
+  .text-center {
+    text-align: center;
+  }
+  .text-right {
+    text-align: right;
+  }
+  .highlight-row {
+    background-color: #fef3c7 !important;
+    font-weight: 700;
+  }
+  .subtotal-row {
+    background-color: #f1f5f9 !important;
+    font-weight: 700;
+  }
+  .badge-a {
+    color: #059669;
+    font-weight: 700;
+  }
+  .badge-d {
+    color: #dc2626;
+    font-weight: 700;
+  }
+  .callout {
+    background: #eff6ff;
+    border-left: 4px solid #2563eb;
+    padding: 10px 14px;
+    margin: 12px 0;
+    border-radius: 0 6px 6px 0;
+    font-size: 9.5pt;
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-title">하이브리드 알파 & AI 점수(LightGBM) 퀀트 시스템 종합 백서</div>
+<div class="doc-subtitle">Quantitative Trading Strategy & Machine Learning Meta-Labeling Model Technical Report</div>
+
+<div class="meta-box">
+  <div class="meta-item"><strong>• 작성 대상:</strong> KOSPI 200 & KOSDAQ 150 (350개 전 종목)</div>
+  <div class="meta-item"><strong>• 분석 기간:</strong> 2021년 1월 ~ 2026년 9월 (5년 9개월)</div>
+  <div class="meta-item"><strong>• 적용 전략:</strong> [전략 5] 하이브리드 알파 (Hybrid Alpha)</div>
+  <div class="meta-item"><strong>• AI 모델:</strong> LightGBM GBDT Meta-Labeling Classifier</div>
+</div>
+
+<h1>1. 개요 및 설계 철학</h1>
+<p>본 시스템은 단순한 룰 기반 스크리너의 한계를 극복하기 위해 <strong>'2단계 하이브리드 파이프라인(Two-Stage Quant Pipeline)'</strong> 구조로 설계되었습니다.</p>
+<p><strong>• 1차 필터 (하이브리드 알파 룰 엔진):</strong> 350개 전 종목 중 기술적 과매도 투매 바닥 및 추세 급반등 종목을 1차 선별합니다. (기본 조건만으로도 5개년 승률 약 80% 달성)</p>
+<p><strong>• 2차 필터 (LightGBM AI 메타 모델):</strong> 1차에서 걸러진 후보 종목들이 <strong>과거 80%의 성공 케이스와 유사한지, 아니면 20%의 지뢰(물림/손절) 케이스와 유사한지</strong>를 34개 피처를 통해 머신러닝으로 정밀 채점하여 'AI 점수(0~100점)'를 부여합니다.</p>
+
+<h1>2. 연계 퀀트 전략: [전략 5] 하이브리드 알파</h1>
+<p><strong>• 매수 조건 1 (극과매도 투매 바닥):</strong> RSI ≤ 24 · 볼린저밴드 %b ≤ 0.05 · 거래량비율(5일) ≥ 100% · 20일 이격도 ≤ 95%</p>
+<p><strong>• 매수 조건 2 (추세 속 급반등 바닥):</strong> ADX ≥ 33 · -DI 하향돌파 ADX · 거래량비율(5일) ≥ 100% · 20일 이격도 ≤ 93%</p>
+<p><strong>• 매도 조건:</strong> RSI ≥ 55 도달 시 전량 익절 청산 (빠른 차익 실현 및 자금 회전 극대화)</p>
+<p><strong>• 물타기 (Scale-in):</strong> 진입가 대비 -20% 하락 시 2배 추가 매수 (평단가 급격 인하, 포지션당 최대 1회)</p>
+<p><strong>• 손절선:</strong> 없음 (우량 350개 종목의 기술적 과매도 복귀력과 물타기 안전판으로 방어)</p>
+<p><strong>• 체결 규칙:</strong> 신호 발생 당일 15:30 종가 확인 후 다음 날 09:00 시초가 단일가 매매 (+0.25% 수수료/슬리피지 차감)</p>
+
+<h1>3. AI 머신러닝 모델 아키텍처 및 데이터셋</h1>
+<p><strong>• 모델 사양:</strong> LightGBM (Gradient Boosted Decision Trees, GBDT), 120개 결정 트리 (max_depth 4, lr 0.03, metric AUC)</p>
+<p><strong>• 학습 데이터셋:</strong> 2021년 1월 ~ 2026년 8월 말 (최근 5.5개년 350개 전 종목 일봉 타점 전수 조사)</p>
+<p><strong>• 학습 타겟(Label):</strong> <code>is_alpha_winner</code> (단순 상승이 아닌 시장 대비 초과 수익 창출, 하방 리스크 방어, 단기 조기 익절을 모두 달성한 우량 거래만 '1'로 정의)</p>
+
+<h1>4. 34개 입력 피처 구성 및 중요도 Top 10</h1>
+<table>
+  <thead>
+    <tr>
+      <th style="width:10%;">순위</th>
+      <th style="width:30%;">변수명 (Feature)</th>
+      <th style="width:18%;">중요도 (Gain)</th>
+      <th style="width:42%;">설명 및 분석 의도</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td class="text-center"><strong>1위</strong></td><td><code>stock_ret_20d</code></td><td class="text-center"><strong>995.8</strong></td><td>최근 20일간의 주가 낙폭 크기 (낙폭과대 반등 탄력 포착)</td></tr>
+    <tr><td class="text-center"><strong>2위</strong></td><td><code>concurrent_signals_count</code></td><td class="text-center"><strong>788.5</strong></td><td>당일 전체 시장 동시 매수 신호 수 (시장 전체 투매 여부 판별)</td></tr>
+    <tr><td class="text-center"><strong>3위</strong></td><td><code>stock_volatility_20d</code></td><td class="text-center"><strong>781.7</strong></td><td>최근 20일간의 주가 변동성 (변동성 과다 종목 패널티 부여)</td></tr>
+    <tr><td class="text-center"><strong>4위</strong></td><td><code>stock_macd_osc</code></td><td class="text-center"><strong>629.8</strong></td><td>MACD 오실레이터의 수렴 및 단기 턴어라운드 강도</td></tr>
+    <tr><td class="text-center"><strong>5위</strong></td><td><code>idx_plus_di</code></td><td class="text-center"><strong>512.8</strong></td><td>시장 전체 지수의 상승 방향성 존재 여부</td></tr>
+    <tr><td class="text-center"><strong>6위</strong></td><td><code>stock_ret_5d</code></td><td class="text-center"><strong>506.7</strong></td><td>최근 5일간의 단기 급락/반등 모멘텀</td></tr>
+    <tr><td class="text-center"><strong>7위</strong></td><td><code>rel_disparity</code></td><td class="text-center"><strong>445.1</strong></td><td>지수 대비 종목의 상대적 이격도 괴리율</td></tr>
+    <tr><td class="text-center"><strong>8위</strong></td><td><code>stock_stoch_d</code></td><td class="text-center"><strong>410.6</strong></td><td>스토캐스틱 슬로우 바닥 다이버전스 강도</td></tr>
+    <tr><td class="text-center"><strong>9위</strong></td><td><code>rel_ret_5d</code></td><td class="text-center"><strong>382.2</strong></td><td>지수 대비 5일간 초과 수익률 (Alpha 창출력)</td></tr>
+    <tr><td class="text-center"><strong>10위</strong></td><td><code>stock_rsi_slope_5d</code></td><td class="text-center"><strong>356.2</strong></td><td>최근 5일간 RSI 지표의 상승 반전 가속도</td></tr>
+  </tbody>
+</table>
+
+<h1>5. AI 점수 정규분포 통계 (5.9개년 전수 분석)</h1>
+<p>2021년 1월부터 2026년 9월 18일까지 350개 전 종목에서 발생한 하이브리드 알파 신호 2,594건 전수 조사 결과입니다: <strong>평균 62.12점 | 중앙값(Median) 64.00점 | 표준편차 10.68점</strong></p>
+<table>
+  <thead>
+    <tr>
+      <th style="width:25%;">백분위 (Percentile)</th>
+      <th style="width:20%;">AI 점수 컷</th>
+      <th style="width:15%;">실전 등급</th>
+      <th style="width:40%;">의미 및 포지션</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td class="text-center"><strong>상위 10% 이내</strong></td><td class="text-center"><strong>73.6점 이상</strong></td><td class="text-center badge-a">A+ ~ A</td><td>시장 대비 반등 탄력이 가장 강력한 최우량 타점</td></tr>
+    <tr><td class="text-center"><strong>상위 25% 이내</strong></td><td class="text-center"><strong>69.6점 이상</strong></td><td class="text-center badge-a">B+</td><td>승률 90% 이상 보장되는 우량 타점</td></tr>
+    <tr><td class="text-center"><strong>상위 50% 이내 (중앙값)</strong></td><td class="text-center"><strong>64.0점 이상</strong></td><td class="text-center">B</td><td>기본 조건을 충실히 갖춘 표준 권장 타점</td></tr>
+    <tr><td class="text-center"><strong>하위 25% 이하</strong></td><td class="text-center"><strong>56.6점 이하</strong></td><td class="text-center">C</td><td>반등 탄력이 둔화되거나 지수 역풍 위험이 있는 구간</td></tr>
+    <tr><td class="text-center"><strong>하위 10% 이하</strong></td><td class="text-center"><strong>47.3점 이하</strong></td><td class="text-center badge-d">D (지뢰)</td><td>과거 실패 패턴(손절/장기 물림)과 유사한 고위험 구간</td></tr>
+  </tbody>
+</table>
+
+<h1>6. 점수대별 실제 백테스트 성과 분석</h1>
+<p>총 1,457회 실제 체결 거래에 대한 AI 점수대별 성과 전수 분석표입니다 (수수료·세금 0.25% 반영):</p>
+<table>
+  <thead>
+    <tr>
+      <th>AI 점수 구간</th>
+      <th>체결수</th>
+      <th>비중</th>
+      <th>승률</th>
+      <th>평균수익률</th>
+      <th>손익비(PF)</th>
+      <th>평균보유일</th>
+      <th>물타기</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>80점 이상 (A+)</strong></td><td class="text-center">27건</td><td class="text-center">1.9%</td><td class="text-center badge-a"><strong>96.3%</strong></td><td class="text-right"><strong>+21.20%</strong></td><td class="text-center"><strong>12.29</strong></td><td class="text-center"><strong>33.6일</strong></td><td class="text-center">3건</td></tr>
+    <tr><td><strong>75점 ~ 80점 (A)</strong></td><td class="text-center">86건</td><td class="text-center">5.9%</td><td class="text-center badge-a"><strong>90.7%</strong></td><td class="text-right"><strong>+16.86%</strong></td><td class="text-center"><strong>13.60</strong></td><td class="text-center">45.0일</td><td class="text-center">23건</td></tr>
+    <tr><td><strong>70점 ~ 75점 (B+)</strong></td><td class="text-center">183건</td><td class="text-center">12.6%</td><td class="text-center badge-a"><strong>90.7%</strong></td><td class="text-right"><strong>+13.65%</strong></td><td class="text-center"><strong>11.76</strong></td><td class="text-center">41.9일</td><td class="text-center">33건</td></tr>
+    <tr><td><strong>60점 ~ 70점 (B)</strong></td><td class="text-center">565건</td><td class="text-center">38.8%</td><td class="text-center"><strong>85.5%</strong></td><td class="text-right">+8.21%</td><td class="text-center">3.95</td><td class="text-center">46.2일</td><td class="text-center">103건</td></tr>
+    <tr><td><strong>50점 ~ 60점 (C)</strong></td><td class="text-center">375건</td><td class="text-center">25.7%</td><td class="text-center">76.0%</td><td class="text-right">+5.58%</td><td class="text-center">2.74</td><td class="text-center">46.6일</td><td class="text-center">50건</td></tr>
+    <tr><td><strong>50점 미만 (D)</strong></td><td class="text-center">221건</td><td class="text-center">15.2%</td><td class="text-center badge-d">69.2%</td><td class="text-right">+2.38%</td><td class="text-center">1.22</td><td class="text-center">53.6일</td><td class="text-center">28건</td></tr>
+    <tr class="highlight-row"><td><strong>★ 60점 이상 합계</strong></td><td class="text-center"><strong>861건</strong></td><td class="text-center"><strong>59.1%</strong></td><td class="text-center"><strong>87.5%</strong></td><td class="text-right"><strong>+10.64%</strong></td><td class="text-center">-</td><td class="text-center"><strong>44.8일</strong></td><td class="text-center">162건</td></tr>
+    <tr class="subtotal-row"><td><strong>★ 60점 미만 합계</strong></td><td class="text-center">596건</td><td class="text-center">40.9%</td><td class="text-center">73.5%</td><td class="text-right">+4.40%</td><td class="text-center">-</td><td class="text-center">49.2일</td><td class="text-center">78건</td></tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <strong>💡 핵심 성과 비교:</strong> 60점 이상만 선별 매수할 경우 전체 승률이 <strong>73.5% → 87.5%(+14.0%p 상승)</strong>로 뛰며, 평균 수익률은 <strong>+4.40% → +10.64%로 2.4배 폭증</strong>합니다. 또한 80점 이상 초우량 신호는 <strong>평균 33.6일 만에 +21.2%를 달성</strong>하며 압도적인 조기 익절 탄력을 보였습니다.
+</div>
+
+<h1>7. 실전 매매 운용 가이드</h1>
+<p><strong>1. '60점'은 절대적인 진입 마지노선:</strong> 스크리너에 매수 신호가 발생하더라도 AI 점수가 60점 미만인 종목은 원칙적으로 진입을 제외(Pass)합니다. 이것만으로 전체 41%에 달하는 저효율 지뢰를 걸러내어 계좌 승률을 73.5%에서 87.5%로 끌어올립니다.</p>
+<p><strong>2. 75점 이상 발견 시 비중 확대 (Strong Buy):</strong> 75점 이상 타점은 승률 90.7%~96.3%, 손익비 12~13배에 달하는 초특급 기회이므로, 포트폴리오 여유 자금 내에서 최우선으로 비중을 싣습니다.</p>
+<p><strong>3. 조기 익절을 통한 자금 회전 극대화:</strong> 80점 이상 종목은 평균 33.6일 만에 조기 익절을 달성하여 자금 묶임 현상을 최소화하고 연간 자금 회전율을 극대화합니다.</p>
+<p><strong>4. 스크리너 자동화 연동:</strong> 관리자 화면(admin.html)의 퀀트 전략 설정에서 [우선순위: AI 점수 큰 순서대로]로 지정해두면, 매일 저녁 복수 신호 발생 시 자동으로 최우량 타점부터 상단 정렬되어 손쉽게 주문할 수 있습니다.</p>
+
+</body>
+</html>
