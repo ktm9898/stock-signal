@@ -183,6 +183,22 @@ def get_ohlcv_data(ticker, start_date, end_date):
                     '거래량': float(parts[5])
                 })
         if len(rows) >= 30:
+            # Ensure the latest candle is pure regular market OHLCV (after-market excluded)
+            clean_t = str(ticker).zfill(6)
+            if clean_t.isdigit() and len(rows) > 0:
+                last_d = rows[-1].get('Date', '')
+                if last_d >= '2026-09-14' or last_d >= '20260914':
+                    try:
+                        from regular_market_data import get_clean_regular_ohlcv
+                        clean_c = get_clean_regular_ohlcv(clean_t, last_d)
+                        if clean_c:
+                            rows[-1]['시가'] = clean_c['시가']
+                            rows[-1]['고가'] = clean_c['고가']
+                            rows[-1]['저가'] = clean_c['저가']
+                            rows[-1]['종가'] = clean_c['종가']
+                            rows[-1]['거래량'] = clean_c['거래량']
+                    except Exception:
+                        pass
             return pd.DataFrame(rows)
     except Exception:
         pass

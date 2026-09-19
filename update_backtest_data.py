@@ -27,6 +27,8 @@ STOCKS_350_PATH = os.path.join(DATA_DIR, "stocks_350.json")
 
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
+from regular_market_data import get_clean_regular_ohlcv
+
 def fetch_candles_and_indicators(ticker_or_symbol, candle_count=120):
     clean_sym = str(ticker_or_symbol).zfill(6) if str(ticker_or_symbol).isdigit() else str(ticker_or_symbol)
     url = f"https://fchart.stock.naver.com/sise.nhn?symbol={clean_sym}&timeframe=day&count={candle_count}&requestType=0"
@@ -53,6 +55,22 @@ def fetch_candles_and_indicators(ticker_or_symbol, candle_count=120):
                     })
         if len(rows) < 1:
             return None
+
+        # Ensure all newly added candles of the week (Mon~Fri) are pure regular market OHLCV
+        if clean_sym.isdigit() and len(rows) > 0:
+            from regular_market_data import fetch_naver_minute_regular_ohlcv
+            # Fetch past 5 trading days' regular market OHLCV in a single 0.05s call
+            clean_week_candles = fetch_naver_minute_regular_ohlcv(clean_sym, candle_count=3000)
+            if clean_week_candles:
+                for r in rows:
+                    r_date = r["Date"]
+                    if r_date >= "2026-09-14" and r_date in clean_week_candles:
+                        c_data = clean_week_candles[r_date]
+                        r["시가"] = c_data["시가"]
+                        r["고가"] = c_data["고가"]
+                        r["저가"] = c_data["저가"]
+                        r["종가"] = c_data["종가"]
+                        r["거래량"] = c_data["거래량"]
 
         df = pd.DataFrame(rows)
         df = calculate_full_indicators(df)

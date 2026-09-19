@@ -3,8 +3,8 @@ name: Update 5-Year Backtest Dataset
 on:
   workflow_dispatch:
   schedule:
-    # Every Friday at 16:30 KST (07:30 UTC)
-    - cron: '30 7 * * 5'
+    # Every weekday (Mon-Fri) at 16:30 KST (07:30 UTC)
+    - cron: '30 7 * * 1-5'
 
 permissions:
   contents: write
@@ -29,6 +29,9 @@ jobs:
           pip install pandas numpy pykrx ta requests beautifulsoup4
 
       - name: Run Incremental Backtest Data Updater
+        env:
+          KRX_ID: ${{ secrets.KRX_ID }}
+          KRX_PW: ${{ secrets.KRX_PW }}
         run: |
           python update_backtest_data.py
 
