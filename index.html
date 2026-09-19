@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,9 +17,11 @@
   <!-- Google Fonts & Font Awesome Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
+
   <style>
     :root {
       --bg-dark: #f8fafc;
@@ -36,18 +39,27 @@
       --badge-tier3: linear-gradient(135deg, #6366f1, #4f46e5);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html {
-      overflow-y: scroll; /* Lock scrollbar space to prevent layout shift */
-      overscroll-behavior-y: contain; /* Prevent pull-to-refresh */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
+
+    html {
+      overflow-y: scroll;
+      /* Lock scrollbar space to prevent layout shift */
+      overscroll-behavior-y: contain;
+      /* Prevent pull-to-refresh */
+    }
+
     body {
       font-family: 'Outfit', 'Noto Sans KR', sans-serif;
       background-color: var(--bg-dark);
       color: var(--text-main);
       line-height: 1.6;
       padding-bottom: 40px;
-      overscroll-behavior-y: contain; /* Prevent pull-to-refresh */
+      overscroll-behavior-y: contain;
+      /* Prevent pull-to-refresh */
     }
 
     /* Header */
@@ -55,22 +67,42 @@
       background: rgba(255, 255, 255, 0.9);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--card-border);
-      position: sticky; top: 0; z-index: 100;
+      position: sticky;
+      top: 0;
+      z-index: 100;
       padding: 12px 0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     }
+
     .header-inner {
       max-width: 1280px;
       margin: 0 auto;
       padding: 0 20px;
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       width: 100%;
     }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; color: #0f172a; }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: #0f172a;
+    }
+
     .brand-icon {
-      width: 32px; height: 32px; border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
       background: linear-gradient(135deg, #2563eb, #0284c7);
-      display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 1rem;
     }
 
     .header-right-group {
@@ -78,25 +110,60 @@
       align-items: center;
       gap: 10px;
     }
+
     .time-badge {
-      font-size: 0.78rem; color: #64748b; background: #f1f5f9;
-      padding: 4px 10px; border-radius: 12px; border: 1px solid #cbd5e1;
-      display: flex; align-items: center; gap: 6px; white-space: nowrap;
+      font-size: 0.78rem;
+      color: #64748b;
+      background: #f1f5f9;
+      padding: 4px 10px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
     }
+
     .pulse-dot {
-      width: 6px; height: 6px; border-radius: 50%; background-color: #10b981;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #10b981;
       box-shadow: 0 0 8px #10b981;
       animation: pulse 1.8s infinite;
     }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.3;
+      }
+    }
 
     .btn-header-refresh {
-      background: #ffffff; border: 1px solid #cbd5e1; color: #475569;
-      width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #475569;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
       transition: all 0.2s ease;
     }
-    .btn-header-refresh:hover { background: #f1f5f9; color: #2563eb; }
+
+    .btn-header-refresh:hover {
+      background: #f1f5f9;
+      color: #2563eb;
+    }
 
     .btn-admin-nav {
       background: linear-gradient(135deg, #4f46e5, #7c3aed);
@@ -113,6 +180,7 @@
       transition: all 0.2s ease;
       white-space: nowrap;
     }
+
     .btn-admin-nav:hover {
       background: linear-gradient(135deg, #4338ca, #6d28d9);
       box-shadow: 0 4px 10px rgba(79, 70, 229, 0.35);
@@ -120,39 +188,66 @@
     }
 
     /* Layout Containers */
-    .container { max-width: 1280px; margin: 16px auto; padding: 0 20px; }
+    .container {
+      max-width: 1280px;
+      margin: 16px auto;
+      padding: 0 20px;
+    }
 
     /* Summary Metric Cards (3 Compact Cards Layout) */
     .metrics-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 12px; margin-bottom: 16px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
     }
+
     .metric-card {
-      background: var(--card-bg); border: 1px solid var(--card-border);
-      border-radius: 14px; padding: 12px 16px;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
       min-height: 82px;
       position: relative;
     }
+
     .metric-title {
       position: absolute;
       top: 10px;
       left: 14px;
-      font-size: 0.90rem; font-weight: 700; color: #334155; white-space: nowrap;
-      display: flex; align-items: center; gap: 4px;
+      font-size: 0.90rem;
+      font-weight: 700;
+      color: #334155;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
+
     .metric-value {
-      font-size: 2.25rem; font-weight: 800; color: #0f172a; line-height: 1;
-      display: flex; align-items: baseline; justify-content: center; text-align: center; width: 100%;
+      font-size: 2.25rem;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1;
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      text-align: center;
+      width: 100%;
       margin-top: 6px;
     }
+
     .metric-num-box {
       position: relative;
       display: inline-flex;
       align-items: baseline;
       justify-content: center;
     }
+
     .metric-sub-badge {
       position: absolute;
       left: 100%;
@@ -163,17 +258,31 @@
       font-weight: 600;
       color: var(--text-sub);
     }
+
     .metric-icon {
       position: absolute;
       right: 14px;
       top: 50%;
       transform: translateY(-50%);
-      width: 36px; height: 36px; border-radius: 10px; background: #eff6ff;
-      display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #2563eb;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #eff6ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      color: #2563eb;
       flex-shrink: 0;
     }
-    .label-desktop { display: inline; }
-    .label-mobile { display: none; }
+
+    .label-desktop {
+      display: inline;
+    }
+
+    .label-mobile {
+      display: none;
+    }
 
     /* Navigation & Strategy Row (PC: Strategy on Left, Tabs on Right) */
     .nav-control-row {
@@ -198,11 +307,13 @@
       transition: all 0.2s ease;
       user-select: none;
     }
+
     .desktop-strategy-bar:hover {
       background: #eff6ff;
       border-color: #bfdbfe;
       transform: translateY(-1px);
     }
+
     .desktop-strategy-name {
       font-size: 0.95rem;
       font-weight: 700;
@@ -226,6 +337,7 @@
       transition: all 0.15s ease;
       white-space: nowrap;
     }
+
     .btn-strategy-pill:hover {
       background: linear-gradient(135deg, #1d4ed8, #1e40af);
     }
@@ -238,6 +350,7 @@
       border-bottom: none;
       padding-bottom: 0;
     }
+
     .tab-btn {
       background: #ffffff;
       border: 1px solid #cbd5e1;
@@ -253,6 +366,7 @@
       gap: 6px;
       white-space: nowrap;
     }
+
     .tab-btn.active {
       background: #eff6ff;
       color: #2563eb;
@@ -275,10 +389,12 @@
       user-select: none;
       transition: all 0.2s ease;
     }
+
     .mobile-strategy-bar:active {
       background: #eff6ff;
       border-color: #bfdbfe;
     }
+
     .mobile-strategy-name {
       font-size: 0.92rem;
       font-weight: 700;
@@ -303,10 +419,12 @@
       box-sizing: border-box;
       user-select: none;
     }
+
     .custom-strategy-trigger:hover {
       border-color: #93c5fd;
       background: #f8fafc;
     }
+
     .custom-strategy-slot-badge {
       background: #eff6ff;
       color: #2563eb;
@@ -317,6 +435,7 @@
       border: 1px solid #bfdbfe;
       white-space: nowrap;
     }
+
     .custom-strategy-menu {
       position: absolute;
       top: calc(100% + 6px);
@@ -333,10 +452,19 @@
       box-sizing: border-box;
       animation: fadeInDropdown 0.15s ease-out;
     }
+
     @keyframes fadeInDropdown {
-      from { opacity: 0; transform: translateY(-4px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
+
     .custom-strategy-item {
       display: flex;
       align-items: center;
@@ -349,14 +477,17 @@
       color: #1e293b;
       transition: background 0.15s;
     }
+
     .custom-strategy-item:hover {
       background: #f1f5f9;
     }
+
     .custom-strategy-item.active {
       background: #eff6ff;
       color: #2563eb;
       font-weight: 700;
     }
+
     .custom-strategy-item.is-empty {
       color: #94a3b8;
       font-weight: 500;
@@ -371,6 +502,7 @@
       margin-top: 12px !important;
       box-sizing: border-box !important;
     }
+
     .btn-modal-action-quant {
       background: linear-gradient(135deg, #4f46e5, #7c3aed) !important;
       color: #ffffff !important;
@@ -392,9 +524,11 @@
       cursor: pointer !important;
       text-align: center !important;
     }
+
     .btn-modal-action-quant:hover {
       background: linear-gradient(135deg, #4338ca, #6d28d9) !important;
     }
+
     .btn-modal-action-apply {
       background: linear-gradient(135deg, #2563eb, #0284c7) !important;
       color: #ffffff !important;
@@ -415,6 +549,7 @@
       cursor: pointer !important;
       text-align: center !important;
     }
+
     .btn-modal-action-apply:hover {
       background: linear-gradient(135deg, #1d4ed8, #0369a1) !important;
     }
@@ -424,12 +559,14 @@
       cursor: pointer;
       transition: all 0.2s ease;
     }
+
     .metric-card.clickable:hover {
       border-color: #93c5fd;
       background: #f8fafc;
       transform: translateY(-1px);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
     }
+
     .metric-card.active-tab-card {
       border-color: #3b82f6;
       background: #eff6ff;
@@ -438,19 +575,51 @@
 
     /* Tables */
     .table-container {
-      background: var(--card-bg); border: 1px solid var(--card-border);
-      border-radius: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     }
-    table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; table-layout: fixed; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      white-space: nowrap;
+      table-layout: fixed;
+    }
+
     th {
-      background: #f8fafc; color: #475569;
-      font-size: 0.78rem; font-weight: 600; text-transform: uppercase;
-      padding: 10px 6px; border-bottom: 1px solid #e2e8f0; white-space: nowrap;
+      background: #f8fafc;
+      color: #475569;
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 10px 6px;
+      border-bottom: 1px solid #e2e8f0;
+      white-space: nowrap;
       text-align: center;
     }
-    td { padding: 10px 6px; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: #f8fafc; }
+
+    td {
+      padding: 10px 6px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 0.85rem;
+      color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover td {
+      background: #f8fafc;
+    }
 
     /* Exact Fixed Column Widths for All Tab Tables */
     .stocks-metric-table,
@@ -461,62 +630,194 @@
       min-width: 860px !important;
       table-layout: fixed !important;
     }
-    .stocks-metric-table .col-stock-name { width: 140px; }
-    .stocks-metric-table .col-ind-adx { width: 54px; }
-    .stocks-metric-table .col-ind-mdi { width: 54px; }
-    .stocks-metric-table .col-ind-pdi { width: 54px; }
-    .stocks-metric-table .col-ind-rsi { width: 54px; }
-    .stocks-metric-table .col-ind-bb { width: 54px; }
-    .stocks-metric-table .col-ind-macd { width: 64px; }
-    .stocks-metric-table .col-ind-stoch { width: 84px; }
-    .stocks-metric-table .col-ind-disp { width: 64px; }
-    .stocks-metric-table .col-ind-vr { width: 60px; }
-    .stocks-metric-table .col-price { width: 80px; }
-    .stocks-metric-table .col-status { width: 70px; }
+
+    .stocks-metric-table .col-stock-name {
+      width: 140px;
+    }
+
+    .stocks-metric-table .col-ind-adx {
+      width: 54px;
+    }
+
+    .stocks-metric-table .col-ind-mdi {
+      width: 54px;
+    }
+
+    .stocks-metric-table .col-ind-pdi {
+      width: 54px;
+    }
+
+    .stocks-metric-table .col-ind-rsi {
+      width: 54px;
+    }
+
+    .stocks-metric-table .col-ind-bb {
+      width: 54px;
+    }
+
+    .stocks-metric-table .col-ind-macd {
+      width: 64px;
+    }
+
+    .stocks-metric-table .col-ind-stoch {
+      width: 84px;
+    }
+
+    .stocks-metric-table .col-ind-disp {
+      width: 64px;
+    }
+
+    .stocks-metric-table .col-ind-vr {
+      width: 60px;
+    }
+
+    .stocks-metric-table .col-price {
+      width: 80px;
+    }
+
+    .stocks-metric-table .col-status {
+      width: 70px;
+    }
 
     /* Badges & Action Buttons */
     .badge {
-      display: inline-block; padding: 4px 10px; border-radius: 16px;
-      font-size: 0.75rem; font-weight: 700; color: #fff; cursor: pointer;
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
     }
-    .badge-t1 { background: var(--badge-tier1); }
-    .badge-t2 { background: var(--badge-tier2); }
-    .badge-t3 { background: var(--badge-tier3); }
-    .badge-scale-in { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; }
-    .badge-neutral { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; font-weight: 500; }
-    .badge-sell-warn { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
-    .badge-sell-exit { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
-    .badge-sell-danger { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+
+    .badge-t1 {
+      background: var(--badge-tier1);
+    }
+
+    .badge-t2 {
+      background: var(--badge-tier2);
+    }
+
+    .badge-t3 {
+      background: var(--badge-tier3);
+    }
+
+    .badge-scale-in {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+    }
+
+    .badge-neutral {
+      background: #f1f5f9;
+      color: #64748b;
+      border: 1px solid #cbd5e1;
+      font-weight: 500;
+    }
+
+    .badge-sell-warn {
+      background: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fde68a;
+    }
+
+    .badge-sell-exit {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fca5a5;
+    }
+
+    .badge-sell-danger {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fca5a5;
+    }
 
     .btn-buy-reg {
       background: linear-gradient(135deg, #2563eb, #0284c7);
-      color: #fff; border: none; border-radius: 8px; padding: 6px 14px;
-      font-weight: 600; font-size: 0.82rem; cursor: pointer; transition: transform 0.1s;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-weight: 600;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: transform 0.1s;
       box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
     }
-    .btn-buy-reg:hover { transform: translateY(-1px); }
+
+    .btn-buy-reg:hover {
+      transform: translateY(-1px);
+    }
 
     /* Modal */
     .modal-overlay {
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px);
-      display: none; align-items: center; justify-content: center; z-index: 1000;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.4);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
     }
-    .modal-content {
-      background: #ffffff; border: 1px solid #e2e8f0;
-      border-radius: 20px; width: 90%; max-width: 500px; padding: 24px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.15); color: #0f172a;
-    }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-    .modal-title { font-size: 1.2rem; font-weight: 700; color: #0f172a; }
-    .close-btn { background: none; border: none; color: var(--text-sub); font-size: 1.4rem; cursor: pointer; }
 
-    .form-group { margin-bottom: 16px; position: relative; }
-    .form-label { display: block; font-size: 0.85rem; color: var(--text-sub); margin-bottom: 6px; }
-    .form-input {
-      width: 100%; background: #f8fafc; border: 1px solid #cbd5e1;
-      border-radius: 10px; padding: 10px 14px; color: #0f172a; font-size: 1rem;
+    .modal-content {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 20px;
+      width: 90%;
+      max-width: 500px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      color: #0f172a;
     }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: var(--text-sub);
+      font-size: 1.4rem;
+      cursor: pointer;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-sub);
+      margin-bottom: 6px;
+    }
+
+    .form-input {
+      width: 100%;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #0f172a;
+      font-size: 1rem;
+    }
+
     .search-dropdown {
       position: absolute;
       top: 100%;
@@ -527,10 +828,11 @@
       background: #ffffff;
       border: 1px solid #cbd5e1;
       border-radius: 10px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
       z-index: 999;
       margin-top: 4px;
     }
+
     .search-item {
       padding: 10px 14px;
       cursor: pointer;
@@ -540,11 +842,16 @@
       border-bottom: 1px solid #f1f5f9;
       font-size: 0.9rem;
     }
-    .search-item:last-child { border-bottom: none; }
+
+    .search-item:last-child {
+      border-bottom: none;
+    }
+
     .search-item:hover {
       background: #eff6ff;
       color: #2563eb;
     }
+
     .btn-manual-exec {
       background: #eff6ff;
       border: 1px solid #bfdbfe;
@@ -557,23 +864,34 @@
       transition: all 0.2s ease;
       white-space: nowrap;
     }
-    .btn-manual-exec:hover { background: #dbeafe; }
+
+    .btn-manual-exec:hover {
+      background: #dbeafe;
+    }
 
     /* Mobile Responsive & App-like Navigation Optimizations */
     @media (max-width: 768px) {
       body {
         padding-bottom: 70px;
       }
+
       header {
         padding: 10px 0;
       }
-      .brand { font-size: 1.05rem; }
+
+      .brand {
+        font-size: 1.05rem;
+      }
+
       .header-right-group {
         display: flex;
         align-items: center;
         gap: 6px;
       }
-      .time-badge { display: none; }
+
+      .time-badge {
+        display: none;
+      }
 
       .header-right-group .btn-header-refresh,
       .header-right-group .btn-manual-exec,
@@ -590,6 +908,7 @@
         font-size: 0.95rem !important;
         box-sizing: border-box !important;
       }
+
       .header-right-group .btn-header-refresh i,
       .header-right-group .btn-manual-exec i,
       .header-right-group .btn-admin-nav i {
@@ -597,13 +916,17 @@
         font-size: 0.95rem !important;
       }
 
-      .container { padding: 0 10px; margin: 10px auto; }
-      
+      .container {
+        padding: 0 10px;
+        margin: 10px auto;
+      }
+
       .metrics-grid {
         grid-template-columns: repeat(3, 1fr);
         gap: 6px;
         margin-bottom: 12px;
       }
+
       .metric-card {
         padding: 8px 6px;
         border-radius: 10px;
@@ -615,6 +938,7 @@
         position: relative;
         gap: 2px;
       }
+
       .metric-title {
         position: static;
         font-size: 0.72rem;
@@ -627,6 +951,7 @@
         text-align: left;
         width: 100%;
       }
+
       .metric-value {
         font-size: 1.30rem;
         font-weight: 800;
@@ -638,12 +963,14 @@
         margin: 0;
         line-height: 1.1;
       }
+
       .metric-num-box {
         position: relative;
         display: inline-flex;
         align-items: baseline;
         justify-content: center;
       }
+
       .metric-sub-badge {
         position: absolute;
         left: 100%;
@@ -654,10 +981,18 @@
         color: var(--text-sub);
         white-space: nowrap;
       }
-      .metric-icon { display: none; }
 
-      .label-desktop { display: none !important; }
-      .label-mobile { display: inline !important; }
+      .metric-icon {
+        display: none;
+      }
+
+      .label-desktop {
+        display: none !important;
+      }
+
+      .label-mobile {
+        display: inline !important;
+      }
 
       /* Mobile App Bottom Fixed Navigation Bar (2 Market Tabs) */
       .tabs {
@@ -680,6 +1015,7 @@
         box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06) !important;
         box-sizing: border-box !important;
       }
+
       .tab-btn {
         flex: 1 1 0px !important;
         min-width: 0 !important;
@@ -697,9 +1033,11 @@
         color: #64748b !important;
         white-space: nowrap !important;
       }
+
       .tab-btn i {
         font-size: 0.95rem !important;
       }
+
       .tab-btn.active {
         color: #2563eb !important;
         background: #eff6ff !important;
@@ -711,9 +1049,11 @@
       .mobile-strategy-bar {
         display: flex !important;
       }
+
       .desktop-strategy-bar {
         display: none !important;
       }
+
       .nav-control-row {
         border-bottom: none !important;
         margin-bottom: 0 !important;
@@ -725,9 +1065,24 @@
         -webkit-overflow-scrolling: touch;
         border-radius: 10px !important;
       }
-      table { min-width: 780px !important; width: 100% !important; table-layout: fixed !important; }
-      th { font-size: 0.72rem !important; padding: 7px 4px !important; white-space: nowrap !important; }
-      td { font-size: 0.80rem !important; padding: 7px 4px !important; white-space: nowrap !important; }
+
+      table {
+        min-width: 780px !important;
+        width: 100% !important;
+        table-layout: fixed !important;
+      }
+
+      th {
+        font-size: 0.72rem !important;
+        padding: 7px 4px !important;
+        white-space: nowrap !important;
+      }
+
+      td {
+        font-size: 0.80rem !important;
+        padding: 7px 4px !important;
+        white-space: nowrap !important;
+      }
     }
 
     .toast {
@@ -747,7 +1102,7 @@
       gap: 8px;
       z-index: 10000;
     }
-  
+
     .auth-locked {
       filter: blur(14px) !important;
       opacity: 0.15 !important;
@@ -757,6 +1112,7 @@
     }
   </style>
 </head>
+
 <body>
 
   <!-- Header -->
@@ -766,7 +1122,8 @@
         <div class="brand-icon"><i class="fa-solid fa-chart-line"></i></div>
         <div style="display: flex; flex-direction: column;">
           <span style="font-size: 1.1rem; font-weight: 700; color: #0f172a; line-height: 1.1;">StockSignal</span>
-          <span style="font-size: 0.7rem; color: #2563eb; font-weight: 600; margin-top: 1px;">KOSPI 200 & KOSDAQ 150</span>
+          <span style="font-size: 0.7rem; color: #2563eb; font-weight: 600; margin-top: 1px;">KOSPI 200 & KOSDAQ
+            150</span>
         </div>
       </div>
       <div class="header-right-group">
@@ -777,7 +1134,8 @@
         <button class="btn-header-refresh" onclick="refreshDataUI(this)" title="데이터 새로고침">
           <i class="fa-solid fa-rotate"></i>
         </button>
-        <button class="btn-manual-exec" id="manual-trigger-btn" onclick="triggerManualScreening()" title="수동 스크리닝 분석 실행">
+        <button class="btn-manual-exec" id="manual-trigger-btn" onclick="triggerManualScreening()"
+          title="수동 스크리닝 분석 실행">
           <i class="fa-solid fa-play"></i> <span class="label-desktop">수동 실행</span>
         </button>
         <a href="admin.html" class="btn-admin-nav" title="퀀트 전략 커스텀 & 5년 백테스터">
@@ -796,21 +1154,26 @@
 
     <!-- Metric Overview (3 Clickable Cards Layout) -->
     <div class="metrics-grid">
-      <div class="metric-card clickable active-tab-card" id="metric-card-buy" onclick="switchTab('buy-tab')" title="매수 신호 목록으로 이동">
-        <div class="metric-title">매수 신호 <i class="fa-solid fa-arrow-right" style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
+      <div class="metric-card clickable active-tab-card" id="metric-card-buy" onclick="switchTab('buy-tab')"
+        title="매수 신호 목록으로 이동">
+        <div class="metric-title">매수 신호 <i class="fa-solid fa-arrow-right"
+            style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
         <div class="metric-value">
           <div class="metric-num-box">
             <span id="count-buy" style="color: var(--accent-green);">0</span>
             <span id="count-watch-wrapper" class="metric-sub-badge" style="display: none;">
-              (<span class="label-desktop">관심 </span><span id="count-watch" style="color:#d97706; font-weight:700;">0</span>)
+              (<span class="label-desktop">관심 </span><span id="count-watch"
+                style="color:#d97706; font-weight:700;">0</span>)
             </span>
           </div>
         </div>
         <div class="metric-icon"><i class="fa-solid fa-bullseye"></i></div>
       </div>
 
-      <div class="metric-card clickable" id="metric-card-sell" onclick="switchTab('sell-signals-tab')" title="매도 신호 목록으로 이동">
-        <div class="metric-title">매도 신호 <i class="fa-solid fa-arrow-right" style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
+      <div class="metric-card clickable" id="metric-card-sell" onclick="switchTab('sell-signals-tab')"
+        title="매도 신호 목록으로 이동">
+        <div class="metric-title">매도 신호 <i class="fa-solid fa-arrow-right"
+            style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
         <div class="metric-value">
           <div class="metric-num-box">
             <span id="count-sell" style="color: var(--accent-red);">0</span>
@@ -819,13 +1182,18 @@
         <div class="metric-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
       </div>
 
-      <div class="metric-card clickable" id="metric-card-holdings" onclick="switchTab('holdings-tab')" title="보유 종목 목록으로 이동">
-        <div class="metric-title">보유 종목 <i class="fa-solid fa-arrow-right" style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
+      <div class="metric-card clickable" id="metric-card-holdings" onclick="switchTab('holdings-tab')"
+        title="보유 종목 목록으로 이동">
+        <div class="metric-title">보유 종목 <i class="fa-solid fa-arrow-right"
+            style="font-size: 0.65rem; opacity: 0.5; margin-left: 2px;"></i></div>
         <div class="metric-value">
           <div class="metric-num-box">
             <span id="count-holdings" style="color: var(--accent-cyan);">0</span>
             <span class="metric-sub-badge">
-              (<span class="label-desktop">수익 </span><span id="count-profit" style="color:var(--accent-red); font-weight:700;">0</span><span class="label-desktop"> / 손실 </span><span class="label-mobile"> / </span><span id="count-loss" style="color:var(--accent-blue); font-weight:700;">0</span>)
+              (<span class="label-desktop">수익 </span><span id="count-profit"
+                style="color:var(--accent-red); font-weight:700;">0</span><span class="label-desktop"> / 손실 </span><span
+                class="label-mobile"> / </span><span id="count-loss"
+                style="color:var(--accent-blue); font-weight:700;">0</span>)
             </span>
           </div>
         </div>
@@ -855,7 +1223,8 @@
     </div>
 
     <!-- Global Centered Loading Indicator (Always visible at screen center without horizontal scroll) -->
-    <div id="global-loading-box" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 52px 16px; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 14px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <div id="global-loading-box"
+      style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 52px 16px; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 14px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
       <i class="fa-solid fa-circle-notch fa-spin" style="font-size: 2.2rem; color: #2563eb; margin-bottom: 14px;"></i>
       <div style="font-size: 1.05rem; font-weight: 700; color: #0f172a; margin-bottom: 5px;">데이터를 불러오는 중입니다...</div>
       <div style="font-size: 0.83rem; color: #64748b;">최신 시장 데이터 및 퀀트 신호를 분석하고 있습니다.</div>
@@ -866,235 +1235,263 @@
       <!-- Tab 1: Buy Signals -->
       <div id="buy-tab" class="tab-content">
         <div class="table-container">
-        <table class="buy-signals-table">
-          <colgroup>
-            <col style="width: 83px;">
-            <col style="width: 135px;">
-            <col style="width: 72px;">
-            <col style="width: 65px;">
-            <col style="width: 62px;">
-            <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 56px;">
-            <col style="width: 84px;">
-            <col style="width: 75px;">
-          </colgroup>
-          <thead>
-            <tr>
-              <th>포착 일시</th>
-              <th>종목</th>
-              <th>신호</th>
-              <th>우선순위</th>
-              <th>AI 점수</th>
-              <th>ADX</th>
-              <th>-DI</th>
-              <th>+DI</th>
-              <th>RSI</th>
-              <th>BB</th>
-              <th>VR</th>
-              <th>현재가</th>
-              <th>액션</th>
-            </tr>
-          </thead>
-          <tbody id="buy-candidates-body">
-            <tr>
-              <td colspan="13" style="text-align: center; padding: 32px 16px; color: var(--text-sub); font-size: 0.85rem;">
-                <i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary); margin-right: 8px;"></i> 데이터를 불러오는 중입니다...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+          <table class="buy-signals-table">
+            <colgroup>
+              <col style="width: 83px;">
+              <col style="width: 135px;">
+              <col style="width: 72px;">
+              <col style="width: 65px;">
+              <col style="width: 62px;">
+              <col style="width: 54px;">
+              <col style="width: 54px;">
+              <col style="width: 54px;">
+              <col style="width: 54px;">
+              <col style="width: 54px;">
+              <col style="width: 56px;">
+              <col style="width: 84px;">
+              <col style="width: 75px;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>포착 일시</th>
+                <th>종목</th>
+                <th>신호</th>
+                <th>우선순위</th>
+                <th>AI 점수</th>
+                <th>ADX</th>
+                <th>-DI</th>
+                <th>+DI</th>
+                <th>RSI</th>
+                <th>BB</th>
+                <th>VR</th>
+                <th>현재가</th>
+                <th>액션</th>
+              </tr>
+            </thead>
+            <tbody id="buy-candidates-body">
+              <tr>
+                <td colspan="13"
+                  style="text-align: center; padding: 32px 16px; color: var(--text-sub); font-size: 0.85rem;">
+                  <i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary); margin-right: 8px;"></i>
+                  데이터를 불러오는 중입니다...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
 
-    <!-- Tab 2: Sell Signals History -->
-    <div id="sell-signals-tab" class="tab-content" style="display: none;">
-      <div class="table-container">
-        <table class="sell-signals-table">
-          <colgroup>
-            <col style="width: 83px;">
-            <col style="width: 140px;">
-            <col style="width: 76px;">
-            <col style="width: 80px;">
-            <col style="width: 72px;">
-            <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 56px;">
-            <col style="width: 75px;">
-          </colgroup>
-          <thead>
-            <tr>
-              <th>포착 일시</th>
-              <th>종목</th>
-              <th>매수가</th>
-              <th>현재가</th>
-              <th>수익률</th>
-              <th>ADX</th>
-              <th>-DI</th>
-              <th>+DI</th>
-              <th>RSI</th>
-              <th>BB</th>
-              <th>VR</th>
-              <th>신호</th>
-            </tr>
-          </thead>
-          <tbody id="sell-signals-body">
-            <tr>
-              <td colspan="12" style="text-align: center; padding: 32px 16px; color: var(--text-sub); font-size: 0.85rem;">
-                <i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary); margin-right: 8px;"></i> 데이터를 불러오는 중입니다...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Tab 2: Sell Signals History -->
+      <div id="sell-signals-tab" class="tab-content" style="display: none;">
+        <div class="table-container">
+          <table class="sell-signals-table">
+            <colgroup>
+              <col style="width: 83px;">
+              <col style="width: 140px;">
+              <col style="width: 76px;">
+              <col style="width: 80px;">
+              <col style="width: 72px;">
+              <col style="width: 54px;">
+              <col style="width: 54px;">
+              <col style="width: 54px;">
+              <col style="width: 54px;">
+              <col style="width: 54px;">
+              <col style="width: 56px;">
+              <col style="width: 75px;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>포착 일시</th>
+                <th>종목</th>
+                <th>매수가</th>
+                <th>현재가</th>
+                <th>수익률</th>
+                <th>ADX</th>
+                <th>-DI</th>
+                <th>+DI</th>
+                <th>RSI</th>
+                <th>BB</th>
+                <th>VR</th>
+                <th>신호</th>
+              </tr>
+            </thead>
+            <tbody id="sell-signals-body">
+              <tr>
+                <td colspan="12"
+                  style="text-align: center; padding: 32px 16px; color: var(--text-sub); font-size: 0.85rem;">
+                  <i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary); margin-right: 8px;"></i>
+                  데이터를 불러오는 중입니다...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
 
-    <!-- Tab 3: User Holdings -->
-    <div id="holdings-tab" class="tab-content" style="display: none;">
-      <div class="table-container">
-        <table class="holdings-table">
-          <colgroup>
-            <col style="width: 58px;">
-            <col style="width: 140px;">
-            <col style="width: 76px;">
-            <col style="width: 80px;">
-            <col style="width: 72px;">
-            <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 54px;">
-            <col style="width: 56px;">
-            <col style="width: 72px;">
-            <col style="width: 58px;">
-          </colgroup>
-          <thead>
-            <tr>
-              <th>등록일</th>
-              <th>종목</th>
-              <th>매수가</th>
-              <th>현재가</th>
-              <th>수익률</th>
-              <th>ADX</th>
-              <th>-DI</th>
-              <th>+DI</th>
-              <th>RSI</th>
-              <th>BB</th>
-              <th>VR</th>
-              <th>상태</th>
-              <th>삭제</th>
-            </tr>
-          </thead>
-          <tbody id="holdings-body">
-            <tr>
-              <td colspan="13" style="text-align: center; padding: 32px 16px; color: var(--text-sub); font-size: 0.85rem;">
-                <i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary); margin-right: 8px;"></i> 데이터를 불러오는 중입니다...
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Tab 3: User Holdings -->
+      <div id="holdings-tab" class="tab-content" style="display: none;">
+        <div class="table-container">
+          <table class="holdings-table">
+            <colgroup>
+              <col style="width: 58px;">
+              <col style="width: 140px;">
+              <col style="width: 76px;">
+              <col style="width: 80px;">
+              <col style="width: 72px;">
+              <col style="width: 54px;">
+              <col style="width: 54px;">
+              <col style="width: 54px;">
+              <col style="width: 54px;">
+              <col style="width: 54px;">
+              <col style="width: 56px;">
+              <col style="width: 72px;">
+              <col style="width: 58px;">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>등록일</th>
+                <th>종목</th>
+                <th>매수가</th>
+                <th>현재가</th>
+                <th>수익률</th>
+                <th>ADX</th>
+                <th>-DI</th>
+                <th>+DI</th>
+                <th>RSI</th>
+                <th>BB</th>
+                <th>VR</th>
+                <th>상태</th>
+                <th>삭제</th>
+              </tr>
+            </thead>
+            <tbody id="holdings-body">
+              <tr>
+                <td colspan="13"
+                  style="text-align: center; padding: 32px 16px; color: var(--text-sub); font-size: 0.85rem;">
+                  <i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary); margin-right: 8px;"></i>
+                  데이터를 불러오는 중입니다...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 12px;">
+          <button class="btn-buy-reg" onclick="openRegisterModal()"><i class="fa-solid fa-plus"></i> 종목 추가</button>
+        </div>
       </div>
-      <div style="display: flex; justify-content: flex-end; align-items: center; margin-top: 12px;">
-        <button class="btn-buy-reg" onclick="openRegisterModal()"><i class="fa-solid fa-plus"></i> 종목 추가</button>
-      </div>
-    </div>
 
-    <!-- Tab 4: KOSPI 200 Stocks Metrics -->
-    <div id="all-stocks-tab" class="tab-content" style="display: none;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
-        <h3 style="font-weight: 600; font-size: 1rem;">KOSPI 200 지표</h3>
-        <input type="text" id="all-stocks-search" placeholder="🔍 종목 검색..." class="form-input" style="max-width: 180px; padding: 5px 10px; font-size: 0.82rem;" oninput="filterAllStocksTable()">
+      <!-- Tab 4: KOSPI 200 Stocks Metrics -->
+      <div id="all-stocks-tab" class="tab-content" style="display: none;">
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
+          <h3 style="font-weight: 600; font-size: 1rem;">KOSPI 200 지표</h3>
+          <input type="text" id="all-stocks-search" placeholder="🔍 종목 검색..." class="form-input"
+            style="max-width: 180px; padding: 5px 10px; font-size: 0.82rem;" oninput="filterAllStocksTable()">
+        </div>
+        <div class="table-container">
+          <table class="stocks-metric-table">
+            <colgroup>
+              <col class="col-stock-name">
+              <col class="col-ind-adx">
+              <col class="col-ind-mdi">
+              <col class="col-ind-pdi">
+              <col class="col-ind-rsi">
+              <col class="col-ind-bb">
+              <col class="col-ind-macd">
+              <col class="col-ind-stoch">
+              <col class="col-ind-disp">
+              <col class="col-ind-vr">
+              <col class="col-price">
+              <col class="col-status">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>종목</th>
+                <th onclick="showIndicatorHelp('ADX')" title="클릭 시 ADX 지표 설명 보기">ADX <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('-DI')" title="클릭 시 -DI 지표 설명 보기">-DI <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('+DI')" title="클릭 시 +DI 지표 설명 보기">+DI <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('RSI')" title="클릭 시 RSI 지표 설명 보기">RSI <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('BB_Pct')" title="클릭 시 BB 지표 설명 보기">BB <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('MACD')" title="클릭 시 MACD 지표 설명 보기">MACD <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('STOCH')" title="클릭 시 STOCH 지표 설명 보기">STOCH <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('DISPARITY')" title="클릭 시 이격도 지표 설명 보기">이격도 <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('VR')" title="클릭 시 VR 지표 설명 보기">VR <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th>현재가</th>
+                <th>상태</th>
+              </tr>
+            </thead>
+            <tbody id="all-stocks-body">
+              <!-- Dynamic Content -->
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div class="table-container">
-        <table class="stocks-metric-table">
-          <colgroup>
-            <col class="col-stock-name">
-            <col class="col-ind-adx">
-            <col class="col-ind-mdi">
-            <col class="col-ind-pdi">
-            <col class="col-ind-rsi">
-            <col class="col-ind-bb">
-            <col class="col-ind-macd">
-            <col class="col-ind-stoch">
-            <col class="col-ind-disp">
-            <col class="col-ind-vr">
-            <col class="col-price">
-            <col class="col-status">
-          </colgroup>
-          <thead>
-            <tr>
-              <th>종목</th>
-              <th onclick="showIndicatorHelp('ADX')" title="클릭 시 ADX 지표 설명 보기">ADX <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('-DI')" title="클릭 시 -DI 지표 설명 보기">-DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('+DI')" title="클릭 시 +DI 지표 설명 보기">+DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('RSI')" title="클릭 시 RSI 지표 설명 보기">RSI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('BB_Pct')" title="클릭 시 BB 지표 설명 보기">BB <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('MACD')" title="클릭 시 MACD 지표 설명 보기">MACD <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('STOCH')" title="클릭 시 STOCH 지표 설명 보기">STOCH <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('DISPARITY')" title="클릭 시 이격도 지표 설명 보기">이격도 <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th>현재가</th>
-              <th>상태</th>
-            </tr>
-          </thead>
-          <tbody id="all-stocks-body">
-            <!-- Dynamic Content -->
-          </tbody>
-        </table>
-      </div>
-    </div>
 
-    <!-- Tab 5: KOSDAQ 150 Stocks Metrics -->
-    <div id="kosdaq-stocks-tab" class="tab-content" style="display: none;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
-        <h3 style="font-weight: 600; font-size: 1rem;">KOSDAQ 150 지표</h3>
-        <input type="text" id="kosdaq-stocks-search" placeholder="🔍 종목 검색..." class="form-input" style="max-width: 180px; padding: 5px 10px; font-size: 0.82rem;" oninput="filterKosdaqStocksTable()">
-      </div>
-      <div class="table-container">
-        <table class="stocks-metric-table">
-          <colgroup>
-            <col class="col-stock-name">
-            <col class="col-ind-adx">
-            <col class="col-ind-mdi">
-            <col class="col-ind-pdi">
-            <col class="col-ind-rsi">
-            <col class="col-ind-bb">
-            <col class="col-ind-macd">
-            <col class="col-ind-stoch">
-            <col class="col-ind-disp">
-            <col class="col-ind-vr">
-            <col class="col-price">
-            <col class="col-status">
-          </colgroup>
-          <thead>
-            <tr>
-              <th>종목</th>
-              <th onclick="showIndicatorHelp('ADX')" title="클릭 시 ADX 지표 설명 보기">ADX <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('-DI')" title="클릭 시 -DI 지표 설명 보기">-DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('+DI')" title="클릭 시 +DI 지표 설명 보기">+DI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('RSI')" title="클릭 시 RSI 지표 설명 보기">RSI <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('BB_Pct')" title="클릭 시 BB 지표 설명 보기">BB <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('MACD')" title="클릭 시 MACD 지표 설명 보기">MACD <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('STOCH')" title="클릭 시 STOCH 지표 설명 보기">STOCH <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('DISPARITY')" title="클릭 시 이격도 지표 설명 보기">이격도 <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th onclick="showIndicatorHelp('VOLUME')" title="클릭 시 VR 지표 설명 보기">VR <i class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
-              <th>현재가</th>
-              <th>상태</th>
-            </tr>
-          </thead>
-          <tbody id="kosdaq-stocks-body">
-            <!-- Dynamic Content -->
-          </tbody>
-        </table>
+      <!-- Tab 5: KOSDAQ 150 Stocks Metrics -->
+      <div id="kosdaq-stocks-tab" class="tab-content" style="display: none;">
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; flex-wrap: wrap;">
+          <h3 style="font-weight: 600; font-size: 1rem;">KOSDAQ 150 지표</h3>
+          <input type="text" id="kosdaq-stocks-search" placeholder="🔍 종목 검색..." class="form-input"
+            style="max-width: 180px; padding: 5px 10px; font-size: 0.82rem;" oninput="filterKosdaqStocksTable()">
+        </div>
+        <div class="table-container">
+          <table class="stocks-metric-table">
+            <colgroup>
+              <col class="col-stock-name">
+              <col class="col-ind-adx">
+              <col class="col-ind-mdi">
+              <col class="col-ind-pdi">
+              <col class="col-ind-rsi">
+              <col class="col-ind-bb">
+              <col class="col-ind-macd">
+              <col class="col-ind-stoch">
+              <col class="col-ind-disp">
+              <col class="col-ind-vr">
+              <col class="col-price">
+              <col class="col-status">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>종목</th>
+                <th onclick="showIndicatorHelp('ADX')" title="클릭 시 ADX 지표 설명 보기">ADX <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('-DI')" title="클릭 시 -DI 지표 설명 보기">-DI <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('+DI')" title="클릭 시 +DI 지표 설명 보기">+DI <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('RSI')" title="클릭 시 RSI 지표 설명 보기">RSI <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('BB_Pct')" title="클릭 시 BB 지표 설명 보기">BB <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('MACD')" title="클릭 시 MACD 지표 설명 보기">MACD <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('STOCH')" title="클릭 시 STOCH 지표 설명 보기">STOCH <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('DISPARITY')" title="클릭 시 이격도 지표 설명 보기">이격도 <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th onclick="showIndicatorHelp('VR')" title="클릭 시 VR 지표 설명 보기">VR <i
+                    class="fa-regular fa-circle-question" style="font-size:0.72rem; color:#94a3b8;"></i></th>
+                <th>현재가</th>
+                <th>상태</th>
+              </tr>
+            </thead>
+            <tbody id="kosdaq-stocks-body">
+              <!-- Dynamic Content -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
-  </div>
   </div>
 
   <!-- Info/Details Modal -->
@@ -1105,12 +1502,17 @@
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <span id="info-modal-badge" class="badge"></span>
           </div>
-          <div class="modal-title" id="info-modal-title" style="font-size: 1.1rem; line-height: 1.35; font-weight: 700; color: #0f172a; word-break: keep-all;">종목 상세 사유</div>
+          <div class="modal-title" id="info-modal-title"
+            style="font-size: 1.1rem; line-height: 1.35; font-weight: 700; color: #0f172a; word-break: keep-all;">종목 상세
+            사유</div>
         </div>
         <button class="close-btn" onclick="closeInfoModal()" style="line-height: 1;">&times;</button>
       </div>
-      <div id="info-modal-body" style="font-size: 0.9rem; color: #334155; line-height: 1.6; background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 16px; white-space: pre-wrap; max-height: 60vh; overflow-y: auto;"></div>
-      <button class="btn-buy-reg" style="width: 100%; padding: 10px; font-size: 0.9rem;" onclick="closeInfoModal()">확인</button>
+      <div id="info-modal-body"
+        style="font-size: 0.9rem; color: #334155; line-height: 1.6; background: #f8fafc; padding: 14px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 16px; white-space: pre-wrap; max-height: 60vh; overflow-y: auto;">
+      </div>
+      <button class="btn-buy-reg" style="width: 100%; padding: 10px; font-size: 0.9rem;"
+        onclick="closeInfoModal()">확인</button>
     </div>
   </div>
 
@@ -1118,10 +1520,15 @@
   <div class="modal-overlay" id="confirm-modal">
     <div class="modal-content" style="max-width: 400px; text-align: center;">
       <div class="modal-title" id="confirm-modal-title" style="margin-bottom: 10px; font-size: 1.15rem;">확인</div>
-      <div id="confirm-modal-msg" style="font-size: 0.92rem; color: #475569; margin-bottom: 20px; line-height: 1.5; white-space: pre-wrap;"></div>
+      <div id="confirm-modal-msg"
+        style="font-size: 0.92rem; color: #475569; margin-bottom: 20px; line-height: 1.5; white-space: pre-wrap;"></div>
       <div style="display: flex; gap: 10px;">
-        <button style="flex: 1; padding: 9px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 600; color: #475569; cursor: pointer;" onclick="closeConfirmModal(false)">취소</button>
-        <button style="flex: 1; padding: 9px; background: #2563eb; border: none; border-radius: 8px; font-weight: 600; color: #fff; cursor: pointer;" onclick="closeConfirmModal(true)">확인</button>
+        <button
+          style="flex: 1; padding: 9px; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; font-weight: 600; color: #475569; cursor: pointer;"
+          onclick="closeConfirmModal(false)">취소</button>
+        <button
+          style="flex: 1; padding: 9px; background: #2563eb; border: none; border-radius: 8px; font-weight: 600; color: #fff; cursor: pointer;"
+          onclick="closeConfirmModal(true)">확인</button>
       </div>
     </div>
   </div>
@@ -1135,32 +1542,44 @@
       </div>
       <div class="form-group" style="position: relative;">
         <label class="form-label">종목명 또는 6자리 코드 검색</label>
-        <input type="text" class="form-input" id="reg-stock-name" placeholder="예: 삼성전자 (005930)" oninput="onStockSearchInput()" autocomplete="off">
+        <input type="text" class="form-input" id="reg-stock-name" placeholder="예: 삼성전자 (005930)"
+          oninput="onStockSearchInput()" autocomplete="off">
         <div id="stock-search-results" class="search-dropdown" style="display:none;"></div>
       </div>
       <div class="form-group">
         <label class="form-label">매수가 (원)</label>
         <input type="number" class="form-input" id="reg-stock-price" placeholder="예: 72000">
       </div>
-      <button class="btn-buy-reg" id="btn-reg-save" style="width: 100%; padding: 12px; margin-top: 10px;" onclick="saveHolding()">등록하기</button>
+      <button class="btn-buy-reg" id="btn-reg-save" style="width: 100%; padding: 12px; margin-top: 10px;"
+        onclick="saveHolding()">등록하기</button>
     </div>
   </div>
 
   <!-- PIN Modal -->
-  <div class="modal-overlay" id="pin-modal" style="display: none;" onclick="if(event.target === this && isLoggedIn()) hidePinAuthModal()">
+  <div class="modal-overlay" id="pin-modal" style="display: none;"
+    onclick="if(event.target === this && isLoggedIn()) hidePinAuthModal()">
     <div class="modal-content" style="text-align: center; max-width: 380px; position: relative;">
-      <button onclick="hidePinAuthModal()" style="position: absolute; top: 12px; right: 14px; background: none; border: none; font-size: 1.25rem; color: #94a3b8; cursor: pointer; padding: 4px; line-height: 1;" title="닫기">&times;</button>
+      <button onclick="hidePinAuthModal()"
+        style="position: absolute; top: 12px; right: 14px; background: none; border: none; font-size: 1.25rem; color: #94a3b8; cursor: pointer; padding: 4px; line-height: 1;"
+        title="닫기">&times;</button>
       <div class="brand-icon" style="margin: 0 auto 16px auto; width: 44px; height: 44px; font-size: 1.3rem;">
         <i class="fa-solid fa-lock"></i>
       </div>
       <h3 style="font-size: 1.25rem; margin-bottom: 6px;">보안 인증 / 로그인</h3>
-      <p id="pin-modal-subtitle" style="font-size: 0.82rem; color: var(--text-sub); margin: 0 0 16px 0; line-height: 1.4;">관리자 또는 게스트 비밀번호를 입력해주세요.</p>
-      
+      <p id="pin-modal-subtitle"
+        style="font-size: 0.82rem; color: var(--text-sub); margin: 0 0 16px 0; line-height: 1.4;">관리자 또는 게스트 비밀번호를
+        입력해주세요.</p>
+
       <div class="form-group" style="margin-top: 0; margin-bottom: 14px;">
-        <input type="password" class="form-input" id="input-pin" placeholder="••••••••" style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; font-weight: 700; padding: 10px;" onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
+        <input type="password" class="form-input" id="input-pin" placeholder="••••••••"
+          style="text-align: center; font-size: 1.4rem; letter-spacing: 6px; font-weight: 700; padding: 10px;"
+          onkeyup="if(event.key==='Enter') verifyPin()" autofocus>
       </div>
-      <div id="pin-error" style="color: var(--accent-red); font-size: 0.85rem; margin-bottom: 12px; display: none;">비밀번호가 올바르지 않습니다.</div>
-      <button class="btn-buy-reg" id="btn-pin-submit" style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 700;" onclick="verifyPin()"><i class="fa-solid fa-key"></i> 로그인</button>
+      <div id="pin-error" style="color: var(--accent-red); font-size: 0.85rem; margin-bottom: 12px; display: none;">
+        비밀번호가 올바르지 않습니다.</div>
+      <button class="btn-buy-reg" id="btn-pin-submit"
+        style="width: 100%; padding: 12px; font-size: 0.95rem; font-weight: 700;" onclick="verifyPin()"><i
+          class="fa-solid fa-key"></i> 로그인</button>
     </div>
   </div>
 
@@ -1173,13 +1592,17 @@
       </div>
 
       <!-- Custom Modern Strategy Dropdown -->
-      <div class="custom-strategy-dropdown-wrapper" id="custom-strategy-dropdown-wrapper" style="position: relative; margin-bottom: 14px;">
-        <button type="button" class="custom-strategy-trigger" id="custom-strategy-trigger" onclick="toggleCustomStrategyDropdown()">
+      <div class="custom-strategy-dropdown-wrapper" id="custom-strategy-dropdown-wrapper"
+        style="position: relative; margin-bottom: 14px;">
+        <button type="button" class="custom-strategy-trigger" id="custom-strategy-trigger"
+          onclick="toggleCustomStrategyDropdown()">
           <div style="display: flex; align-items: center; gap: 8px;">
             <span class="custom-strategy-slot-badge" id="custom-selected-slot-badge">전략 1</span>
-            <span id="custom-selected-slot-name" style="font-weight: 700; color: #0f172a; font-size: 0.94rem;">기존 전략 1번</span>
+            <span id="custom-selected-slot-name" style="font-weight: 700; color: #0f172a; font-size: 0.94rem;">기존 전략
+              1번</span>
           </div>
-          <i class="fa-solid fa-chevron-down" id="custom-strategy-arrow" style="color: #64748b; font-size: 0.85rem; transition: transform 0.2s;"></i>
+          <i class="fa-solid fa-chevron-down" id="custom-strategy-arrow"
+            style="color: #64748b; font-size: 0.85rem; transition: transform 0.2s;"></i>
         </button>
 
         <div class="custom-strategy-menu" id="custom-strategy-menu" style="display: none;">
@@ -1188,12 +1611,15 @@
       </div>
 
       <!-- Selected Strategy Card -->
-      <div id="modal-strategy-info-card" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
+      <div id="modal-strategy-info-card"
+        style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px; margin-bottom: 16px;">
         <!-- Dynamic content -->
       </div>
 
       <!-- Action Button (Full Width Single Button: 전략적용) -->
-      <button type="button" class="btn-modal-action-apply" style="width: 100%; padding: 13px; font-size: 0.95rem; border-radius: 10px; cursor: pointer;" onclick="applySelectedModalStrategy()">
+      <button type="button" class="btn-modal-action-apply"
+        style="width: 100%; padding: 13px; font-size: 0.95rem; border-radius: 10px; cursor: pointer;"
+        onclick="applySelectedModalStrategy()">
         <i class="fa-solid fa-check"></i> 전략적용
       </button>
     </div>
@@ -1341,7 +1767,7 @@
           const idx = parseInt(savedActive, 10);
           if (idx >= 0 && idx < 10) currentActiveStrategySlotIndex = idx;
         }
-      } catch(e) {}
+      } catch (e) { }
 
       strategySlots = slots;
       fetchGoogleSheetSlotsForDashboard();
@@ -1368,7 +1794,7 @@
             evaluateStrategyForDashboard();
           }
         }
-      } catch(err) {}
+      } catch (err) { }
     }
 
     // Modal Operations & Custom Sleek Dropdown
@@ -1440,7 +1866,7 @@
     }
 
     // Close dropdown on outside click
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
       const dropdownWrap = document.getElementById('custom-strategy-dropdown-wrapper');
       const menu = document.getElementById('custom-strategy-menu');
       const arrow = document.getElementById('custom-strategy-arrow');
@@ -1517,8 +1943,8 @@
         `;
       }).join('') || '<div style="font-size:0.85rem; color:#64748b;">조건 없음</div>';
 
-      const scaleInText = (slot.scaleInDrop !== undefined && slot.scaleInDrop !== null && slot.scaleInDrop !== '') 
-        ? `-${slot.scaleInDrop}% (${slot.scaleInMultiplier || 1.0}배)` 
+      const scaleInText = (slot.scaleInDrop !== undefined && slot.scaleInDrop !== null && slot.scaleInDrop !== '')
+        ? `-${slot.scaleInDrop}% (${slot.scaleInMultiplier || 1.0}배)`
         : "없음";
       const stopLossText = slot.stopLoss ? `-${slot.stopLoss}%` : "없음";
       const takeProfitText = slot.takeProfit ? `+${slot.takeProfit}%` : "없음";
@@ -1561,27 +1987,26 @@
           </div>
         </div>
          <div style="border-top:1px solid #e2e8f0; padding-top:10px; margin-top:10px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px; font-size:0.75rem; color:#64748b;">
-          <div>우선순위: <span style="font-weight:700; color:#475569;">${
-            slot.priorityIndicator ? (
-              {
-                'ai_prob': 'AI 점수',
-                'ai_win_prob': 'AI 점수',
-                'adx': 'ADX',
-                'minus_di': '-DI',
-                'plus_di': '+DI',
-                'rsi': 'RSI',
-                'bb_pct': '볼린저 %b',
-                'b_band_pct': '볼린저 %b',
-                'macd': 'MACD',
-                'macd_osc': 'MACD 오실레이터',
-                'stoch_k': '스토캐스틱 %K',
-                'stoch_d': '스토캐스틱 %D',
-                'disparity20': '이격도',
-                'volume_ratio': '거래량비율',
-                'return_rate': '수익률'
-              }[slot.priorityIndicator.toLowerCase()] || slot.priorityIndicator
-            ) + ' ' + (slot.priorityOrder === 'DESC' ? '큰 순서대로' : '작은 순서대로') : '없음'
-          }</span></div>
+          <div>우선순위: <span style="font-weight:700; color:#475569;">${slot.priorityIndicator ? (
+          {
+            'ai_prob': 'AI 점수',
+            'ai_win_prob': 'AI 점수',
+            'adx': 'ADX',
+            'minus_di': '-DI',
+            'plus_di': '+DI',
+            'rsi': 'RSI',
+            'bb_pct': '볼린저 %b',
+            'b_band_pct': '볼린저 %b',
+            'macd': 'MACD',
+            'macd_osc': 'MACD 오실레이터',
+            'stoch_k': '스토캐스틱 %K',
+            'stoch_d': '스토캐스틱 %D',
+            'disparity20': '이격도',
+            'volume_ratio': '거래량비율',
+            'return_rate': '수익률'
+          }[slot.priorityIndicator.toLowerCase()] || slot.priorityIndicator
+        ) + ' ' + (slot.priorityOrder === 'DESC' ? '큰 순서대로' : '작은 순서대로') : '없음'
+        }</span></div>
           <div>AI 커트라인: <span style="font-weight:700; color:#475569;">${slot.cutoffScore ? slot.cutoffScore + '점' : '없음'}</span></div>
           <div>최대 매수: <span style="font-weight:700; color:#475569;">${slot.maxBuyCount ? slot.maxBuyCount + '개' : '무제한'}</span></div>
         </div>
@@ -1599,8 +2024,8 @@
       try {
         const pin = getStoredPin();
         const pinParam = pin ? `&pin=${encodeURIComponent(pin)}` : '';
-        fetch(`${GAS_WEBAPP_URL}?action=set_active_strategy_slot&slotId=${idx + 1}${pinParam}`).catch(() => {});
-      } catch(e) {}
+        fetch(`${GAS_WEBAPP_URL}?action=set_active_strategy_slot&slotId=${idx + 1}${pinParam}`).catch(() => { });
+      } catch (e) { }
     }
 
     // Rule Evaluation Helpers
@@ -1697,7 +2122,7 @@
       combinedStocks.forEach(item => {
         const tk = formatTicker(item.Ticker || item.ticker || item.code);
         const hasPrevData = (item.prev_ADX !== undefined && item.prev_ADX !== null && item.prev_ADX !== '-') ||
-                            (item.prev_adx !== undefined && item.prev_adx !== null && item.prev_adx !== '-');
+          (item.prev_adx !== undefined && item.prev_adx !== null && item.prev_adx !== '-');
         if (hasPrevData) {
           prevRowMap.set(tk, {
             Date: item.Date || item.date,
@@ -2022,7 +2447,7 @@
       // 4. Dynamic evaluation for Kospi 200 & Kosdaq 150 tables
       function evaluateStockStatus(stock, prevStock) {
         if (!stock) return { status: '관망', reason: '관망 중' };
-        
+
         if (activeSlot.buyRules && activeSlot.buyRules.length > 0) {
           const isBuyMatch = activeSlot.buyRules.some(g => checkGroupMatch(g, stock, prevStock));
           if (isBuyMatch) {
@@ -2314,7 +2739,7 @@
           try {
             const cacheKeys = await caches.keys();
             await Promise.all(cacheKeys.map(k => caches.delete(k)));
-          } catch (e) {}
+          } catch (e) { }
         }
 
         // 2. Clear in-memory dataset caches
@@ -2327,7 +2752,7 @@
           try {
             const reg = await navigator.serviceWorker.getRegistration();
             if (reg) await reg.update();
-          } catch (e) {}
+          } catch (e) { }
         }
 
         // 4. Refetch fresh data from GAS & preloaded history chunks with cache-busting
@@ -2363,7 +2788,7 @@
         const fetchOptions = forceReload ? { cache: 'no-store' } : {};
         const resp = await fetch(url, fetchOptions);
         const data = await resp.json();
-        
+
         if ((data.pinRequired && data.status === "error") || data.status === "error" || data.success === false) {
           if (data.pinRequired || (data.message && data.message.includes("Invalid PIN"))) {
             clearStoredAuth();
@@ -2448,7 +2873,7 @@
         window.REAL_PRELOADED_DATA = {};
         const t = Date.now();
         const fetchOptions = forceReload ? { cache: 'no-store' } : {};
-        
+
         // Load recent chunks for dashboard display
         const [resCurr, resRecent] = await Promise.allSettled([
           fetch(`data/history_2026_current.json?t=${t}`, fetchOptions).then(r => r.ok ? r.json() : null),
@@ -2488,7 +2913,7 @@
         if (typeof evaluateStrategyForDashboard === 'function') {
           evaluateStrategyForDashboard();
         }
-      } catch(e) {}
+      } catch (e) { }
     }
 
     function showIndicatorHelp(type) {
@@ -2545,11 +2970,11 @@ ADX가 25 이상일 때 -DI가 ADX 아래로 떨어지는 순간이 본 스크�
 
 [수치별 의미]
 • 30 이하 : 과매도 (주가가 지나치게 떨어져 반등 가능성 높음)
-• 40 이하 : 과매도 접근 (본 시스템 3단계 강력매수 우선순위 조건)
+• 40 이하 : 과매도 접근
 • 70 이상 : 과매수 (과열 구간, 매도 및 익절 고려)
 
 [실전 활용 팁]
-매수 신호가 떴을 때 RSI가 40 이하로 낮다면 바닥권 강력 매수(3단계) 타점이 됩니다.`
+매수 신호가 떴을 때 RSI가 40 이하로 낮다면 바닥권 강력 매수 타점이 됩니다.`
         },
         'BB_Pct': {
           title: '볼린저 밴드 %b (Bollinger %b)',
@@ -2625,32 +3050,17 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
 [실전 활용 팁]
 주가가 반전할 때 거래량 비율이 120%~200% 이상 터져줘야 신호의 신뢰도가 크게 상승합니다.`
-        },
-        'VOLUME': {
-          title: '거래량 비율 (Volume Ratio, VR5)',
-          badge: '수급 폭발 지표',
-          badgeClass: 'badge-t1',
-          content: `[개념]
-최근 5일간의 평균 거래량 대비 당일 거래량이 얼마나 터졌는지를 백분율(%)로 나타냅니다.
-
-[수치별 의미]
-• 100% : 최근 5일 평균과 동일한 거래량
-• 120% 이상 : 거래량 급증 (본 시스템 2단계 적극매수 조건)
-• 200% 이상 : 수급 대폭발 (세력/기관 강한 매수 유입)
-
-[실전 활용 팁]
-주가가 반전할 때 거래량 비율이 120%~200% 이상 터져줘야 신호의 신뢰도가 크게 상승합니다.`
         }
       };
 
-      const item = helpData[type] || helpData['VR'] || helpData['VOLUME'];
+      const item = helpData[type] || (type === 'VOLUME' ? helpData['VR'] : null);
       if (!item) return;
 
       document.getElementById('info-modal-title').textContent = item.title;
       const badgeEl = document.getElementById('info-modal-badge');
       badgeEl.textContent = item.badge;
       badgeEl.className = 'badge ' + item.badgeClass;
-      
+
       document.getElementById('info-modal-body').textContent = item.content;
       document.getElementById('info-modal').style.display = 'flex';
     }
@@ -2660,7 +3070,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       const badgeEl = document.getElementById('info-modal-badge');
       badgeEl.textContent = statusText;
       badgeEl.className = 'badge ' + badgeClass;
-      
+
       const desc = (detailsText && detailsText !== '-' && detailsText !== 'undefined') ? detailsText : "상세 사유 기록이 없습니다.";
       document.getElementById('info-modal-body').textContent = desc;
       document.getElementById('info-modal').style.display = 'flex';
@@ -2706,7 +3116,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           const day = String(d.getDate()).padStart(2, '0');
           return `${month}.${day}`;
         }
-      } catch (e) {}
+      } catch (e) { }
 
       const str = String(rawDate).trim();
       if (str.length >= 10) {
@@ -2729,7 +3139,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           const minutes = String(d.getMinutes()).padStart(2, '0');
           return `${month}.${day} ${hours}:${minutes}`;
         }
-      } catch (e) {}
+      } catch (e) { }
 
       const str = String(rawDate).trim();
       if (str.length >= 16) {
@@ -2913,7 +3323,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
         const name = (item.Name || item.name || '').replace(/'/g, "\\'");
-        
+
         const rawBB = (item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']));
         const bBandPctVal = (rawBB !== undefined && rawBB !== null && rawBB !== '') ? Number(rawBB) : NaN;
         const bBandPctStr = formatDec(rawBB);
@@ -3136,7 +3546,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       tbody.innerHTML = list.map(item => {
         const rawTicker = formatTicker(item.Ticker || item.ticker || item.code || '');
         const rawName = String(item.Name || item.name || '').trim();
-        
+
         const statusItem = statusList.find(s => {
           const sTicker = formatTicker(s.Ticker || s.ticker || '');
           const sName = String(s.Name || s.name || '').trim();
@@ -3161,7 +3571,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         const pdi = formatDec(metric ? (metric.Plus_DI || metric.plus_di || metric.plusDi || '-') : '-');
         const mdi = formatDec(metric ? (metric.Minus_DI || metric.minus_di || metric.minusDi || '-') : '-');
         const rsi = formatDec(metric ? (metric.RSI || metric.rsi || '-') : '-');
-        
+
         const rawBB = metric ? (metric.b_band_pct !== undefined ? metric.b_band_pct : (metric.BB_Pct !== undefined ? metric.BB_Pct : (metric.bBandPct || metric['BB_%b']))) : undefined;
         const bBandPctVal = (rawBB !== undefined && rawBB !== null && rawBB !== '') ? Number(rawBB) : NaN;
         const bBandPctStr = formatDec(rawBB);
@@ -3175,7 +3585,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         const vrStr = (rawVR !== undefined && rawVR !== null && rawVR !== '' && !isNaN(Number(rawVR))) ? formatDec(rawVR, 0) + '%' : '-';
         const vrNum = Number(rawVR);
         const vrColor = (!isNaN(vrNum) && vrNum >= 150) ? 'var(--accent-warning)' : 'inherit';
-        
+
         const statusText = statusItem ? (statusItem.SignalLevel || statusItem.Status || statusItem.signalLevel || '보유유지') : '보유유지';
         let badgeClass = 'badge-neutral';
         if (statusText.includes('손절매도') || statusText.includes('손절')) badgeClass = 'badge-sell-danger';
@@ -3252,7 +3662,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         const rate = Number(item.ReturnRate || item.returnRate || 0);
         const rateColor = rate > 0 ? 'var(--accent-red)' : rate < 0 ? 'var(--accent-blue)' : 'inherit';
         const rateSign = rate > 0 ? '+' : '';
-        
+
         let level = String(item.Status || item.signalLevel || '관망').trim();
         if (!level || !isNaN(Number(level)) || level === 'undefined') {
           level = '전략매도';
@@ -3390,7 +3800,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       document.getElementById('stock-search-results').style.display = 'none';
     }
 
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
       const resultsDiv = document.getElementById('stock-search-results');
       const input = document.getElementById('reg-stock-name');
       if (resultsDiv && input && !input.contains(e.target) && !resultsDiv.contains(e.target)) {
@@ -3398,18 +3808,18 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       }
     });
 
-    function openRegisterModal() { 
+    function openRegisterModal() {
       if (isGuest()) {
         showInfoModal('관리자 권한 필요', '보유 종목을 등록하려면 관리자 로그인이 필요합니다.');
         showPinAuthModal();
         return;
       }
-      document.getElementById('register-modal').style.display = 'flex'; 
+      document.getElementById('register-modal').style.display = 'flex';
       const resultsDiv = document.getElementById('stock-search-results');
       if (resultsDiv) resultsDiv.style.display = 'none';
     }
-    function closeRegisterModal() { 
-      document.getElementById('register-modal').style.display = 'none'; 
+    function closeRegisterModal() {
+      document.getElementById('register-modal').style.display = 'none';
       const resultsDiv = document.getElementById('stock-search-results');
       if (resultsDiv) resultsDiv.style.display = 'none';
     }
@@ -3529,7 +3939,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       }
       const confirmed = await showConfirmModal('수동 스크리닝', 'KOSPI 200 수동 스크리닝을 실행할까요?\n(약 1~2분 소요)');
       if (!confirmed) return;
-      
+
       const btn = document.getElementById('manual-trigger-btn');
       if (btn) {
         btn.disabled = true;
@@ -3607,18 +4017,27 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
   </script>
 
   <!-- Indicator Help Modal -->
-  <div id="info-modal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); z-index:9999; justify-content:center; align-items:center;">
-    <div class="modal-content" style="background:#fff; border-radius:12px; width:92%; max-width:480px; padding:18px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); border:1px solid #e2e8f0;">
+  <div id="info-modal" class="modal-overlay"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div class="modal-content"
+      style="background:#fff; border-radius:12px; width:92%; max-width:480px; padding:18px; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1); border:1px solid #e2e8f0;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:6px;">
-        <h4 id="info-modal-title" style="font-size:0.90rem; font-weight:700; color:#0f172a; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;">지표 설명</h4>
+        <h4 id="info-modal-title"
+          style="font-size:0.90rem; font-weight:700; color:#0f172a; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1; min-width:0;">
+          지표 설명</h4>
         <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-          <span id="info-modal-badge" class="badge badge-t2" style="white-space:nowrap !important; flex-shrink:0; font-size:0.72rem; padding:3px 7px; font-weight:600; display:inline-block;">안내</span>
-          <button onclick="closeInfoModal()" style="background:none; border:none; font-size:1.15rem; color:#64748b; cursor:pointer; padding:0; flex-shrink:0; line-height:1; margin-left:2px;">✕</button>
+          <span id="info-modal-badge" class="badge badge-t2"
+            style="white-space:nowrap !important; flex-shrink:0; font-size:0.72rem; padding:3px 7px; font-weight:600; display:inline-block;">안내</span>
+          <button onclick="closeInfoModal()"
+            style="background:none; border:none; font-size:1.15rem; color:#64748b; cursor:pointer; padding:0; flex-shrink:0; line-height:1; margin-left:2px;">✕</button>
         </div>
       </div>
-      <div id="info-modal-body" style="font-size:0.82rem; color:#334155; line-height:1.6; white-space:pre-line; max-height:60vh; overflow-y:auto; padding-right:4px;"></div>
+      <div id="info-modal-body"
+        style="font-size:0.82rem; color:#334155; line-height:1.6; white-space:pre-line; max-height:60vh; overflow-y:auto; padding-right:4px;">
+      </div>
       <div style="margin-top:16px; text-align:right;">
-        <button class="btn-sm-action" onclick="closeInfoModal()" style="background:#2563eb; color:#fff; padding:6px 16px; border:none; border-radius:6px; font-weight:600; cursor:pointer;">확인</button>
+        <button class="btn-sm-action" onclick="closeInfoModal()"
+          style="background:#2563eb; color:#fff; padding:6px 16px; border:none; border-radius:6px; font-weight:600; cursor:pointer;">확인</button>
       </div>
     </div>
   </div>
@@ -3629,4 +4048,5 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
     <span id="toastText">작업이 완료되었습니다.</span>
   </div>
 </body>
+
 </html>
