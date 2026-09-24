@@ -77,7 +77,56 @@ def fetch_official_etf_constituents(etf_code, market_name):
         return items
     except Exception as e:
         print(f"[WARN] Failed fetching official ETF {etf_code} constituents: {e}")
-        return []
+# Cache preloaded verified historical clean regular market data (2021~2026, ~330 candles)
+_PRELOADED_HISTORY_CACHE = None
+
+def get_preloaded_base_candles(ticker):
+    """
+    Load verified clean regular market historical daily candles from local dataset chunks.
+    Combines tail of 2021_2025 and 2026_current (approx. 330 clean daily candles).
+    Returns list of dicts: [{'Date': 'YYYY-MM-DD', '시가': float, '고가': float, '저가': float, '종가': float, '거래량': float}, ...]
+    """
+    global _PRELOADED_HISTORY_CACHE
+    if _PRELOADED_HISTORY_CACHE is None:
+        _PRELOADED_HISTORY_CACHE = {}
+        data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+        p2026 = os.path.join(data_dir, "history_2026_current.json")
+        p2025 = os.path.join(data_dir, "history_2021_2025.json")
+
+        c2026_data = {}
+        c2025_data = {}
+        if os.path.exists(p2026):
+            try:
+                with open(p2026, "r", encoding="utf-8") as f:
+                    c2026_data = json.load(f).get("preloaded_data", {})
+            except Exception as e:
+                print(f"[WARN] Failed loading 2026 dataset: {e}")
+        if os.path.exists(p2025):
+            try:
+                with open(p2025, "r", encoding="utf-8") as f:
+                    c2025_data = json.load(f).get("preloaded_data", {})
+            except Exception as e:
+                print(f"[WARN] Failed loading 2021-2025 dataset: {e}")
+
+        all_syms = set(list(c2026_data.keys()) + list(c2025_data.keys()))
+        for sym in all_syms:
+            rows_2025 = c2025_data.get(sym, [])
+            rows_2026 = c2026_data.get(sym, [])
+            combined = rows_2025[-150:] + rows_2026
+            _PRELOADED_HISTORY_CACHE[sym] = [
+                {
+                    "Date": str(r[0])[:10],
+                    "시가": float(r[1]),
+                    "고가": float(r[2]),
+                    "저가": float(r[3]),
+                    "종가": float(r[4]),
+                    "거래량": float(r[5])
+                }
+                for r in combined if len(r) >= 6
+            ]
+
+    clean_sym = str(ticker).zfill(6)
+    return [dict(r) for r in _PRELOADED_HISTORY_CACHE.get(clean_sym, [])]
 
 def get_kospi200_tickers():
     """Retrieve official KOSPI 200 list of tickers and names (Verified Master JSON -> Official ETF Portfolio -> PyKRX)."""
@@ -159,10 +208,53 @@ def get_kosdaq150_tickers():
     return items[:150]
 
 def get_ohlcv_data(ticker, start_date, end_date):
-    """Retrieve OHLCV DataFrame for a ticker (Naver FChart XML 1st, Naver siseJson 2nd, PyKRX 3rd)."""
+    """
+    Retrieve OHLCV DataFrame for a ticker.
+    1st Priority (Ultra-Fast & 100% Backtest Match):
+      Load verified clean regular market historical base from GitHub dataset (~330 daily candles),
+      and append only today's clean regular market candle if market has traded.
+    2nd Priority Fallback:
+      Naver FChart XML (300 candles).
+    """
+    clean_t = str(ticker).zfill(6)
+
+    # 1. Primary: Load verified clean regular market base (~330 candles from 2021-2026)
+    try:
+        base_rows = get_preloaded_base_candles(clean_t)
+        if base_rows and len(base_rows) >= 30:
+            last_date = base_rows[-1]["Date"]
+
+            # Check if today is a weekday and not yet in base_rows
+            utc_now = datetime.datetime.now(datetime.timezone.utc)
+            kst_now = utc_now.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
+            today_str = kst_now.strftime("%Y-%m-%d")
+
+            if kst_now.weekday() < 5 and today_str > last_date:
+                # Market hours check (>= 09:00 KST)
+                market_start = kst_now.replace(hour=9, minute=0, second=0, microsecond=0)
+                if kst_now >= market_start:
+                    try:
+                        from regular_market_data import get_clean_regular_ohlcv
+                        clean_today = get_clean_regular_ohlcv(clean_t, today_str)
+                        if clean_today and clean_today.get("종가", 0) > 0:
+                            base_rows.append({
+                                "Date": today_str,
+                                "시가": float(clean_today["시가"]),
+                                "고가": float(clean_today["고가"]),
+                                "저가": float(clean_today["저가"]),
+                                "종가": float(clean_today["종가"]),
+                                "거래량": float(clean_today["거래량"])
+                            })
+                    except Exception:
+                        pass
+
+            return pd.DataFrame(base_rows)
+    except Exception as e:
+        print(f"[WARN] Base dataset retrieval failed for {clean_t}: {e}")
+
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
-    # 1. Primary (Ultra-Fast): Naver FChart XML (Adjusted Prices - 300 daily candles)
+    # 2. Fallback A: Naver FChart XML (Adjusted Prices - 300 daily candles)
     try:
         import xml.etree.ElementTree as ET
         url = f"https://fchart.stock.naver.com/sise.nhn?symbol={ticker}&timeframe=day&count=300&requestType=0"
@@ -174,8 +266,10 @@ def get_ohlcv_data(ticker, start_date, end_date):
         for item in items:
             parts = item.attrib.get('data', '').split('|')
             if len(parts) >= 6:
+                d_raw = parts[0]
+                d_fmt = f"{d_raw[:4]}-{d_raw[4:6]}-{d_raw[6:8]}" if len(d_raw) == 8 else d_raw
                 rows.append({
-                    'Date': parts[0],
+                    'Date': d_fmt,
                     '시가': float(parts[1]),
                     '고가': float(parts[2]),
                     '저가': float(parts[3]),
@@ -183,22 +277,6 @@ def get_ohlcv_data(ticker, start_date, end_date):
                     '거래량': float(parts[5])
                 })
         if len(rows) >= 30:
-            # Ensure the latest candle is pure regular market OHLCV (after-market excluded)
-            clean_t = str(ticker).zfill(6)
-            if clean_t.isdigit() and len(rows) > 0:
-                last_d = rows[-1].get('Date', '')
-                if last_d >= '2026-09-14' or last_d >= '20260914':
-                    try:
-                        from regular_market_data import get_clean_regular_ohlcv
-                        clean_c = get_clean_regular_ohlcv(clean_t, last_d)
-                        if clean_c:
-                            rows[-1]['시가'] = clean_c['시가']
-                            rows[-1]['고가'] = clean_c['고가']
-                            rows[-1]['저가'] = clean_c['저가']
-                            rows[-1]['종가'] = clean_c['종가']
-                            rows[-1]['거래량'] = clean_c['거래량']
-                    except Exception:
-                        pass
             return pd.DataFrame(rows)
     except Exception:
         pass
