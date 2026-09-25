@@ -2300,11 +2300,27 @@
         const tk = formatTicker(item.Ticker || item.ticker || item.code);
         const dt = formatShortDate(item.Date || item.date || item.Timestamp);
         const key = `${tk}_${dt}`;
-        if (seenBuyMap.has(key)) {
+        const itemClose = Number(item.ClosePrice || item.price || item.close || 0);
+        const rawItemVR = item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr));
+        const itemVR = Number(rawItemVR !== undefined && rawItemVR !== null && rawItemVR !== '' && !isNaN(Number(rawItemVR)) ? rawItemVR : NaN);
+
+        // Check if officially recorded in Google Sheets under same key OR as an identical unupdated candle
+        let matchingExisting = seenBuyMap.get(key);
+        if (!matchingExisting) {
+          matchingExisting = (buyCandidatesData || []).find(b => {
+            const bTk = formatTicker(b.Ticker || b.ticker || b.code);
+            if (bTk !== tk) return false;
+            const bClose = Number(b.ClosePrice || b.price || b.close || 0);
+            const bRawVR = b.VolumeRatio !== undefined ? b.VolumeRatio : (b.volume_ratio !== undefined ? b.volume_ratio : (b.VR !== undefined ? b.VR : b.vr));
+            const bVR = Number(bRawVR !== undefined && bRawVR !== null && bRawVR !== '' && !isNaN(Number(bRawVR)) ? bRawVR : NaN);
+            return (bClose === itemClose && !isNaN(bVR) && !isNaN(itemVR) && Math.abs(bVR - itemVR) < 0.1 && bClose > 0);
+          });
+        }
+
+        if (matchingExisting) {
           // Officially recorded in Google Sheets! Keep Stage as '전략매수' (no star)
-          const existing = seenBuyMap.get(key);
-          if (item.Reason && (!existing.Reason || existing.Reason === '-')) {
-            existing.Reason = item.Reason;
+          if (item.Reason && (!matchingExisting.Reason || matchingExisting.Reason === '-')) {
+            matchingExisting.Reason = item.Reason;
           }
         } else {
           // Dynamic simulation signal not saved in Google Sheets -> '전략매수 ★'
@@ -3208,15 +3224,28 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       list.forEach(item => {
         const ticker = formatTicker(item.Ticker || item.ticker || item.code);
         const ymd = formatDateOnly(item.Date || item.date || item.Timestamp);
-        const adx = formatDec(item.ADX || item.adx);
         const close = Number(item.ClosePrice || item.price || item.close || 0);
+        const rawVR = item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr));
+        const vr = Number(rawVR !== undefined && rawVR !== null && rawVR !== '' && !isNaN(Number(rawVR)) ? rawVR : NaN);
 
         const alreadyExists = uniqueList.some(prev => {
           const prevTicker = formatTicker(prev.Ticker || prev.ticker || prev.code);
           const prevYmd = formatDateOnly(prev.Date || prev.date || prev.Timestamp);
-          const prevAdx = formatDec(prev.ADX || prev.adx);
           const prevClose = Number(prev.ClosePrice || prev.price || prev.close || 0);
-          return prevTicker === ticker && (prevYmd === ymd || (prevAdx === adx && prevClose === close && prevClose > 0));
+          const prevRawVR = prev.VolumeRatio !== undefined ? prev.VolumeRatio : (prev.volume_ratio !== undefined ? prev.volume_ratio : (prev.VR !== undefined ? prev.VR : prev.vr));
+          const prevVR = Number(prevRawVR !== undefined && prevRawVR !== null && prevRawVR !== '' && !isNaN(Number(prevRawVR)) ? prevRawVR : NaN);
+
+          // 1) Same ticker on the same date -> duplicate
+          if (prevTicker === ticker && prevYmd === ymd) return true;
+
+          // 2) Unupdated / market-closed duplicate candle (same ticker, same close price, and exact same volume ratio)
+          // Preserves legitimate flat/unchanged market days where trading volume actually changes
+          if (prevTicker === ticker && prevClose === close && prevClose > 0) {
+            if (!isNaN(prevVR) && !isNaN(vr) && Math.abs(prevVR - vr) < 0.1) {
+              return true;
+            }
+          }
+          return false;
         });
 
         if (!alreadyExists) {
