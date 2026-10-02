@@ -336,6 +336,18 @@ function doPost(e) {
         const lastRow = buySheet.getLastRow();
         const existingRows = lastRow > 1 ? buySheet.getRange(2, 1, lastRow - 1, buySheet.getLastColumn()).getValues() : [];
         
+        // Map currently active holdings' DateAdded by ticker
+        const holdingsSheet = ss.getSheetByName("User_Holdings");
+        const holdingDateAddedMap = new Map();
+        if (holdingsSheet && holdingsSheet.getLastRow() > 1) {
+          const hRows = holdingsSheet.getRange(2, 1, holdingsSheet.getLastRow() - 1, 2).getValues();
+          hRows.forEach(hr => {
+            const hDate = extractYMD(hr[0]);
+            const hTk = normalizeTicker(hr[1]);
+            if (hTk) holdingDateAddedMap.set(hTk, hDate);
+          });
+        }
+
         data.candidates.forEach(c => {
           const tickerStr = normalizeTicker(c.ticker);
           const isScaleInCand = String(c.priority || c.stage || '').includes('물타기');
@@ -344,12 +356,16 @@ function doPost(e) {
             const rowTickerStr = normalizeTicker(existingRows[i][1]);
             if (rowTickerStr === tickerStr) {
               const rowStageStr = String(existingRows[i][3] || '');
-              // Scale-in buy: only 1 official signal per holding position (do not duplicate across days)
-              if (isScaleInCand && rowStageStr.includes('물타기')) {
-                exists = true;
-                break;
-              }
               const rowYMD = extractYMD(existingRows[i][0]);
+
+              // Scale-in buy: only deduplicate if the previous scale-in occurred during the CURRENT holding cycle (on or after DateAdded)
+              if (isScaleInCand && rowStageStr.includes('물타기')) {
+                const currentHoldingDateAdded = holdingDateAddedMap.get(tickerStr);
+                if (!currentHoldingDateAdded || !rowYMD || rowYMD >= currentHoldingDateAdded) {
+                  exists = true;
+                  break;
+                }
+              }
               // 1) Same-day duplication check
               if (rowYMD && todayYMD && rowYMD === todayYMD) {
                 exists = true;
