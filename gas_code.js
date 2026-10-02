@@ -642,9 +642,33 @@ function doPost(e) {
       const sheet = ss.getSheetByName("User_Holdings");
       const today = Utilities.formatDate(new Date(), "GMT+9", "yyyy-MM-dd");
       const tickerStr = normalizeTicker(data.ticker);
-      sheet.appendRow([today, tickerStr, data.name, data.buyPrice, data.notes || ""]);
-      return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
-        .setMimeType(ContentService.MimeType.JSON);
+      
+      let isUpdated = false;
+      if (sheet && sheet.getLastRow() > 1) {
+        const dataRows = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+        for (let i = 0; i < dataRows.length; i++) {
+          const rowTicker = normalizeTicker(dataRows[i][1]);
+          const rowName = String(dataRows[i][2] || "").trim();
+          if ((tickerStr && rowTicker === tickerStr) || (data.name && rowName === String(data.name).trim())) {
+            // Update existing holding's BuyPrice (Column 4)
+            sheet.getRange(i + 2, 4).setValue(data.buyPrice);
+            if (data.name) sheet.getRange(i + 2, 3).setValue(data.name);
+            isUpdated = true;
+            break;
+          }
+        }
+      }
+
+      if (!isUpdated) {
+        sheet.appendRow([today, tickerStr, data.name, data.buyPrice, data.notes || ""]);
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({ 
+        success: true, 
+        status: "success", 
+        isUpdated: isUpdated,
+        message: isUpdated ? "보유 종목 매수가(평단가)가 수정되었습니다." : "보유 종목이 등록되었습니다." 
+      })).setMimeType(ContentService.MimeType.JSON);
     }
 
     if (data.action === "delete_user_holding") {

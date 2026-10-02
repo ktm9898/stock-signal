@@ -567,7 +567,7 @@ def evaluate_sell_signal(df, buy_price, active_slot=None):
     details = []
     level = "관망"
 
-    stop_loss_pct = 20.0
+    stop_loss_pct = None
     take_profit_pct = None
     scale_in_drop_pct = None
     scale_in_mult = 1.0
@@ -595,9 +595,9 @@ def evaluate_sell_signal(df, buy_price, active_slot=None):
                 pass
 
     # Evaluation conditions
-    is_stop_loss = (buy_price and buy_price > 0 and return_rate <= -stop_loss_pct)
-    is_take_profit = (buy_price and buy_price > 0 and take_profit_pct and return_rate >= take_profit_pct)
-    is_scale_in = (buy_price and buy_price > 0 and scale_in_drop_pct and return_rate <= -scale_in_drop_pct)
+    is_stop_loss = (buy_price and buy_price > 0 and stop_loss_pct is not None and return_rate <= -stop_loss_pct)
+    is_take_profit = (buy_price and buy_price > 0 and take_profit_pct is not None and return_rate >= take_profit_pct)
+    is_scale_in = (buy_price and buy_price > 0 and scale_in_drop_pct is not None and return_rate <= -scale_in_drop_pct)
     
     is_strategy_sell = False
     if active_slot and active_slot.get('sellRules') and len(active_slot['sellRules']) > 0:
@@ -1145,27 +1145,13 @@ if __name__ == "__main__":
     print(f" -> Found {len(buy_candidates)} buy candidate stocks across KOSPI 200 & KOSDAQ 150.")
     print(f" -> Calculated indicators for KOSPI 200 ({len(kospi_stocks)}) and KOSDAQ 150 ({len(kosdaq_stocks)}).")
 
-    # 3. Post to Google Sheets API
-    if gas_url:
-        print("[3/4] Posting screening results to Google Sheets...")
-        strategy_desc = f" [{active_slot.get('name')}]" if active_slot else ""
-        log_payload = {
-            "status": "SUCCESS",
-            "scanned": len(all_target_items),
-            "count": len(buy_candidates),
-            "message": f"KOSPI 200 ({len(kospi_items)}개), KOSDAQ 150 ({len(kosdaq_items)}개) 종목 검사 완료{strategy_desc} (매수 신호: {len(buy_candidates)}개)"
-        }
-        post_to_google_sheets(gas_url, "update_buy_candidates", {
-            "candidates": buy_candidates,
-            "kospi_stocks": kospi_stocks,
-            "kosdaq_stocks": kosdaq_stocks,
-            "all_stocks": kospi_stocks,
-            "log": log_payload
-        })
+    # 3. Check Sell Signals, Scale-in Buys & Monitor Indicators for User Holdings
+    holdings_status = []
+    sell_signals = []
+    scale_in_buys = []
 
-    # 4. Check Sell Signals & Monitor Indicators for User Holdings
     if gas_url:
-        print("[4/4] Evaluating Indicators & Sell Signals for User Holdings...")
+        print("[3/4] Evaluating Indicators & Sell Signals for User Holdings...")
         try:
             req_url = f"{gas_url}?action=holdings"
             if auth_pin:
@@ -1178,8 +1164,6 @@ if __name__ == "__main__":
                 if res_json.get("success"):
                     holdings_list = res_json.get("userHoldings", [])
                     print(f" -> Found {len(holdings_list)} user holdings to evaluate.")
-                    holdings_status = []
-                    sell_signals = []
                     for h in holdings_list:
                         h_ticker = str(h.get("Ticker") or h.get("ticker") or h.get("code") or "").strip()
                         h_name = str(h.get("Name") or h.get("name") or "").strip()
@@ -1229,33 +1213,72 @@ if __name__ == "__main__":
                             sell_res["name"] = matched_name if matched_name else h_name
                             holdings_status.append(sell_res)
                             if sell_res.get("isAlert"):
-                                sell_signals.append(sell_res)
                                 if sell_res["signalLevel"] == "물타기매수":
                                     scale_score = predict_scale_in_ai_score(h_df, h_price, stock_df_map, loaded_scale_in_bundle)
                                     sell_res["ai_prob"] = scale_score
                                     prob_str = f" | 물타기 AI 점수: {scale_score}점" if scale_score is not None else ""
                                     print(f"  [SCALE-IN BUY] {sell_res['name']} ({sell_res['ticker']}) - {sell_res['signalLevel']}{prob_str} | {sell_res['details']}")
+                                    scale_in_buys.append(sell_res)
                                 else:
+                                    sell_signals.append(sell_res)
                                     print(f"  [SELL ALERT] {sell_res['name']} ({sell_res['ticker']}) - {sell_res['signalLevel']} | {sell_res['details']}")
                             else:
                                 print(f"  [HOLDING MONITOR] {sell_res['name']} ({sell_res['ticker']}) - 관망 (ADX: {sell_res['adx']}, 수익률: {sell_res['returnRate']}%)")
-                    
-                    if holdings_status:
-                        print(f" -> Posting {len(holdings_status)} holdings status metrics to Google Sheets...")
-                        post_to_google_sheets(gas_url, "update_holdings_status", {"holdings_status": holdings_status})
-                    else:
-                        print(" -> No active holdings status metrics to update.")
-
-                    if sell_signals:
-                        post_to_google_sheets(gas_url, "update_sell_signals", {"signals": sell_signals})
-                    else:
-                        print(" -> No sell alert signals detected for current holdings.")
                 else:
                     print(f"[WARN] GAS returned error when fetching holdings: {res_json.get('message')}")
             else:
                 print(f"[WARN] GAS returned HTTP {h_res.status_code} for holdings fetch.")
         except Exception as e:
             print(f"[ERROR] Failed evaluating sell signals: {e}")
+
+    # Append any scale-in buy signals to buy_candidates so they are recorded in Buy_Candidates sheet
+    for sc in scale_in_buys:
+        buy_candidates.append({
+            "ticker": sc["ticker"],
+            "name": sc["name"],
+            "priority": "물타기",
+            "adx": sc["adx"],
+            "prev_adx": sc["prev_adx"],
+            "minus_di": sc["minus_di"],
+            "prev_minus_di": sc["prev_minus_di"],
+            "plus_di": sc["plus_di"],
+            "rsi": sc["rsi"],
+            "b_band_pct": sc["b_band_pct"],
+            "volume_ratio": sc["volume_ratio"],
+            "close": sc["currPrice"],
+            "ai_prob": sc.get("ai_prob"),
+            "stage": "물타기매수",
+            "details": sc["details"]
+        })
+
+    # 4. Post to Google Sheets API
+    if gas_url:
+        print("[4/4] Posting screening results to Google Sheets...")
+        strategy_desc = f" [{active_slot.get('name')}]" if active_slot else ""
+        log_payload = {
+            "status": "SUCCESS",
+            "scanned": len(all_target_items),
+            "count": len(buy_candidates),
+            "message": f"KOSPI 200 ({len(kospi_items)}개), KOSDAQ 150 ({len(kosdaq_items)}개) 종목 검사 완료{strategy_desc} (매수 신호: {len(buy_candidates)}개, 물타기: {len(scale_in_buys)}개)"
+        }
+        post_to_google_sheets(gas_url, "update_buy_candidates", {
+            "candidates": buy_candidates,
+            "kospi_stocks": kospi_stocks,
+            "kosdaq_stocks": kosdaq_stocks,
+            "all_stocks": kospi_stocks,
+            "log": log_payload
+        })
+
+        if holdings_status:
+            print(f" -> Posting {len(holdings_status)} holdings status metrics to Google Sheets...")
+            post_to_google_sheets(gas_url, "update_holdings_status", {"holdings_status": holdings_status})
+        else:
+            print(" -> No active holdings status metrics to update.")
+
+        if sell_signals:
+            post_to_google_sheets(gas_url, "update_sell_signals", {"signals": sell_signals})
+        else:
+            print(" -> No sell alert signals detected for current holdings.")
     else:
         print("[WARN] GAS_WEBAPP_URL environment variable is not set.")
 

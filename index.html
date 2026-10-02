@@ -2448,7 +2448,7 @@
         };
         evaluatedHoldingsStatus.push(holdingStatusObj);
 
-        if (signalLevel === '전략매도' || signalLevel === '손절매도' || signalLevel === '익절매도' || signalLevel === '물타기매수') {
+        if (signalLevel === '전략매도' || signalLevel === '손절매도' || signalLevel === '익절매도') {
           evaluatedSellSignals.push({
             Date: metric ? (metric.Date || metric.date || new Date().toISOString()) : new Date().toISOString(),
             Ticker: rawTicker,
@@ -3321,11 +3321,12 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
       Object.keys(dateGroups).forEach(dateStr => {
         const arr = dateGroups[dateStr];
-        // Only rank real buy signals, excluding 관심종목 / 진입대기 / 추세강함
+        // Only rank real buy signals, excluding 관심종목 / 진입대기 / 추세강함 / 물타기
         const buyItems = arr.filter(item => {
           const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || '전략매수');
           const isWatchlist = rawStage.includes('관심종목') || rawStage.includes('추세강함') || rawStage.includes('진입대기');
-          return !isWatchlist;
+          const isScaleIn = rawStage.includes('물타기');
+          return !isWatchlist && !isScaleIn;
         });
 
         // 1) ONLY show rank numbers for today's (latestDateStr) signals
@@ -3346,19 +3347,42 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         arr.forEach(item => {
           const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || '전략매수');
           const isWatchlist = rawStage.includes('관심종목') || rawStage.includes('추세강함') || rawStage.includes('진입대기');
-          if (isWatchlist) {
+          const isScaleIn = rawStage.includes('물타기');
+          if (isWatchlist || isScaleIn) {
             item.computed_rank = null;
           }
         });
       });
 
-      const reversedList = [...uniqueList].reverse();
-      // Ensure 물타기매수 items always sort to the very top (highest priority)
+      function getItemSortOrder(item) {
+        const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || '전략매수');
+        if (rawStage.includes('관심종목') || rawStage.includes('추세강함') || rawStage.includes('진입대기')) {
+          return 1; // 1순위: 관심종목 (최상단)
+        }
+        if (rawStage.includes('물타기')) {
+          return 2; // 2순위: 물타기매수
+        }
+        return 3; // 3순위: 전략매수 (1순위, 2순위 등)
+      }
+
+      const reversedList = [...uniqueList];
       reversedList.sort((a, b) => {
-        const isScaleInA = String(a.Stage || a.stage || '').includes('물타기');
-        const isScaleInB = String(b.Stage || b.stage || '').includes('물타기');
-        if (isScaleInA && !isScaleInB) return -1;
-        if (!isScaleInA && isScaleInB) return 1;
+        const dateA = formatDateOnly(a.Date || a.date || a.Timestamp);
+        const dateB = formatDateOnly(b.Date || b.date || b.Timestamp);
+        if (dateA !== dateB) {
+          return dateB.localeCompare(dateA); // 최신 날짜 상위
+        }
+        // 동일 날짜 내: [관심종목] -> [물타기매수] -> [전략매수(1순위, 2순위...)]
+        const orderA = getItemSortOrder(a);
+        const orderB = getItemSortOrder(b);
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        if (orderA === 3) {
+          const rankA = a.computed_rank || 9999;
+          const rankB = b.computed_rank || 9999;
+          if (rankA !== rankB) return rankA - rankB;
+        }
         return 0;
       });
       tbody.innerHTML = reversedList.map(item => {
@@ -3411,11 +3435,16 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           else aiColor = '#64748b';
         }
 
+        const badgeClick = (stageText === '물타기매수') 
+          ? `quickRegister('${name}', '${ticker}', ${item.ClosePrice || item.price || 0})` 
+          : `showDetailsModal('${name}', '${stageText}', '${reason}', '${tierClass}')`;
+        const badgeTitle = (stageText === '물타기매수') ? '클릭 시 물타기 체결/평단가 수정' : '클릭 시 포착 사유 확인';
+
         return `
           <tr>
             <td style="text-align:center;"><span style="color:var(--text-sub); font-size:0.85rem; font-weight:500;">${formatShortDate(item.Date || item.date || item.Timestamp)}</span></td>
             <td style="padding-left: 16px;"><strong>${item.Name || item.name}</strong> <span style="font-size:0.8rem; color:var(--text-sub);">(${ticker})</span></td>
-            <td style="text-align:center;"><span class="badge ${tierClass}" onclick="showDetailsModal('${name}', '${stageText}', '${reason}', '${tierClass}')" title="클릭 시 포착 사유 확인">${stageText}</span></td>
+            <td style="text-align:center;"><span class="badge ${tierClass}" onclick="${badgeClick}" title="${badgeTitle}">${stageText}</span></td>
             <td style="text-align:center;"><span style="font-size:0.85rem; font-weight:700; color:#475569;">${rankText}</span></td>
             <td style="text-align:center;"><span style="font-size:0.85rem; font-weight:700; color:${aiColor};">${aiProbText}</span></td>
             <td style="text-align:center;"><strong style="color:var(--accent-cyan);">${formatDec(item.ADX || item.adx)}</strong></td>
@@ -3664,6 +3693,12 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         const detailsText = statusItem ? (statusItem.Details || statusItem.details || '-') : '-';
         const escapedDetails = String(detailsText).replace(/'/g, "\\'").replace(/"/g, "&quot;");
 
+        const isScaleIn = statusText.includes('물타기');
+        const hBadgeClick = isScaleIn
+          ? `quickRegister('${displayName.replace(/'/g, "\\'")}', '${displayTicker}', ${buyPrice})`
+          : `showDetailsModal('${displayName.replace(/'/g, "\\'")}', '${statusText}', '${escapedDetails}', '${badgeClass}')`;
+        const hBadgeTitle = isScaleIn ? '클릭 시 물타기 체결/평단가 수정' : '클릭 시 감시 사유 확인';
+
         return `
           <tr>
             <td style="text-align:center;"><span style="color:var(--text-sub); font-size:0.85rem;">${formatDateOnly(item.DateAdded || item.date)}</span></td>
@@ -3677,7 +3712,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;"><span style="color: ${Number(rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${rsi}</span></td>
             <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
             <td style="text-align:center;"><span style="color: ${vrColor}">${vrStr}</span></td>
-            <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${displayName}', '${statusText}', '${escapedDetails}', '${badgeClass}')" title="클릭 시 감시 사유 확인">${statusText}</span></td>
+            <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="${hBadgeClick}" title="${hBadgeTitle}">${statusText}</span></td>
             <td style="text-align:center;"><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${rawTicker !== '-' ? rawTicker : rawName}')" title="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
           </tr>
         `;
@@ -3944,11 +3979,14 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         });
         const result = await resp.json();
         if (result.success) {
-          showInfoModal('등록 완료', `[${name} (${ticker})] 보유 종목이 등록되었습니다.`);
+          const actionMsg = result.isUpdated 
+            ? `[${name} (${ticker})] 보유 종목의 평단가가 수정되었습니다.` 
+            : `[${name} (${ticker})] 보유 종목이 등록되었습니다.`;
+          showInfoModal('완료', actionMsg);
           closeRegisterModal();
           loadDataFromGAS(getStoredPin());
         } else {
-          showInfoModal('등록 실패', result.message || "오류가 발생했습니다.");
+          showInfoModal('처리 실패', result.message || "오류가 발생했습니다.");
         }
       } catch (err) {
         showInfoModal('오류', "등록 중 네트워크 오류가 발생했습니다: " + err);
