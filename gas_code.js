@@ -338,10 +338,17 @@ function doPost(e) {
         
         data.candidates.forEach(c => {
           const tickerStr = normalizeTicker(c.ticker);
+          const isScaleInCand = String(c.priority || c.stage || '').includes('물타기');
           let exists = false;
           for (let i = existingRows.length - 1; i >= 0; i--) {
             const rowTickerStr = normalizeTicker(existingRows[i][1]);
             if (rowTickerStr === tickerStr) {
+              const rowStageStr = String(existingRows[i][3] || '');
+              // Scale-in buy: only 1 official signal per holding position (do not duplicate across days)
+              if (isScaleInCand && rowStageStr.includes('물타기')) {
+                exists = true;
+                break;
+              }
               const rowYMD = extractYMD(existingRows[i][0]);
               // 1) Same-day duplication check
               if (rowYMD && todayYMD && rowYMD === todayYMD) {
