@@ -112,7 +112,7 @@ def get_preloaded_base_candles(ticker):
         for sym in all_syms:
             rows_2025 = c2025_data.get(sym, [])
             rows_2026 = c2026_data.get(sym, [])
-            combined = rows_2025[-150:] + rows_2026
+            combined = (rows_2025 + rows_2026)[-300:]
             _PRELOADED_HISTORY_CACHE[sym] = [
                 {
                     "Date": str(r[0])[:10],
