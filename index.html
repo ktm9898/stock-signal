@@ -2282,14 +2282,18 @@
       const finalBuyList = [];
       const seenBuyMap = new Map();
 
-      // 1) Official Google Sheet Buy Signals (Preserved as '전략매수' with full history)
+      // 1) Official Google Sheet Buy Signals (Preserved with full history)
       (buyCandidatesData || []).forEach(item => {
         const tk = formatTicker(item.Ticker || item.ticker || item.code);
         const dt = formatShortDate(item.Date || item.date || item.Timestamp);
         const key = `${tk}_${dt}`;
+        const rawStage = String(item.Stage || item.stage || item.priority || '');
+        const isScaleIn = rawStage.includes('물타기');
         const itemObj = {
           ...item,
-          Stage: '전략매수'
+          Stage: isScaleIn ? '물타기매수' : (item.Stage || '전략매수'),
+          priority: isScaleIn ? '물타기' : (item.priority || item.Stage || '전략매수'),
+          ai_prob: (item.AI_Prob !== undefined && item.AI_Prob !== null && item.AI_Prob !== '') ? Number(item.AI_Prob) : item.ai_prob
         };
         seenBuyMap.set(key, itemObj);
         finalBuyList.push(itemObj);
@@ -2393,40 +2397,46 @@
 
         let scaleInAiScore = null;
         if (signalLevel === '물타기매수') {
-          // Check if screener or Google Sheets already provided an AI score
+          // Check if Google Sheets already officially recorded this scale-in buy signal
           const existingBuy = (typeof buyCandidatesData !== 'undefined' && buyCandidatesData) ? buyCandidatesData.find(b => {
             const bTk = formatTicker(b.Ticker || b.ticker || b.code);
-            return bTk === rawTicker && (String(b.Stage || b.stage || '').includes('물타기') || String(b.priority || '').includes('물타기'));
+            const bStage = String(b.Stage || b.stage || b.priority || '');
+            return bTk === rawTicker && bStage.includes('물타기');
           }) : null;
           
-          if (existingBuy && (existingBuy.ai_prob !== undefined || existingBuy.AI_Prob !== undefined)) {
-            scaleInAiScore = existingBuy.ai_prob !== undefined ? existingBuy.ai_prob : existingBuy.AI_Prob;
-          } else if (typeof computeScaleInAiScoreFromMetrics === 'function' && metric) {
-            const prevItem = prevRowMap.get(rawTicker) || null;
-            const mktItem = combinedStocks.find(s => {
-              const sTk = formatTicker(s.Ticker || s.ticker || '');
-              return sTk === '069500' || sTk === 'KOSPI' || (s.Name && s.Name.includes('KODEX 200'));
-            }) || null;
-            scaleInAiScore = computeScaleInAiScoreFromMetrics(metric, prevItem, holding, mktItem);
-          }
+          if (existingBuy) {
+            const rawProb = existingBuy.AI_Prob !== undefined ? existingBuy.AI_Prob : (existingBuy.ai_prob !== undefined ? existingBuy.ai_prob : existingBuy.aiProb);
+            scaleInAiScore = (rawProb !== undefined && rawProb !== null && rawProb !== '') ? Number(rawProb) : null;
+            // Official Google Sheets record is already in finalBuyList from Step 1! Do NOT create duplicate virtual signal.
+          } else {
+            // Only if NOT yet recorded in Google Sheets, evaluate virtual simulation score and push preview
+            if (typeof computeScaleInAiScoreFromMetrics === 'function' && metric) {
+              const prevItem = prevRowMap.get(rawTicker) || null;
+              const mktItem = combinedStocks.find(s => {
+                const sTk = formatTicker(s.Ticker || s.ticker || '');
+                return sTk === '069500' || sTk === 'KOSPI' || (s.Name && s.Name.includes('KODEX 200'));
+              }) || null;
+              scaleInAiScore = computeScaleInAiScoreFromMetrics(metric, prevItem, holding, mktItem);
+            }
 
-          finalBuyList.push({
-            Date: metric ? (metric.Date || metric.date || new Date().toISOString()) : new Date().toISOString(),
-            Ticker: rawTicker,
-            Name: rawName,
-            Stage: '물타기매수',
-            priority: '물타기매수',
-            score: 999,
-            ai_prob: scaleInAiScore,
-            ADX: metric ? (metric.ADX || metric.adx) : '-',
-            Minus_DI: metric ? (metric.Minus_DI || metric.minus_di) : '-',
-            Plus_DI: metric ? (metric.Plus_DI || metric.plus_di) : '-',
-            RSI: metric ? (metric.RSI || metric.rsi) : '-',
-            b_band_pct: metric ? (metric.b_band_pct !== undefined ? metric.b_band_pct : (metric.BB_Pct !== undefined ? metric.BB_Pct : metric['BB_%b'])) : '-',
-            VolumeRatio: metric ? (metric.VolumeRatio !== undefined ? metric.VolumeRatio : (metric.volume_ratio !== undefined ? metric.volume_ratio : '-')) : '-',
-            ClosePrice: currPrice,
-            Reason: signalReason
-          });
+            finalBuyList.push({
+              Date: metric ? (metric.Date || metric.date || new Date().toISOString()) : new Date().toISOString(),
+              Ticker: rawTicker,
+              Name: rawName,
+              Stage: '물타기매수',
+              priority: '물타기',
+              score: 999,
+              ai_prob: scaleInAiScore,
+              ADX: metric ? (metric.ADX || metric.adx) : '-',
+              Minus_DI: metric ? (metric.Minus_DI || metric.minus_di) : '-',
+              Plus_DI: metric ? (metric.Plus_DI || metric.plus_di) : '-',
+              RSI: metric ? (metric.RSI || metric.rsi) : '-',
+              b_band_pct: metric ? (metric.b_band_pct !== undefined ? metric.b_band_pct : (metric.BB_Pct !== undefined ? metric.BB_Pct : metric['BB_%b'])) : '-',
+              VolumeRatio: metric ? (metric.VolumeRatio !== undefined ? metric.VolumeRatio : (metric.volume_ratio !== undefined ? metric.volume_ratio : '-')) : '-',
+              ClosePrice: currPrice,
+              Reason: signalReason
+            });
+          }
         }
 
         const holdingStatusObj = {
