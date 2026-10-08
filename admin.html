@@ -1525,6 +1525,11 @@
             if (badgeDateEl) badgeDateEl.textContent = lastDate;
             const modalDateEl = document.getElementById('modal-current-last-date');
             if (modalDateEl) modalDateEl.textContent = lastDate;
+
+            const periodSelect = document.getElementById('opt-backtest-period');
+            if (periodSelect && periodSelect.value !== 'CUSTOM' && typeof toggleCustomDateInputs === 'function') {
+              toggleCustomDateInputs(periodSelect.value);
+            }
           }
         }
       }
@@ -2265,7 +2270,7 @@
       const endInput = document.getElementById('opt-end-date');
       if (!startInput || !endInput) return;
 
-      const endStr = typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : "2026-08-21";
+      const endStr = (typeof getLatestDatasetDate === 'function' ? getLatestDatasetDate() : '') || (typeof getKSTTodayString === 'function' ? getKSTTodayString() : new Date().toISOString().slice(0, 10));
       endInput.value = endStr;
 
       if (val === 'ALL_HISTORY') {
@@ -2281,25 +2286,25 @@
       } else if (val === '10Y') {
         const d = new Date(endStr);
         d.setFullYear(d.getFullYear() - 10);
-        startInput.value = formatToDateOnly(d, "2016-08-21");
+        startInput.value = formatToDateOnly(d);
         startInput.disabled = true;
         endInput.disabled = true;
       } else if (val === '5Y') {
         const d = new Date(endStr);
         d.setFullYear(d.getFullYear() - 5);
-        startInput.value = formatToDateOnly(d, "2021-08-21");
+        startInput.value = formatToDateOnly(d);
         startInput.disabled = true;
         endInput.disabled = true;
       } else if (val === '3Y') {
         const d = new Date(endStr);
         d.setFullYear(d.getFullYear() - 3);
-        startInput.value = formatToDateOnly(d, "2023-08-21");
+        startInput.value = formatToDateOnly(d);
         startInput.disabled = true;
         endInput.disabled = true;
       } else if (val === '1Y') {
         const d = new Date(endStr);
         d.setFullYear(d.getFullYear() - 1);
-        startInput.value = formatToDateOnly(d, "2025-08-21");
+        startInput.value = formatToDateOnly(d);
         startInput.disabled = true;
         endInput.disabled = true;
       } else if (val === 'CUSTOM') {
@@ -5262,15 +5267,21 @@
     }
 
     function getLatestDatasetDate() {
-      if (REAL_PRELOADED_DATA) {
+      if (typeof REAL_PRELOADED_DATA !== 'undefined' && REAL_PRELOADED_DATA) {
         const sampleRows = REAL_PRELOADED_DATA['005930'] || REAL_PRELOADED_DATA['KOSPI'] || Object.values(REAL_PRELOADED_DATA)[0];
         if (sampleRows && sampleRows.length > 0) {
           const r = sampleRows[sampleRows.length - 1];
-          return Array.isArray(r) ? r[0] : (r.date || '');
+          const foundDate = Array.isArray(r) ? r[0] : (r.date || '');
+          if (foundDate && /^\d{4}-\d{2}-\d{2}/.test(foundDate)) {
+            return foundDate.slice(0, 10);
+          }
         }
       }
       const badgeText = document.getElementById('dataset-last-date-text')?.textContent?.trim();
-      return badgeText || '2026-08-20';
+      if (badgeText && /^\d{4}-\d{2}-\d{2}/.test(badgeText)) {
+        return badgeText.slice(0, 10);
+      }
+      return typeof getKSTTodayString === 'function' ? getKSTTodayString() : new Date().toISOString().slice(0, 10);
     }
 
     function openUpdateDatasetModal() {
@@ -5403,6 +5414,12 @@
                 document.getElementById('dataset-last-date-text').textContent = newLastDate;
                 document.getElementById('modal-current-last-date').textContent = newLastDate;
                 document.getElementById('opt-end-date').value = newLastDate;
+
+                const periodSelect = document.getElementById('opt-backtest-period');
+                if (periodSelect && periodSelect.value !== 'CUSTOM' && typeof toggleCustomDateInputs === 'function') {
+                  toggleCustomDateInputs(periodSelect.value);
+                }
+
                 populateViewerStockSelect();
 
                 progressBox.style.display = 'none';
