@@ -2291,7 +2291,7 @@
         const isScaleIn = rawStage.includes('물타기');
         const itemObj = {
           ...item,
-          Stage: isScaleIn ? '물타기매수' : (item.Stage || '전략매수'),
+          Stage: isScaleIn ? '물타기' : (item.Stage || '전략매수'),
           priority: isScaleIn ? '물타기' : (item.priority || item.Stage || '전략매수'),
           ai_prob: (item.AI_Prob !== undefined && item.AI_Prob !== null && item.AI_Prob !== '') ? Number(item.AI_Prob) : item.ai_prob
         };
@@ -2423,7 +2423,7 @@
               Date: metric ? (metric.Date || metric.date || new Date().toISOString()) : new Date().toISOString(),
               Ticker: rawTicker,
               Name: rawName,
-              Stage: '물타기매수',
+              Stage: '물타기',
               priority: '물타기',
               score: 999,
               ai_prob: scaleInAiScore,
@@ -3399,8 +3399,8 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         const rawStage = String(item.Stage || item.stage || item.Tier || item.tier || '전략매수');
         let stageText = '전략매수';
         let tierClass = 'badge-t1';
-        if (rawStage.includes('물타기매수') || rawStage.includes('물타기')) {
-          stageText = '물타기매수';
+        if (rawStage.includes('물타기')) {
+          stageText = '물타기';
           tierClass = 'badge-scale-in';
         } else if (rawStage.includes('관심종목') || rawStage.includes('추세강함') || rawStage.includes('진입대기')) {
           stageText = '관심종목';
@@ -3432,7 +3432,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
 
         const reason = (item.Reason || item.reason || item.Notes || item.notes || `ADX: ${formatDec(item.ADX || item.adx)}, -DI: ${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}, RSI: ${formatDec(item.RSI || item.rsi)}, 볼린저%b: ${bBandPctStr}, VR: ${vrStr} 조건 충족`).replace(/'/g, "\\'");
 
-        const rankText = (stageText === '물타기매수') ? '물타기' : (item.computed_rank ? `${item.computed_rank}순위` : '-');
+        const rankText = (stageText === '물타기' || stageText === '물타기매수') ? '물타기' : (item.computed_rank ? `${item.computed_rank}순위` : '-');
 
         const rawAiProb = item.ai_prob !== undefined ? item.ai_prob : (item.AI_Prob !== undefined ? item.AI_Prob : (item.aiProb !== undefined ? item.aiProb : item.ai_win_prob));
         let aiProbText = '-';
