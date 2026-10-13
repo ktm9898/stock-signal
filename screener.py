@@ -224,19 +224,17 @@ def get_ohlcv_data(ticker, start_date, end_date):
         if base_rows and len(base_rows) >= 30:
             last_date = base_rows[-1]["Date"]
 
-            # Check if today is a weekday and not yet in base_rows
             utc_now = datetime.datetime.now(datetime.timezone.utc)
             kst_now = utc_now.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
             today_str = kst_now.strftime("%Y-%m-%d")
 
-            if kst_now.weekday() < 5 and today_str > last_date:
-                # Market hours check (>= 09:00 KST)
-                market_start = kst_now.replace(hour=9, minute=0, second=0, microsecond=0)
-                if kst_now >= market_start:
-                    try:
-                        from regular_market_data import get_clean_regular_ohlcv
-                        clean_today = get_clean_regular_ohlcv(clean_t, today_str)
-                        if clean_today and clean_today.get("종가", 0) > 0:
+            # Check if today is a weekday and market has started (>= 09:00 KST)
+            if kst_now.weekday() < 5 and kst_now >= kst_now.replace(hour=9, minute=0, second=0, microsecond=0):
+                try:
+                    from regular_market_data import get_clean_regular_ohlcv
+                    clean_today = get_clean_regular_ohlcv(clean_t, today_str)
+                    if clean_today and clean_today.get("종가", 0) > 0:
+                        if today_str > last_date:
                             base_rows.append({
                                 "Date": today_str,
                                 "시가": float(clean_today["시가"]),
@@ -245,8 +243,15 @@ def get_ohlcv_data(ticker, start_date, end_date):
                                 "종가": float(clean_today["종가"]),
                                 "거래량": float(clean_today["거래량"])
                             })
-                    except Exception:
-                        pass
+                        elif today_str == last_date:
+                            # Overwrite today's candle with pure 15:30 regular market OHLCV
+                            base_rows[-1]["시가"] = float(clean_today["시가"])
+                            base_rows[-1]["고가"] = float(clean_today["고가"])
+                            base_rows[-1]["저가"] = float(clean_today["저가"])
+                            base_rows[-1]["종가"] = float(clean_today["종가"])
+                            base_rows[-1]["거래량"] = float(clean_today["거래량"])
+                except Exception:
+                    pass
 
             return pd.DataFrame(base_rows)
     except Exception as e:
@@ -254,11 +259,11 @@ def get_ohlcv_data(ticker, start_date, end_date):
 
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
-    # 2. Fallback A: Naver FChart XML (Adjusted Prices - 300 daily candles)
+    # 2. Fallback A: Naver FChart XML (Adjusted Prices - 300 daily candles) with 15:30 minute candle overwrite
     try:
         import xml.etree.ElementTree as ET
         url = f"https://fchart.stock.naver.com/sise.nhn?symbol={ticker}&timeframe=day&count=300&requestType=0"
-        res = requests.get(url, headers=headers, timeout=5)
+        res = requests.get(url, headers=headers, timeout=8)
         xml_text = res.content.decode('euc-kr', errors='ignore')
         root = ET.fromstring(xml_text)
         items = root.findall('.//item')
@@ -277,6 +282,23 @@ def get_ohlcv_data(ticker, start_date, end_date):
                     '거래량': float(parts[5])
                 })
         if len(rows) >= 30:
+            # Match update_backtest_data.py: Overwrite recent candles with 15:30 minute candles to eliminate after-market distortion
+            if clean_t.isdigit():
+                try:
+                    from regular_market_data import fetch_naver_minute_regular_ohlcv
+                    clean_week_candles = fetch_naver_minute_regular_ohlcv(clean_t, candle_count=3000)
+                    if clean_week_candles:
+                        for r in rows:
+                            r_date = r["Date"]
+                            if r_date in clean_week_candles:
+                                c_data = clean_week_candles[r_date]
+                                r["시가"] = float(c_data["시가"])
+                                r["고가"] = float(c_data["고가"])
+                                r["저가"] = float(c_data["저가"])
+                                r["종가"] = float(c_data["종가"])
+                                r["거래량"] = float(c_data["거래량"])
+                except Exception:
+                    pass
             return pd.DataFrame(rows)
     except Exception:
         pass

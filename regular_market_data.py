@@ -79,11 +79,17 @@ def fetch_naver_minute_regular_ohlcv(ticker, target_dates=None, candle_count=300
     url = f"https://fchart.stock.naver.com/sise.nhn?symbol={clean_ticker}&timeframe=minute&count={candle_count}&requestType=0"
     
     req = urllib.request.Request(url, headers=HEADERS)
-    try:
-        with urllib.request.urlopen(req, timeout=7) as resp:
-            xml_text = resp.read().decode("euc-kr", errors="ignore")
-    except Exception as e:
-        logger.warning(f"Naver minute fetch failed for {clean_ticker}: {e}")
+    xml_text = None
+    for attempt in range(2):
+        try:
+            with urllib.request.urlopen(req, timeout=9) as resp:
+                xml_text = resp.read().decode("euc-kr", errors="ignore")
+                break
+        except Exception as e:
+            if attempt == 1:
+                logger.warning(f"Naver minute fetch failed for {clean_ticker}: {e}")
+                return {}
+    if not xml_text:
         return {}
 
     try:
