@@ -521,6 +521,110 @@ def check_group_match(group, df, buy_price=None):
         return False
     return all(check_single_rule(r, df, buy_price=buy_price) for r in rules)
 
+def check_single_rule_near(rule, df, buy_price=None):
+    """Evaluate if a rule is strictly met or within proximity margin."""
+    if not rule or not isinstance(rule, dict):
+        return False
+    if check_single_rule(rule, df, buy_price=buy_price):
+        return True
+
+    ind = str(rule.get('indicator', '')).lower()
+    cond = str(rule.get('condition_type', '')).lower()
+    target_ind = str(rule.get('target_indicator', '')).lower() if rule.get('target_indicator') else None
+    try:
+        rule_val = float(rule.get('value', 0))
+    except (ValueError, TypeError):
+        rule_val = 0.0
+
+    def get_indicator_series(key):
+        mapping = {
+            'adx': 'adx',
+            'minus_di': 'minus_di',
+            'plus_di': 'plus_di',
+            'rsi': 'rsi',
+            'bb_pct': 'b_band_pct',
+            'macd': 'macd',
+            'macd_osc': 'macd_osc',
+            'stoch_k': 'stoch_k',
+            'stoch_d': 'stoch_d',
+            'disparity20': 'disparity20',
+            'volume_ratio': 'volume_ratio'
+        }
+        col = mapping.get(key)
+        if col and col in df.columns:
+            return df[col]
+        return None
+
+    s = get_indicator_series(ind)
+    if s is None or len(s) < 2:
+        return False
+
+    curr_val = s.iloc[-1]
+    if np.isnan(curr_val):
+        return False
+
+    target_s = get_indicator_series(target_ind) if target_ind else None
+    target_val = target_s.iloc[-1] if target_s is not None and not np.isnan(target_s.iloc[-1]) else rule_val
+
+    margin = 1.0
+    if ind == 'rsi':
+        margin = 5.0
+    elif ind == 'bb_pct':
+        margin = 0.08
+    elif ind == 'disparity20':
+        margin = 2.0
+    elif ind == 'volume_ratio':
+        margin = max(20.0, abs(rule_val) * 0.20)
+    elif ind in ('adx', 'minus_di', 'plus_di'):
+        margin = 4.0
+    elif ind in ('stoch_k', 'stoch_d'):
+        margin = 5.0
+    elif ind in ('macd', 'macd_osc'):
+        margin = 0.5
+    else:
+        margin = abs(rule_val) * 0.08 or 1.0
+
+    if cond in ('gte_value', 'gt_value'):
+        return curr_val >= (rule_val - margin)
+    elif cond in ('lte_value', 'lt_value'):
+        return curr_val <= (rule_val + margin)
+    elif cond == 'cross_above_value':
+        return curr_val >= (rule_val - margin)
+    elif cond == 'cross_below_value':
+        return curr_val <= (rule_val + margin)
+    elif cond == 'cross_above_indicator':
+        if not np.isnan(target_val):
+            return (curr_val > target_val) or ((target_val - curr_val) <= margin)
+        return False
+    elif cond == 'cross_below_indicator':
+        if not np.isnan(target_val):
+            return (curr_val < target_val) or ((curr_val - target_val) <= margin)
+        return False
+    elif cond == 'turn_up':
+        return curr_val >= -0.5
+    elif cond == 'turn_down':
+        return curr_val <= 0.5
+    elif cond in ('gte_indicator', 'gt_indicator'):
+        return not np.isnan(target_val) and curr_val >= (target_val - margin)
+    elif cond in ('lte_indicator', 'lt_indicator'):
+        return not np.isnan(target_val) and curr_val <= (target_val + margin)
+    return False
+
+def check_group_near_match(group, df, buy_price=None):
+    """Evaluate if all rules in group are met or within proximity margin."""
+    if not group or not isinstance(group, dict):
+        return False
+    rules = group.get('rules', [])
+    if not rules or not isinstance(rules, list):
+        return False
+    return all(check_single_rule_near(r, df, buy_price=buy_price) for r in rules)
+
+def evaluate_watch_signal(df, active_slot=None):
+    """Evaluate if any buy group is within proximity (watchlist)."""
+    if active_slot and active_slot.get('buyRules') and len(active_slot['buyRules']) > 0:
+        return any(check_group_near_match(g, df) for g in active_slot['buyRules'])
+    return False
+
 def evaluate_buy_signal(df, active_slot=None):
     """
     Evaluate Buy Signal based on active strategy slot.
@@ -949,7 +1053,7 @@ if __name__ == "__main__":
                 buy_res['prev_minus_di'] = prev_mdi
                 buy_item = buy_res
                 status_text = buy_res['priority']
-            elif curr_adx >= 30 and curr_mdi > curr_adx:
+            elif evaluate_watch_signal(df, active_slot=active_slot):
                 status_text = "관심종목"
 
             stock_item = {

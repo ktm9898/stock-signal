@@ -2030,6 +2030,26 @@
     }
 
     // Rule Evaluation Helpers
+    function getIndicatorValue(indicatorKey, r) {
+      if (!r) return NaN;
+      switch (indicatorKey) {
+        case 'adx': return parseFloat(r.ADX !== undefined && r.ADX !== null && r.ADX !== '-' ? r.ADX : (r.adx !== undefined ? r.adx : (r.prev_ADX || r.prev_adx)));
+        case 'minus_di': return parseFloat(r.Minus_DI !== undefined && r.Minus_DI !== null && r.Minus_DI !== '-' ? r.Minus_DI : (r.minus_di !== undefined ? r.minus_di : (r.minusDi !== undefined ? r.minusDi : (r.prev_Minus_DI || r.prev_minus_di))));
+        case 'plus_di': return parseFloat(r.Plus_DI !== undefined && r.Plus_DI !== null && r.Plus_DI !== '-' ? r.Plus_DI : (r.plus_di !== undefined ? r.plus_di : (r.plusDi !== undefined ? r.plusDi : (r.prev_Plus_DI || r.prev_plus_di))));
+        case 'rsi': return parseFloat(r.RSI !== undefined && r.RSI !== null && r.RSI !== '-' ? r.RSI : (r.rsi !== undefined ? r.rsi : (r.prev_RSI || r.prev_rsi)));
+        case 'bb_pct': return parseFloat(r.b_band_pct !== undefined && r.b_band_pct !== null && r.b_band_pct !== '-' ? r.b_band_pct : (r.BB_Pct !== undefined && r.BB_Pct !== '-' ? r.BB_Pct : (r.prev_BB_Pct || r.prev_b_band_pct || r['BB_%b'])));
+        case 'macd': return parseFloat(r.macd !== undefined && r.macd !== null && r.macd !== '-' ? r.macd : (r.MACD !== undefined && r.MACD !== '-' ? r.MACD : (r.prev_MACD || r.prev_macd)));
+        case 'macd_signal': return parseFloat(r.macd_signal !== undefined && r.macd_signal !== null && r.macd_signal !== '-' ? r.macd_signal : (r.MACD_Signal !== undefined && r.MACD_Signal !== '-' ? r.MACD_Signal : (r.prev_MACD_Signal || r.prev_macd_signal)));
+        case 'macd_osc': return parseFloat(r.macd_osc !== undefined && r.macd_osc !== null && r.macd_osc !== '-' ? r.macd_osc : (r.MACD_Osc !== undefined && r.MACD_Osc !== '-' ? r.MACD_Osc : (r.prev_MACD_Osc || r.prev_macd_osc || r.macdOsc)));
+        case 'stoch_k': return parseFloat(r.stoch_k !== undefined && r.stoch_k !== null && r.stoch_k !== '-' ? r.stoch_k : (r.Stoch_K !== undefined && r.Stoch_K !== '-' ? r.Stoch_K : (r.prev_Stoch_K || r.prev_stoch_k)));
+        case 'stoch_d': return parseFloat(r.stoch_d !== undefined && r.stoch_d !== null && r.stoch_d !== '-' ? r.stoch_d : (r.Stoch_D !== undefined && r.Stoch_D !== '-' ? r.Stoch_D : (r.prev_Stoch_D || r.prev_stoch_d)));
+        case 'disparity20': return parseFloat(r.disparity20 !== undefined && r.disparity20 !== null && r.disparity20 !== '-' ? r.disparity20 : (r.Disparity20 !== undefined && r.Disparity20 !== '-' ? r.Disparity20 : (r.prev_Disparity20 || r.prev_disparity20)));
+        case 'volume_ratio': return parseFloat(r.VolumeRatio !== undefined && r.VolumeRatio !== null && r.VolumeRatio !== '-' ? r.VolumeRatio : (r.volume_ratio !== undefined ? r.volume_ratio : (r.prev_VolumeRatio || r.prev_volume_ratio || r.VR)));
+        case 'close': return parseFloat(r.ClosePrice !== undefined && r.ClosePrice !== null && r.ClosePrice !== '-' ? r.ClosePrice : (r.close !== undefined ? r.close : (r.prev_ClosePrice || r.prev_close)));
+        default: return NaN;
+      }
+    }
+
     function checkSingleRule(rule, row, prevRow, extraCtx) {
       if (!rule || !rule.indicator) return false;
       const ind = rule.indicator;
@@ -2047,26 +2067,6 @@
         if (cond === 'gt_value') return returnRate > ruleVal;
         if (cond === 'lt_value') return returnRate < ruleVal;
         return false;
-      }
-
-      function getIndicatorValue(indicatorKey, r) {
-        if (!r) return NaN;
-        switch (indicatorKey) {
-          case 'adx': return parseFloat(r.ADX !== undefined && r.ADX !== null && r.ADX !== '-' ? r.ADX : (r.adx !== undefined ? r.adx : (r.prev_ADX || r.prev_adx)));
-          case 'minus_di': return parseFloat(r.Minus_DI !== undefined && r.Minus_DI !== null && r.Minus_DI !== '-' ? r.Minus_DI : (r.minus_di !== undefined ? r.minus_di : (r.minusDi !== undefined ? r.minusDi : (r.prev_Minus_DI || r.prev_minus_di))));
-          case 'plus_di': return parseFloat(r.Plus_DI !== undefined && r.Plus_DI !== null && r.Plus_DI !== '-' ? r.Plus_DI : (r.plus_di !== undefined ? r.plus_di : (r.plusDi !== undefined ? r.plusDi : (r.prev_Plus_DI || r.prev_plus_di))));
-          case 'rsi': return parseFloat(r.RSI !== undefined && r.RSI !== null && r.RSI !== '-' ? r.RSI : (r.rsi !== undefined ? r.rsi : (r.prev_RSI || r.prev_rsi)));
-          case 'bb_pct': return parseFloat(r.b_band_pct !== undefined && r.b_band_pct !== null && r.b_band_pct !== '-' ? r.b_band_pct : (r.BB_Pct !== undefined && r.BB_Pct !== '-' ? r.BB_Pct : (r.prev_BB_Pct || r.prev_b_band_pct || r['BB_%b'])));
-          case 'macd': return parseFloat(r.macd !== undefined && r.macd !== null && r.macd !== '-' ? r.macd : (r.MACD !== undefined && r.MACD !== '-' ? r.MACD : (r.prev_MACD || r.prev_macd)));
-          case 'macd_signal': return parseFloat(r.macd_signal !== undefined && r.macd_signal !== null && r.macd_signal !== '-' ? r.macd_signal : (r.MACD_Signal !== undefined && r.MACD_Signal !== '-' ? r.MACD_Signal : (r.prev_MACD_Signal || r.prev_macd_signal)));
-          case 'macd_osc': return parseFloat(r.macd_osc !== undefined && r.macd_osc !== null && r.macd_osc !== '-' ? r.macd_osc : (r.MACD_Osc !== undefined && r.MACD_Osc !== '-' ? r.MACD_Osc : (r.prev_MACD_Osc || r.prev_macd_osc || r.macdOsc)));
-          case 'stoch_k': return parseFloat(r.stoch_k !== undefined && r.stoch_k !== null && r.stoch_k !== '-' ? r.stoch_k : (r.Stoch_K !== undefined && r.Stoch_K !== '-' ? r.Stoch_K : (r.prev_Stoch_K || r.prev_stoch_k)));
-          case 'stoch_d': return parseFloat(r.stoch_d !== undefined && r.stoch_d !== null && r.stoch_d !== '-' ? r.stoch_d : (r.Stoch_D !== undefined && r.Stoch_D !== '-' ? r.Stoch_D : (r.prev_Stoch_D || r.prev_stoch_d)));
-          case 'disparity20': return parseFloat(r.disparity20 !== undefined && r.disparity20 !== null && r.disparity20 !== '-' ? r.disparity20 : (r.Disparity20 !== undefined && r.Disparity20 !== '-' ? r.Disparity20 : (r.prev_Disparity20 || r.prev_disparity20)));
-          case 'volume_ratio': return parseFloat(r.VolumeRatio !== undefined && r.VolumeRatio !== null && r.VolumeRatio !== '-' ? r.VolumeRatio : (r.volume_ratio !== undefined ? r.volume_ratio : (r.prev_VolumeRatio || r.prev_volume_ratio || r.VR)));
-          case 'close': return parseFloat(r.ClosePrice !== undefined && r.ClosePrice !== null && r.ClosePrice !== '-' ? r.ClosePrice : (r.close !== undefined ? r.close : (r.prev_ClosePrice || r.prev_close)));
-          default: return NaN;
-        }
       }
 
       const currVal = getIndicatorValue(ind, row);
@@ -2097,9 +2097,118 @@
       }
     }
 
+    function checkSingleRuleNear(rule, row, prevRow, extraCtx) {
+      if (!rule || !rule.indicator) return false;
+      // 1) Exactly matches?
+      if (checkSingleRule(rule, row, prevRow, extraCtx)) return true;
+
+      const ind = rule.indicator;
+      const cond = rule.condition_type;
+      const targetInd = rule.target_indicator;
+      const ruleVal = parseFloat(rule.value);
+
+      const currVal = getIndicatorValue(ind, row);
+      if (isNaN(currVal)) return false;
+
+      const prevVal = prevRow ? getIndicatorValue(ind, prevRow) : NaN;
+      const targetVal = targetInd ? getIndicatorValue(targetInd, row) : ruleVal;
+
+      // Define proximity margin based on indicator
+      let margin = 1.0;
+      if (ind === 'rsi') margin = 5.0;
+      else if (ind === 'bb_pct') margin = 0.08;
+      else if (ind === 'disparity20') margin = 2.0;
+      else if (ind === 'volume_ratio') margin = Math.max(20.0, Math.abs(ruleVal) * 0.20);
+      else if (ind === 'adx' || ind === 'minus_di' || ind === 'plus_di') margin = 4.0;
+      else if (ind === 'stoch_k' || ind === 'stoch_d') margin = 5.0;
+      else if (ind === 'macd' || ind === 'macd_osc') margin = 0.5;
+      else margin = Math.abs(ruleVal) * 0.08 || 1.0;
+
+      switch (cond) {
+        case 'gte_value':
+        case 'gt_value':
+          return currVal >= (ruleVal - margin);
+        case 'lte_value':
+        case 'lt_value':
+          return currVal <= (ruleVal + margin);
+        case 'cross_above_value':
+          return currVal >= (ruleVal - margin);
+        case 'cross_below_value':
+          return currVal <= (ruleVal + margin);
+        case 'cross_above_indicator':
+          if (!isNaN(targetVal)) {
+            return (currVal > targetVal) || ((targetVal - currVal) <= margin);
+          }
+          return false;
+        case 'cross_below_indicator':
+          if (!isNaN(targetVal)) {
+            return (currVal < targetVal) || ((currVal - targetVal) <= margin);
+          }
+          return false;
+        case 'turn_up':
+          return currVal >= -0.5;
+        case 'turn_down':
+          return currVal <= 0.5;
+        case 'gte_indicator':
+        case 'gt_indicator':
+          return !isNaN(targetVal) && currVal >= (targetVal - margin);
+        case 'lte_indicator':
+        case 'lt_indicator':
+          return !isNaN(targetVal) && currVal <= (targetVal + margin);
+        default:
+          return false;
+      }
+    }
+
     function checkGroupMatch(group, row, prevRow, extraCtx) {
       if (!group || !Array.isArray(group.rules) || group.rules.length === 0) return false;
       return group.rules.every(rule => checkSingleRule(rule, row, prevRow, extraCtx));
+    }
+
+    function checkGroupNearMatch(group, row, prevRow, extraCtx) {
+      if (!group || !Array.isArray(group.rules) || group.rules.length === 0) return false;
+      // All rules in the group must be within proximity margin or already satisfied
+      return group.rules.every(rule => checkSingleRuleNear(rule, row, prevRow, extraCtx));
+    }
+
+    function getMatchedBuyGroupsInfo(slot, row, prevRow, extraCtx) {
+      if (!slot || !slot.buyRules || !Array.isArray(slot.buyRules)) return null;
+      const matchedIndices = [];
+      slot.buyRules.forEach((g, idx) => {
+        if (checkGroupMatch(g, row, prevRow, extraCtx)) {
+          matchedIndices.push(idx);
+        }
+      });
+      if (matchedIndices.length === 0) return null;
+      const numStr = matchedIndices.map(i => i + 1).join(', ');
+      const rulesList = matchedIndices.map(i => {
+        return (slot.buyRules[i].rules || []).map(r => formatRuleShort(r)).join(' · ');
+      }).join(' | ');
+      return {
+        indices: matchedIndices,
+        numStr: numStr,
+        reason: `[${slot.name}] 매수조건 ${numStr} 충족 (${rulesList})`
+      };
+    }
+
+    function getNearBuyGroupsInfo(slot, row, prevRow, extraCtx) {
+      if (!slot || !slot.buyRules || !Array.isArray(slot.buyRules)) return null;
+      const nearIndices = [];
+      slot.buyRules.forEach((g, idx) => {
+        if (checkGroupNearMatch(g, row, prevRow, extraCtx) && !checkGroupMatch(g, row, prevRow, extraCtx)) {
+          nearIndices.push(idx);
+        }
+      });
+      if (nearIndices.length === 0) return null;
+      const numStr = nearIndices.map(i => i + 1).join(', ');
+      const rulesList = nearIndices.map(i => {
+        return (slot.buyRules[i].rules || []).map(r => formatRuleShort(r)).join(' · ');
+      }).join(' | ');
+      return {
+        indices: nearIndices,
+        numStr: numStr,
+        reason: `[${slot.name}] 매수조건 ${numStr} 진입 대기 (${rulesList})`
+      };
     }
 
     // Dynamic Strategy Evaluator for Dashboard
@@ -2205,9 +2314,8 @@
           }
           const prevItem = prevRowMap.get(tk) || null;
 
-          // Check if ANY buy group matches
-          const isBuyMatch = activeSlot.buyRules.some(g => checkGroupMatch(g, item, prevItem));
-          if (isBuyMatch) {
+          const buyInfo = getMatchedBuyGroupsInfo(activeSlot, item, prevItem);
+          if (buyInfo) {
             evaluatedBuyCandidates.push({
               Date: item.Date || item.date || item.Timestamp || (executionLogsData.length > 0 ? executionLogsData[executionLogsData.length - 1].Timestamp : new Date().toISOString()),
               Name: item.Name || item.name,
@@ -2220,62 +2328,49 @@
               b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
               VolumeRatio: item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr)),
               ClosePrice: item.ClosePrice || item.price || item.close,
-              Reason: `[${activeSlot.name}] 실시간 전략 매수 조건 충족`
+              Reason: buyInfo.reason
             });
           }
         });
       }
 
-      // 2. Build Today's Watchlist / 진입대기
+      // 2. Build Today's Watchlist / 진입대기 (All conditions in a group must be satisfied or within proximity)
       const todayWatchlistMap = new Map();
-      combinedStocks.forEach(item => {
-        const tk = formatTicker(item.Ticker || item.ticker || item.code);
-        const nm = String(item.Name || item.name || '').trim().replace(/\s+/g, '');
-        if (heldTickersSet.has(tk) || heldNamesSet.has(nm)) {
-          return; // Already held!
-        }
-        const rawStatus = String(item.Status || item.status || '');
-        const currAdx = Number(item.ADX || item.adx);
-        const currMdi = Number(item.Minus_DI || item.minus_di || item.minusDi);
-        const currRsi = Number(item.RSI || item.rsi);
-        const rawBB = item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']);
-        const currBB = (rawBB !== undefined && rawBB !== null && rawBB !== '') ? Number(rawBB) : NaN;
-
-        let isWatchlist = false;
-        let watchReason = '';
-
-        const isSniperActive = activeSlot.name && (activeSlot.name.includes('스나이퍼') || activeSlot.name.includes('바닥'));
-        if (isSniperActive) {
-          if (currRsi <= 28 && currBB <= 0.10) {
-            isWatchlist = true;
-            watchReason = `RSI: ${formatDec(currRsi)}, 볼린저%b: ${formatDec(currBB)} (과매도 바닥 구간 근접, 진입 대기)`;
+      if (isCustomStrategy) {
+        combinedStocks.forEach(item => {
+          const tk = formatTicker(item.Ticker || item.ticker || item.code);
+          const nm = String(item.Name || item.name || '').trim().replace(/\s+/g, '');
+          if (heldTickersSet.has(tk) || heldNamesSet.has(nm)) {
+            return; // Already held!
           }
-        } else {
-          if (currAdx >= 30 && currMdi > currAdx) {
-            isWatchlist = true;
-            watchReason = `ADX: ${formatDec(currAdx)}, -DI: ${formatDec(currMdi)} (강한 추세 형성, -DI 하향돌파 진입 대기)`;
-          }
-        }
+          const prevItem = prevRowMap.get(tk) || null;
 
-        if (isWatchlist) {
-          if (!todayWatchlistMap.has(tk)) {
-            todayWatchlistMap.set(tk, {
-              Date: item.Date || item.date || item.Timestamp || (executionLogsData.length > 0 ? executionLogsData[executionLogsData.length - 1].Timestamp : new Date().toISOString()),
-              Name: item.Name || item.name,
-              Ticker: tk,
-              Stage: '관심종목',
-              ADX: item.ADX || item.adx,
-              Minus_DI: item.Minus_DI || item.minus_di,
-              Plus_DI: item.Plus_DI || item.plus_di,
-              RSI: item.RSI || item.rsi,
-              b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
-              VolumeRatio: item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr)),
-              ClosePrice: item.ClosePrice || item.price || item.close,
-              Reason: watchReason
-            });
+          // If already exact buy match, skip watchlist
+          if (checkGroupMatch && activeSlot.buyRules.some(g => checkGroupMatch(g, item, prevItem))) {
+            return;
           }
-        }
-      });
+
+          const nearInfo = getNearBuyGroupsInfo(activeSlot, item, prevItem);
+          if (nearInfo) {
+            if (!todayWatchlistMap.has(tk)) {
+              todayWatchlistMap.set(tk, {
+                Date: item.Date || item.date || item.Timestamp || (executionLogsData.length > 0 ? executionLogsData[executionLogsData.length - 1].Timestamp : new Date().toISOString()),
+                Name: item.Name || item.name,
+                Ticker: tk,
+                Stage: '관심종목',
+                ADX: item.ADX || item.adx,
+                Minus_DI: item.Minus_DI || item.minus_di,
+                Plus_DI: item.Plus_DI || item.plus_di,
+                RSI: item.RSI || item.rsi,
+                b_band_pct: item.b_band_pct !== undefined ? item.b_band_pct : (item.BB_Pct !== undefined ? item.BB_Pct : item['BB_%b']),
+                VolumeRatio: item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr)),
+                ClosePrice: item.ClosePrice || item.price || item.close,
+                Reason: nearInfo.reason
+              });
+            }
+          }
+        });
+      }
       const todayWatchlist = Array.from(todayWatchlistMap.values());
 
       // 3. Construct Unified Final Buy List
@@ -2289,11 +2384,39 @@
         const key = `${tk}_${dt}`;
         const rawStage = String(item.Stage || item.stage || item.priority || '');
         const isScaleIn = rawStage.includes('물타기');
+
+        let reason = item.Reason || item.reason || item.Notes || item.notes || '';
+        if (!reason && !isScaleIn && isCustomStrategy) {
+          const prevAdx = item.Prev_ADX !== undefined ? item.Prev_ADX : (item.prev_adx !== undefined ? item.prev_adx : null);
+          const prevMdi = item.Prev_Minus_DI !== undefined ? item.Prev_Minus_DI : (item.prev_minus_di !== undefined ? item.prev_minus_di : null);
+          const prevPdi = item.Prev_Plus_DI !== undefined ? item.Prev_Plus_DI : (item.prev_plus_di !== undefined ? item.prev_plus_di : null);
+          const prevRsi = item.Prev_RSI !== undefined ? item.Prev_RSI : (item.prev_rsi !== undefined ? item.prev_rsi : null);
+          const prevBB = item.Prev_BB_Pct !== undefined ? item.Prev_BB_Pct : (item.prev_b_band_pct !== undefined ? item.prev_b_band_pct : null);
+          const prevVR = item.Prev_VolumeRatio !== undefined ? item.Prev_VolumeRatio : (item.prev_volume_ratio !== undefined ? item.prev_volume_ratio : null);
+          const prevClose = item.Prev_ClosePrice !== undefined ? item.Prev_ClosePrice : (item.prev_close !== undefined ? item.prev_close : null);
+          const syntheticPrev = {
+            ADX: prevAdx, adx: prevAdx,
+            Minus_DI: prevMdi, minus_di: prevMdi,
+            Plus_DI: prevPdi, plus_di: prevPdi,
+            RSI: prevRsi, rsi: prevRsi,
+            BB_Pct: prevBB, b_band_pct: prevBB,
+            VolumeRatio: prevVR, volume_ratio: prevVR,
+            ClosePrice: prevClose, close: prevClose
+          };
+          const histBuyInfo = getMatchedBuyGroupsInfo(activeSlot, item, syntheticPrev);
+          if (histBuyInfo) {
+            reason = histBuyInfo.reason;
+          } else {
+            reason = '[과거 포착 신호] 이전 스크리너 실행 당시 전략 매수 조건을 충족하여 기록된 종목입니다.';
+          }
+        }
+
         const itemObj = {
           ...item,
           Stage: isScaleIn ? '물타기' : (item.Stage || '전략매수'),
           priority: isScaleIn ? '물타기' : (item.priority || item.Stage || '전략매수'),
-          ai_prob: (item.AI_Prob !== undefined && item.AI_Prob !== null && item.AI_Prob !== '') ? Number(item.AI_Prob) : item.ai_prob
+          ai_prob: (item.AI_Prob !== undefined && item.AI_Prob !== null && item.AI_Prob !== '') ? Number(item.AI_Prob) : item.ai_prob,
+          Reason: reason
         };
         seenBuyMap.set(key, itemObj);
         finalBuyList.push(itemObj);
@@ -2323,7 +2446,7 @@
 
         if (matchingExisting) {
           // Officially recorded in Google Sheets! Keep Stage as '전략매수' (no star)
-          if (item.Reason && (!matchingExisting.Reason || matchingExisting.Reason === '-')) {
+          if (item.Reason) {
             matchingExisting.Reason = item.Reason;
           }
         } else {
@@ -2496,26 +2619,13 @@
         if (!stock) return { status: '관망', reason: '관망 중' };
 
         if (activeSlot.buyRules && activeSlot.buyRules.length > 0) {
-          const isBuyMatch = activeSlot.buyRules.some(g => checkGroupMatch(g, stock, prevStock));
-          if (isBuyMatch) {
-            return { status: '전략매수', reason: `[${activeSlot.name}] 실시간 매수 조건 충족` };
+          const buyInfo = getMatchedBuyGroupsInfo(activeSlot, stock, prevStock);
+          if (buyInfo) {
+            return { status: '전략매수', reason: buyInfo.reason };
           }
-        }
-
-        const currAdx = Number(stock.ADX || stock.adx);
-        const currMdi = Number(stock.Minus_DI || stock.minus_di || stock.minusDi);
-        const currRsi = Number(stock.RSI || stock.rsi);
-        const rawBB = stock.b_band_pct !== undefined ? stock.b_band_pct : (stock.BB_Pct !== undefined ? stock.BB_Pct : stock['BB_%b']);
-        const currBB = (rawBB !== undefined && rawBB !== null && rawBB !== '') ? Number(rawBB) : NaN;
-
-        const isSniperActive = activeSlot.name && (activeSlot.name.includes('스나이퍼') || activeSlot.name.includes('바닥'));
-        if (isSniperActive) {
-          if (currRsi <= 28 && currBB <= 0.10) {
-            return { status: '관심종목', reason: `RSI: ${formatDec(currRsi)}, 볼린저%b: ${formatDec(currBB)} (과매도 바닥 구간 근접, 진입 대기)` };
-          }
-        } else {
-          if (currAdx >= 30 && currMdi > currAdx) {
-            return { status: '관심종목', reason: `ADX: ${formatDec(currAdx)}, -DI: ${formatDec(currMdi)} (강한 추세 형성, -DI 하향돌파 진입 대기)` };
+          const nearInfo = getNearBuyGroupsInfo(activeSlot, stock, prevStock);
+          if (nearInfo) {
+            return { status: '관심종목', reason: nearInfo.reason };
           }
         }
 
@@ -3430,7 +3540,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         const vrNum = Number(rawVR);
         const vrColor = (!isNaN(vrNum) && vrNum >= 150) ? 'var(--accent-warning)' : 'inherit';
 
-        const reason = (item.Reason || item.reason || item.Notes || item.notes || `ADX: ${formatDec(item.ADX || item.adx)}, -DI: ${formatDec(item.Minus_DI || item.minus_di || item.minusDi)}, RSI: ${formatDec(item.RSI || item.rsi)}, 볼린저%b: ${bBandPctStr}, VR: ${vrStr} 조건 충족`).replace(/'/g, "\\'");
+        const reason = (item.Reason || item.reason || item.Notes || item.notes || '[과거 포착 신호] 이전 스크리너 실행 당시 전략 매수 조건을 충족하여 기록된 종목입니다.').replace(/'/g, "\\'");
 
         const rankText = (stageText === '물타기' || stageText === '물타기매수') ? '물타기' : (item.computed_rank ? `${item.computed_rank}순위` : '-');
 
@@ -3514,7 +3624,11 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           else if (macdOscNum < 0) macdColor = 'var(--accent-cyan)';
         }
 
-        const reason = `ADX: ${currAdx}, -DI: ${currMdi}, +DI: ${currPdi}, RSI: ${rsi}, 볼린저%b: ${bBandPctStr}, MACD Oscill: ${macdOsc}, Stoch K/D: ${stochK}/${stochD}, 20일 이격도: ${disparity}%, 5일평균 대비 거래량: ${vr}%`;
+        const isClickable = (statusText === '전략매수' || statusText === '관심종목');
+        const reason = (item.Reason || item.reason || (statusText === '전략매수' ? `[${activeSlot.name}] 실시간 전략 매수 조건 충족` : (statusText === '관심종목' ? `[${activeSlot.name}] 진입 대기` : ''))).replace(/'/g, "\\'");
+        const badgeAttr = isClickable 
+          ? `onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 포착 사유 확인"`
+          : `style="cursor:default;"`;
 
         return `
           <tr>
@@ -3529,7 +3643,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;"><span style="color: ${Number(disparity) <= 95 ? 'var(--accent-green)' : (Number(disparity) >= 105 ? '#f87171' : 'inherit')}">${disparity}%</span></td>
             <td style="text-align:center;"><span style="color: ${Number(vr) >= 150 ? 'var(--accent-warning)' : 'inherit'}">${vr}%</span></td>
             <td style="text-align:right; padding-right: 14px;">${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
-            <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 세부 지표 확인">${statusText}</span></td>
+            <td style="text-align:center;"><span class="badge ${badgeClass}" ${badgeAttr}>${statusText}</span></td>
           </tr>
         `;
       }).join('');
@@ -3595,7 +3709,11 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           else if (macdOscNum < 0) macdColor = 'var(--accent-cyan)';
         }
 
-        const reason = `ADX: ${currAdx}, -DI: ${currMdi}, +DI: ${currPdi}, RSI: ${rsi}, 볼린저%b: ${bBandPctStr}, MACD Oscill: ${macdOsc}, Stoch K/D: ${stochK}/${stochD}, 20일 이격도: ${disparity}%, 5일평균 대비 거래량: ${vr}%`;
+        const isClickable = (statusText === '전략매수' || statusText === '관심종목');
+        const reason = (item.Reason || item.reason || (statusText === '전략매수' ? `[${activeSlot.name}] 실시간 전략 매수 조건 충족` : (statusText === '관심종목' ? `[${activeSlot.name}] 진입 대기` : ''))).replace(/'/g, "\\'");
+        const badgeAttr = isClickable 
+          ? `onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 포착 사유 확인"`
+          : `style="cursor:default;"`;
 
         return `
           <tr>
@@ -3610,7 +3728,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;"><span style="color: ${Number(disparity) <= 95 ? 'var(--accent-green)' : (Number(disparity) >= 105 ? '#f87171' : 'inherit')}">${disparity}%</span></td>
             <td style="text-align:center;"><span style="color: ${Number(vr) >= 150 ? 'var(--accent-warning)' : 'inherit'}">${vr}%</span></td>
             <td style="text-align:right; padding-right: 14px;">${(item.ClosePrice || item.close) ? Number(item.ClosePrice || item.close).toLocaleString() + ' 원' : '-'}</td>
-            <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="showDetailsModal('${name}', '${statusText}', '${reason}', '${badgeClass}')" style="cursor:pointer;" title="클릭 시 세부 지표 확인">${statusText}</span></td>
+            <td style="text-align:center;"><span class="badge ${badgeClass}" ${badgeAttr}>${statusText}</span></td>
           </tr>
         `;
       }).join('');
