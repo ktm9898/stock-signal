@@ -334,7 +334,14 @@ function doPost(e) {
       
       if (data.candidates && data.candidates.length > 0 && buySheet) {
         const lastRow = buySheet.getLastRow();
-        const existingRows = lastRow > 1 ? buySheet.getRange(2, 1, lastRow - 1, buySheet.getLastColumn()).getValues() : [];
+        const lastCol = buySheet.getLastColumn();
+        const headers = lastRow >= 1 && lastCol >= 1 ? buySheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+        const tickerColIdx = headers.indexOf("Ticker") >= 0 ? headers.indexOf("Ticker") : 1;
+        const stageColIdx = headers.indexOf("Stage") >= 0 ? headers.indexOf("Stage") : 3;
+        const dateColIdx = headers.indexOf("Date") >= 0 ? headers.indexOf("Date") : 0;
+        const closeColIdx = headers.indexOf("ClosePrice") >= 0 ? headers.indexOf("ClosePrice") : (lastCol >= 15 ? 14 : 12);
+        const adxColIdx = headers.indexOf("ADX") >= 0 ? headers.indexOf("ADX") : (lastCol >= 15 ? 5 : 4);
+        const existingRows = lastRow > 1 ? buySheet.getRange(2, 1, lastRow - 1, lastCol).getValues() : [];
         
         // Map currently active holdings' DateAdded by ticker
         const holdingsSheet = ss.getSheetByName("User_Holdings");
@@ -353,10 +360,10 @@ function doPost(e) {
           const isScaleInCand = String(c.priority || c.stage || '').includes('물타기');
           let exists = false;
           for (let i = existingRows.length - 1; i >= 0; i--) {
-            const rowTickerStr = normalizeTicker(existingRows[i][1]);
+            const rowTickerStr = normalizeTicker(existingRows[i][tickerColIdx]);
             if (rowTickerStr === tickerStr) {
-              const rowStageStr = String(existingRows[i][3] || '');
-              const rowYMD = extractYMD(existingRows[i][0]);
+              const rowStageStr = String(existingRows[i][stageColIdx] || '');
+              const rowYMD = extractYMD(existingRows[i][dateColIdx]);
 
               // Scale-in buy: only deduplicate if the previous scale-in occurred during the CURRENT holding cycle (on or after DateAdded)
               if (isScaleInCand && rowStageStr.includes('물타기')) {
@@ -372,9 +379,9 @@ function doPost(e) {
                 break;
               }
               // 2) Cross-day identical indicators/price check (same unupdated candle state)
-              const cleanRowClose = Number(String(existingRows[i].length >= 15 ? existingRows[i][14] : (existingRows[i].length >= 13 ? existingRows[i][12] : existingRows[i][11])).replace(/[^0-9.-]/g, ""));
+              const cleanRowClose = Number(String(existingRows[i][closeColIdx] !== undefined ? existingRows[i][closeColIdx] : "").replace(/[^0-9.-]/g, ""));
               const cleanCandClose = Number(String(c.close).replace(/[^0-9.-]/g, ""));
-              const rowAdx = Number(existingRows[i].length >= 15 ? existingRows[i][5] : existingRows[i][4]);
+              const rowAdx = Number(existingRows[i][adxColIdx]);
               const candAdx = Number(c.adx);
 
               if (!isNaN(cleanRowClose) && !isNaN(cleanCandClose) && cleanRowClose > 0 && cleanRowClose === cleanCandClose) {
@@ -504,22 +511,27 @@ function doPost(e) {
 
       if (data.signals && data.signals.length > 0 && sheet) {
         const lastRow = sheet.getLastRow();
-        const existingData = lastRow > 1 ? sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues() : [];
+        const lastCol = sheet.getLastColumn();
+        const headers = lastRow >= 1 && lastCol >= 1 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+        const tickerColIdx = headers.indexOf("Ticker") >= 0 ? headers.indexOf("Ticker") : 1;
+        const dateColIdx = headers.indexOf("Date") >= 0 ? headers.indexOf("Date") : 0;
+        const priceColIdx = headers.indexOf("CurrPrice") >= 0 ? headers.indexOf("CurrPrice") : 4;
+        const existingData = lastRow > 1 ? sheet.getRange(2, 1, lastRow - 1, lastCol).getValues() : [];
         
         data.signals.forEach(s => {
           const tickerStr = normalizeTicker(s.ticker);
           let exists = false;
           for (let i = existingData.length - 1; i >= 0; i--) {
-            const rowTickerStr = normalizeTicker(existingData[i][1]);
+            const rowTickerStr = normalizeTicker(existingData[i][tickerColIdx]);
             if (rowTickerStr === tickerStr) {
-              const rowYMD = extractYMD(existingData[i][0]);
+              const rowYMD = extractYMD(existingData[i][dateColIdx]);
               // 1) Same-day duplication check
               if (rowYMD && todayYMD && rowYMD === todayYMD) {
                 exists = true;
                 break;
               }
               // 2) Cross-day identical price check (주말/휴일/장전 동일 캔들 상태 완벽 보존)
-              const cleanRowPrice = Number(String(existingData[i][4] !== undefined ? existingData[i][4] : "").replace(/[^0-9.-]/g, ""));
+              const cleanRowPrice = Number(String(existingData[i][priceColIdx] !== undefined ? existingData[i][priceColIdx] : "").replace(/[^0-9.-]/g, ""));
               const cleanSPrice = Number(String(s.currPrice !== undefined ? s.currPrice : "").replace(/[^0-9.-]/g, ""));
               
               if (!isNaN(cleanRowPrice) && !isNaN(cleanSPrice) && cleanRowPrice > 0 && cleanRowPrice === cleanSPrice) {
