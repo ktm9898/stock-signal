@@ -1249,6 +1249,7 @@
               <col style="width: 54px;">
               <col style="width: 54px;">
               <col style="width: 56px;">
+              <col style="width: 56px;">
               <col style="width: 84px;">
               <col style="width: 75px;">
             </colgroup>
@@ -1264,6 +1265,7 @@
                 <th>+DI</th>
                 <th>RSI</th>
                 <th>BB</th>
+                <th>이격도</th>
                 <th>VR</th>
                 <th>현재가</th>
                 <th>액션</th>
@@ -1271,7 +1273,7 @@
             </thead>
             <tbody id="buy-candidates-body">
               <tr>
-                <td colspan="13"
+                <td colspan="14"
                   style="text-align: center; padding: 32px 16px; color: var(--text-sub); font-size: 0.85rem;">
                   <i class="fa-solid fa-circle-notch fa-spin" style="color: var(--primary); margin-right: 8px;"></i>
                   데이터를 불러오는 중입니다...
@@ -3346,7 +3348,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         timeLabel = formatShortDate(lastLog.Timestamp || lastLog.date || '');
       }
       if (!list || list.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="12" style="text-align:center; color:var(--text-sub); padding:32px 20px; font-size:0.9rem;">
+        tbody.innerHTML = `<tr><td colspan="14" style="text-align:center; color:var(--text-sub); padding:32px 20px; font-size:0.9rem;">
           <i class="fa-regular fa-circle-check" style="margin-right:6px; color:#22c55e;"></i>
           ${timeLabel ? `[${timeLabel}] ` : ''}전체 350개 종목 검사 완료. 현재 선택된 전략 조건에 부합하는 매수 신호 종목이 없습니다.
         </td></tr>`;
@@ -3548,6 +3550,15 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           else if (bBandPctVal >= 1.0) bbColor = '#f87171';
         }
 
+        const rawDisparity = (item.Disparity20 !== undefined ? item.Disparity20 : (item.disparity20 !== undefined ? item.disparity20 : (item.prev_Disparity20 || item.prev_disparity20)));
+        const dispVal = (rawDisparity !== undefined && rawDisparity !== null && rawDisparity !== '' && !isNaN(Number(rawDisparity))) ? Number(rawDisparity) : NaN;
+        const dispStr = !isNaN(dispVal) ? formatDec(dispVal, 1) + '%' : '-';
+        let dispColor = 'inherit';
+        if (!isNaN(dispVal)) {
+          if (dispVal <= 95) dispColor = 'var(--accent-green)';
+          else if (dispVal >= 105) dispColor = '#f87171';
+        }
+
         const rawVR = (item.VolumeRatio !== undefined ? item.VolumeRatio : (item.volume_ratio !== undefined ? item.volume_ratio : (item.VR !== undefined ? item.VR : item.vr)));
         const vrStr = (rawVR !== undefined && rawVR !== null && rawVR !== '' && !isNaN(Number(rawVR))) ? formatDec(rawVR, 0) + '%' : '-';
         const vrNum = Number(rawVR);
@@ -3585,6 +3596,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;">${formatDec(item.Plus_DI || item.plus_di || item.plusDi)}</td>
             <td style="text-align:center;"><span style="color: ${Number(item.RSI || item.rsi) <= 40 ? 'var(--accent-green)' : 'inherit'}">${formatDec(item.RSI || item.rsi)}</span></td>
             <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
+            <td style="text-align:center;"><span style="color: ${dispColor}">${dispStr}</span></td>
             <td style="text-align:center;"><span style="color: ${vrColor}">${vrStr}</span></td>
             <td style="text-align:right; padding-right: 14px;">${(item.ClosePrice || item.price) ? Number(item.ClosePrice || item.price).toLocaleString() + ' 원' : '-'}</td>
             <td style="text-align:center;"><button class="btn-buy-reg" style="padding: 4px 10px; font-size: 0.8rem;" onclick="quickRegister('${name}', '${ticker}', ${item.ClosePrice || item.price || 0})"><i class="fa-solid fa-plus"></i> 매수</button></td>

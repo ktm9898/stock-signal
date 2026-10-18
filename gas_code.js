@@ -13,7 +13,7 @@ function setupSheets() {
 
   // 1. Buy Candidates Sheet Header Enforce
   let buySheet = ss.getSheetByName("Buy_Candidates") || ss.insertSheet("Buy_Candidates");
-  buySheet.getRange("A1:O1").setValues([["Date", "Ticker", "Name", "Stage", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "RSI", "BB_Pct", "VolumeRatio", "ClosePrice", "AI_Prob", "Disparity20"]]);
+  buySheet.getRange("A1:O1").setValues([["Date", "Ticker", "Name", "Stage", "AI_Prob", "ADX", "Prev_ADX", "Minus_DI", "Prev_Minus_DI", "Plus_DI", "RSI", "BB_Pct", "Disparity20", "VolumeRatio", "ClosePrice"]]);
   buySheet.getRange("A1:O1").setFontWeight("bold").setBackground("#e0f2fe");
 
   // 2. User Holdings Sheet Header Enforce
@@ -372,9 +372,9 @@ function doPost(e) {
                 break;
               }
               // 2) Cross-day identical indicators/price check (same unupdated candle state)
-              const cleanRowClose = Number(String(existingRows[i].length >= 13 ? existingRows[i][12] : existingRows[i][11]).replace(/[^0-9.-]/g, ""));
+              const cleanRowClose = Number(String(existingRows[i].length >= 15 ? existingRows[i][14] : (existingRows[i].length >= 13 ? existingRows[i][12] : existingRows[i][11])).replace(/[^0-9.-]/g, ""));
               const cleanCandClose = Number(String(c.close).replace(/[^0-9.-]/g, ""));
-              const rowAdx = Number(existingRows[i][4]);
+              const rowAdx = Number(existingRows[i].length >= 15 ? existingRows[i][5] : existingRows[i][4]);
               const candAdx = Number(c.adx);
 
               if (!isNaN(cleanRowClose) && !isNaN(cleanCandClose) && cleanRowClose > 0 && cleanRowClose === cleanCandClose) {
@@ -387,12 +387,21 @@ function doPost(e) {
           // Keep the FIRST signal timestamp & metrics (do not duplicate)
           if (!exists) {
             buySheet.appendRow([
-              today, c.ticker, c.name, c.priority, c.adx, c.prev_adx, c.minus_di, c.prev_minus_di, c.plus_di, c.rsi, 
-              (c.b_band_pct !== undefined ? c.b_band_pct : (c.BB_Pct !== undefined ? c.BB_Pct : '-')),
-              (c.volume_ratio !== undefined ? c.volume_ratio : (c.VolumeRatio !== undefined ? c.VolumeRatio : '-')),
-              c.close,
+              today,
+              c.ticker,
+              c.name,
+              c.priority,
               (c.ai_prob !== undefined && c.ai_prob !== null ? c.ai_prob : '-'),
-              (c.disparity20 !== undefined && c.disparity20 !== null ? c.disparity20 : (c.Disparity20 !== undefined ? c.Disparity20 : '-'))
+              c.adx,
+              c.prev_adx,
+              c.minus_di,
+              c.prev_minus_di,
+              c.plus_di,
+              c.rsi,
+              (c.b_band_pct !== undefined ? c.b_band_pct : (c.BB_Pct !== undefined ? c.BB_Pct : '-')),
+              (c.disparity20 !== undefined && c.disparity20 !== null ? c.disparity20 : (c.Disparity20 !== undefined ? c.Disparity20 : '-')),
+              (c.volume_ratio !== undefined ? c.volume_ratio : (c.VolumeRatio !== undefined ? c.VolumeRatio : '-')),
+              c.close
             ]);
           }
         });
