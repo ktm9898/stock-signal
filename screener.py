@@ -638,6 +638,7 @@ def evaluate_buy_signal(df, active_slot=None):
     curr_rsi = df['rsi'].iloc[-1]
     curr_bb_pct = df['b_band_pct'].iloc[-1] if 'b_band_pct' in df.columns else 0.5
     curr_vr = df['volume_ratio'].iloc[-1] if 'volume_ratio' in df.columns else 100.0
+    curr_disparity = df['disparity20'].iloc[-1] if 'disparity20' in df.columns else 100.0
     curr_close = int(df['종가'].iloc[-1])
 
     is_buy = False
@@ -665,6 +666,7 @@ def evaluate_buy_signal(df, active_slot=None):
         "rsi": round(curr_rsi, 2) if not np.isnan(curr_rsi) else None,
         "b_band_pct": round(curr_bb_pct, 2) if not np.isnan(curr_bb_pct) else None,
         "volume_ratio": round(curr_vr, 1) if not np.isnan(curr_vr) else 100.0,
+        "disparity20": round(curr_disparity, 2) if not np.isnan(curr_disparity) else 100.0,
         "close": curr_close
     }
 
