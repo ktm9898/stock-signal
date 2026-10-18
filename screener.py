@@ -686,6 +686,7 @@ def evaluate_sell_signal(df, buy_price, active_slot=None):
     prev_mdi = df['minus_di'].iloc[-2]
     curr_rsi = df['rsi'].iloc[-1] if 'rsi' in df.columns else 0.0
     curr_bb_pct = df['b_band_pct'].iloc[-1] if 'b_band_pct' in df.columns else 0.5
+    curr_disparity = df['disparity20'].iloc[-1] if 'disparity20' in df.columns else 100.0
     curr_vr = df['volume_ratio'].iloc[-1] if 'volume_ratio' in df.columns else 100.0
 
     return_rate = 0.0
@@ -759,6 +760,7 @@ def evaluate_sell_signal(df, buy_price, active_slot=None):
         "prev_minus_di": round(prev_mdi, 2),
         "rsi": round(curr_rsi, 2),
         "b_band_pct": round(curr_bb_pct, 2) if not np.isnan(curr_bb_pct) else 0.5,
+        "disparity20": round(curr_disparity, 2) if not np.isnan(curr_disparity) else 100.0,
         "volume_ratio": round(curr_vr, 1) if not np.isnan(curr_vr) else 100.0,
         "signalLevel": level,
         "details": " / ".join(details),
@@ -1372,6 +1374,7 @@ if __name__ == "__main__":
             "plus_di": sc["plus_di"],
             "rsi": sc["rsi"],
             "b_band_pct": sc["b_band_pct"],
+            "disparity20": sc.get("disparity20", 100.0),
             "volume_ratio": sc["volume_ratio"],
             "close": sc["currPrice"],
             "ai_prob": sc.get("ai_prob"),

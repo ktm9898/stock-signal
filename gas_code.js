@@ -25,8 +25,8 @@ function setupSheets() {
 
   // 3. Sell Signals Sheet Header Enforce
   let sellSheet = ss.getSheetByName("Sell_Signals") || ss.insertSheet("Sell_Signals");
-  sellSheet.getRange("A1:O1").setValues([["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Prev_ADX", "Minus_DI", "Plus_DI", "RSI", "BB_Pct", "VolumeRatio", "Status", "Details"]]);
-  sellSheet.getRange("A1:O1").setFontWeight("bold").setBackground("#fee2e2");
+  sellSheet.getRange("A1:P1").setValues([["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Prev_ADX", "Minus_DI", "Plus_DI", "RSI", "BB_Pct", "Disparity20", "VolumeRatio", "Status", "Details"]]);
+  sellSheet.getRange("A1:P1").setFontWeight("bold").setBackground("#fee2e2");
 
   // 4. Execution Logs Sheet Header Enforce
   let logSheet = ss.getSheetByName("Execution_Logs") || ss.insertSheet("Execution_Logs");
@@ -40,8 +40,8 @@ function setupSheets() {
 
   // 6. User Holdings Status Sheet Header Enforce
   let hStatusSheet = ss.getSheetByName("User_Holdings_Status") || ss.insertSheet("User_Holdings_Status");
-  hStatusSheet.getRange("A1:O1").setValues([["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Prev_ADX", "Minus_DI", "Plus_DI", "RSI", "BB_Pct", "VolumeRatio", "Status", "Details"]]);
-  hStatusSheet.getRange("A1:O1").setFontWeight("bold").setBackground("#e0f2fe");
+  hStatusSheet.getRange("A1:P1").setValues([["Date", "Ticker", "Name", "BuyPrice", "CurrPrice", "ReturnRate", "ADX", "Prev_ADX", "Minus_DI", "Plus_DI", "RSI", "BB_Pct", "Disparity20", "VolumeRatio", "Status", "Details"]]);
+  hStatusSheet.getRange("A1:P1").setFontWeight("bold").setBackground("#e0f2fe");
 
   // 7. KOSDAQ 150 All Metrics Sheet Header Enforce
   let kosdaqSheet = ss.getSheetByName("KOSDAQ150_All_Metrics") || ss.insertSheet("KOSDAQ150_All_Metrics");
@@ -536,6 +536,7 @@ function doPost(e) {
               today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, 
               s.adx || '-', s.prev_adx || '-', s.minus_di || '-', s.plus_di || '-', s.rsi || '-', 
               (s.b_band_pct !== undefined ? s.b_band_pct : (s.BB_Pct !== undefined ? s.BB_Pct : '-')),
+              (s.disparity20 !== undefined && s.disparity20 !== null ? s.disparity20 : (s.Disparity20 !== undefined ? s.Disparity20 : '-')),
               (s.volume_ratio !== undefined ? s.volume_ratio : (s.VolumeRatio !== undefined ? s.VolumeRatio : '-')),
               s.signalLevel, detailsText
             ]);
@@ -559,10 +560,11 @@ function doPost(e) {
           today, s.ticker, s.name, s.buyPrice, s.currPrice, s.returnRate, 
           s.adx || '-', s.prev_adx || '-', s.minus_di || '-', s.plus_di || '-', s.rsi || '-', 
           (s.b_band_pct !== undefined ? s.b_band_pct : (s.BB_Pct !== undefined ? s.BB_Pct : '-')),
+          (s.disparity20 !== undefined && s.disparity20 !== null ? s.disparity20 : (s.Disparity20 !== undefined ? s.Disparity20 : '-')),
           (s.volume_ratio !== undefined ? s.volume_ratio : (s.VolumeRatio !== undefined ? s.VolumeRatio : '-')),
           s.signalLevel, Array.isArray(s.details) ? s.details.join(", ") : String(s.details || "")
         ]);
-        sheet.getRange(2, 1, rows.length, 15).setValues(rows);
+        sheet.getRange(2, 1, rows.length, 16).setValues(rows);
       }
       return ContentService.createTextOutput(JSON.stringify({ success: true, status: "success" }))
         .setMimeType(ContentService.MimeType.JSON);
