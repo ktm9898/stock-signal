@@ -2070,7 +2070,10 @@
       }
 
       const currVal = getIndicatorValue(ind, row);
-      if (isNaN(currVal)) return false;
+      if (isNaN(currVal)) {
+        if (extraCtx && extraCtx.isRecordedBuy) return true;
+        return false;
+      }
 
       const prevVal = prevRow ? getIndicatorValue(ind, prevRow) : NaN;
       const targetVal = targetInd ? getIndicatorValue(targetInd, row) : ruleVal;
@@ -2090,8 +2093,10 @@
         case 'gte_indicator': return !isNaN(targetVal) && currVal >= targetVal;
         case 'lte_indicator': return !isNaN(targetVal) && currVal <= targetVal;
         case 'cross_above_indicator':
+          if (extraCtx && extraCtx.isRecordedBuy && !isNaN(targetVal) && currVal >= targetVal) return true;
           return !isNaN(targetVal) && !isNaN(prevVal) && !isNaN(prevTargetVal) && (prevVal <= prevTargetVal && currVal > targetVal);
         case 'cross_below_indicator':
+          if (extraCtx && extraCtx.isRecordedBuy && !isNaN(targetVal) && currVal <= targetVal) return true;
           return !isNaN(targetVal) && !isNaN(prevVal) && !isNaN(prevTargetVal) && (prevVal >= prevTargetVal && currVal < targetVal);
         default: return false;
       }
@@ -2387,13 +2392,21 @@
 
         let reason = item.Reason || item.reason || item.Notes || item.notes || '';
         if (!reason && !isScaleIn && isCustomStrategy) {
-          const prevAdx = item.Prev_ADX !== undefined ? item.Prev_ADX : (item.prev_adx !== undefined ? item.prev_adx : null);
-          const prevMdi = item.Prev_Minus_DI !== undefined ? item.Prev_Minus_DI : (item.prev_minus_di !== undefined ? item.prev_minus_di : null);
-          const prevPdi = item.Prev_Plus_DI !== undefined ? item.Prev_Plus_DI : (item.prev_plus_di !== undefined ? item.prev_plus_di : null);
-          const prevRsi = item.Prev_RSI !== undefined ? item.Prev_RSI : (item.prev_rsi !== undefined ? item.prev_rsi : null);
-          const prevBB = item.Prev_BB_Pct !== undefined ? item.Prev_BB_Pct : (item.prev_b_band_pct !== undefined ? item.prev_b_band_pct : null);
-          const prevVR = item.Prev_VolumeRatio !== undefined ? item.Prev_VolumeRatio : (item.prev_volume_ratio !== undefined ? item.prev_volume_ratio : null);
-          const prevClose = item.Prev_ClosePrice !== undefined ? item.Prev_ClosePrice : (item.prev_close !== undefined ? item.prev_close : null);
+          const histRecord = (allHistory || []).find(h => {
+            const hTk = formatTicker(h.Ticker || h.ticker || h.code);
+            const hDt = formatShortDate(h.Date || h.date || h.Timestamp);
+            return hTk === tk && hDt === dt;
+          }) || (allHistory || []).find(h => formatTicker(h.Ticker || h.ticker || h.code) === tk);
+
+          const fullItem = histRecord ? { ...histRecord, ...item } : { ...item };
+
+          const prevAdx = fullItem.prev_ADX !== undefined ? fullItem.prev_ADX : (fullItem.Prev_ADX !== undefined ? fullItem.Prev_ADX : fullItem.prev_adx);
+          const prevMdi = fullItem.prev_Minus_DI !== undefined ? fullItem.prev_Minus_DI : (fullItem.Prev_Minus_DI !== undefined ? fullItem.Prev_Minus_DI : fullItem.prev_minus_di);
+          const prevPdi = fullItem.prev_Plus_DI !== undefined ? fullItem.prev_Plus_DI : (fullItem.Prev_Plus_DI !== undefined ? fullItem.Prev_Plus_DI : fullItem.prev_plus_di);
+          const prevRsi = fullItem.prev_RSI !== undefined ? fullItem.prev_RSI : (fullItem.Prev_RSI !== undefined ? fullItem.Prev_RSI : fullItem.prev_rsi);
+          const prevBB = fullItem.prev_BB_Pct !== undefined ? fullItem.prev_BB_Pct : (fullItem.Prev_BB_Pct !== undefined ? fullItem.Prev_BB_Pct : fullItem.prev_b_band_pct);
+          const prevVR = fullItem.prev_VolumeRatio !== undefined ? fullItem.prev_VolumeRatio : (fullItem.Prev_VolumeRatio !== undefined ? fullItem.Prev_VolumeRatio : fullItem.prev_volume_ratio);
+          const prevClose = fullItem.prev_ClosePrice !== undefined ? fullItem.prev_ClosePrice : (fullItem.Prev_ClosePrice !== undefined ? fullItem.Prev_ClosePrice : fullItem.prev_close);
           const syntheticPrev = {
             ADX: prevAdx, adx: prevAdx,
             Minus_DI: prevMdi, minus_di: prevMdi,
@@ -2403,7 +2416,7 @@
             VolumeRatio: prevVR, volume_ratio: prevVR,
             ClosePrice: prevClose, close: prevClose
           };
-          const histBuyInfo = getMatchedBuyGroupsInfo(activeSlot, item, syntheticPrev);
+          const histBuyInfo = getMatchedBuyGroupsInfo(activeSlot, fullItem, syntheticPrev, { isRecordedBuy: true });
           if (histBuyInfo) {
             reason = histBuyInfo.reason;
           } else {
