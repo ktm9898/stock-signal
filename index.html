@@ -3858,11 +3858,15 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         const vrNum = Number(rawVR);
         const vrColor = (!isNaN(vrNum) && vrNum >= 150) ? 'var(--accent-warning)' : 'inherit';
 
-        const statusText = statusItem ? (statusItem.SignalLevel || statusItem.Status || statusItem.signalLevel || '보유유지') : '보유유지';
+        const rawStatus = String(statusItem ? (statusItem.SignalLevel || statusItem.Status || statusItem.signalLevel || '보유유지') : '보유유지').trim();
+        let statusText = rawStatus;
+        if (statusText.includes('물타기')) {
+          statusText = '물타기';
+        }
         let badgeClass = 'badge-neutral';
         if (statusText.includes('손절매도') || statusText.includes('손절')) badgeClass = 'badge-sell-danger';
         else if (statusText.includes('익절매도') || statusText.includes('익절')) badgeClass = 'badge-t1';
-        else if (statusText.includes('물타기매수') || statusText.includes('물타기')) badgeClass = 'badge-scale-in';
+        else if (statusText === '물타기') badgeClass = 'badge-scale-in';
         else if (statusText.includes('전략매도') || statusText.includes('매도')) badgeClass = 'badge-sell-warn';
         else if (statusText.includes('전략매수') || statusText.includes('매수')) badgeClass = 'badge-t1';
         else { badgeClass = 'badge-neutral'; }
@@ -3878,11 +3882,15 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         const detailsText = statusItem ? (statusItem.Details || statusItem.details || '-') : '-';
         const escapedDetails = String(detailsText).replace(/'/g, "\\'").replace(/"/g, "&quot;");
 
-        const isScaleIn = statusText.includes('물타기');
+        const isScaleIn = (statusText === '물타기');
+        const isKeep = (statusText === '보유유지');
         const hBadgeClick = isScaleIn
           ? `quickRegister('${displayName.replace(/'/g, "\\'")}', '${displayTicker}', ${buyPrice})`
-          : `showDetailsModal('${displayName.replace(/'/g, "\\'")}', '${statusText}', '${escapedDetails}', '${badgeClass}')`;
-        const hBadgeTitle = isScaleIn ? '클릭 시 물타기 체결/평단가 수정' : '클릭 시 감시 사유 확인';
+          : (isKeep ? '' : `showDetailsModal('${displayName.replace(/'/g, "\\'")}', '${statusText}', '${escapedDetails}', '${badgeClass}')`);
+        const hBadgeTitle = isScaleIn 
+          ? '클릭 시 물타기 체결/평단가 수정' 
+          : (isKeep ? '' : '클릭 시 감시 사유 확인');
+        const cursorStyle = isKeep ? 'cursor: default;' : 'cursor: pointer;';
 
         return `
           <tr>
@@ -3898,7 +3906,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
             <td style="text-align:center;"><span style="color: ${bbColor}">${bBandPctStr}</span></td>
             <td style="text-align:center;"><span style="color: ${dispColor}">${dispStr}</span></td>
             <td style="text-align:center;"><span style="color: ${vrColor}">${vrStr}</span></td>
-            <td style="text-align:center;"><span class="badge ${badgeClass}" onclick="${hBadgeClick}" title="${hBadgeTitle}">${statusText}</span></td>
+            <td style="text-align:center;"><span class="badge ${badgeClass}" ${hBadgeClick ? `onclick="${hBadgeClick}"` : ''} ${hBadgeTitle ? `title="${hBadgeTitle}"` : ''} style="${cursorStyle}">${statusText}</span></td>
             <td style="text-align:center;"><button style="background:none; border:none; color:var(--accent-red); cursor:pointer;" onclick="deleteHolding('${rawTicker !== '-' ? rawTicker : rawName}')" title="보유 종목 삭제"><i class="fa-solid fa-trash"></i></button></td>
           </tr>
         `;
