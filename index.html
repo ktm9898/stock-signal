@@ -2742,7 +2742,7 @@
       const lastSyncText = document.getElementById('sync-time')?.textContent?.replace('최근 갱신: ', '').trim() || '';
       renderBuyCandidates(uniqueBuyList, lastSyncText);
       renderHoldings(holdingsData, allHistory, evaluatedHoldingsStatus);
-      renderSellSignals(uniqueSellList, allHistory);
+      renderSellSignals(uniqueSellList);
       renderAllStocks(dynamicKospi);
       renderKosdaqStocks(dynamicKosdaq);
 
@@ -3905,7 +3905,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       }).join('');
     }
 
-    function renderSellSignals(list, metricsList = []) {
+    function renderSellSignals(list) {
       const tbody = document.getElementById('sell-signals-body');
       if (!tbody) return;
       if (!list || list.length === 0) {
@@ -3967,25 +3967,11 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           else if (bBandPctVal >= 1.0) bbColor = '#f87171';
         }
 
-        let rawDisparity = (item.Disparity20 !== undefined && item.Disparity20 !== null && item.Disparity20 !== '' && item.Disparity20 !== '-') 
+        const rawDisparity = (item.Disparity20 !== undefined && item.Disparity20 !== null && item.Disparity20 !== '' && item.Disparity20 !== '-') 
           ? item.Disparity20 
           : (item.disparity20 !== undefined && item.disparity20 !== null && item.disparity20 !== '' && item.disparity20 !== '-'
             ? item.disparity20 
-            : (item['이격도'] || item.Disparity || item.disparity || item.prev_Disparity20 || item.prev_disparity20));
-
-        // Fallback: If disparity is missing/blank from sheet record, enrich from full metrics history!
-        if (rawDisparity === undefined || rawDisparity === null || rawDisparity === '' || rawDisparity === '-' || isNaN(Number(rawDisparity))) {
-          const fallbackMetrics = (metricsList && metricsList.length > 0) ? metricsList : (window.latestMetricsCacheData || allMetricsData || []);
-          const matchedMetric = fallbackMetrics.find(m => {
-            const mTk = formatTicker(m.Ticker || m.ticker || m.code);
-            const mName = String(m.Name || m.name || '').trim();
-            const sName = String(item.Name || item.name || '').trim();
-            return (ticker && ticker !== '-' && mTk === ticker) || (sName && mName === sName);
-          });
-          if (matchedMetric) {
-            rawDisparity = matchedMetric.Disparity20 !== undefined ? matchedMetric.Disparity20 : (matchedMetric.disparity20 !== undefined ? matchedMetric.disparity20 : (matchedMetric['이격도'] || matchedMetric.prev_Disparity20));
-          }
-        }
+            : (item['이격도'] || item.Disparity || item.disparity));
 
         const dispVal = (rawDisparity !== undefined && rawDisparity !== null && rawDisparity !== '' && !isNaN(Number(rawDisparity))) ? Number(rawDisparity) : NaN;
         const dispStr = !isNaN(dispVal) ? formatDec(dispVal, 1) + '%' : '-';
