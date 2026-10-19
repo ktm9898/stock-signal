@@ -2575,6 +2575,7 @@
               RSI: metric ? (metric.RSI || metric.rsi) : '-',
               b_band_pct: metric ? (metric.b_band_pct !== undefined ? metric.b_band_pct : (metric.BB_Pct !== undefined ? metric.BB_Pct : metric['BB_%b'])) : '-',
               VolumeRatio: metric ? (metric.VolumeRatio !== undefined ? metric.VolumeRatio : (metric.volume_ratio !== undefined ? metric.volume_ratio : '-')) : '-',
+              Disparity20: metric ? (metric.Disparity20 !== undefined ? metric.Disparity20 : (metric.disparity20 !== undefined ? metric.disparity20 : '-')) : '-',
               ClosePrice: currPrice,
               Reason: signalReason
             });
@@ -2592,6 +2593,7 @@
           Plus_DI: metric ? (metric.Plus_DI || metric.plus_di) : '-',
           RSI: metric ? (metric.RSI || metric.rsi) : '-',
           b_band_pct: metric ? (metric.b_band_pct !== undefined ? metric.b_band_pct : (metric.BB_Pct !== undefined ? metric.BB_Pct : metric['BB_%b'])) : '-',
+          Disparity20: metric ? (metric.Disparity20 !== undefined ? metric.Disparity20 : (metric.disparity20 !== undefined ? metric.disparity20 : '-')) : '-',
           VolumeRatio: metric ? (metric.VolumeRatio !== undefined ? metric.VolumeRatio : (metric.volume_ratio !== undefined ? metric.volume_ratio : '-')) : '-',
           SignalLevel: signalLevel,
           Status: signalLevel,
@@ -2613,6 +2615,7 @@
             Plus_DI: metric ? (metric.Plus_DI || metric.plus_di) : '-',
             RSI: metric ? (metric.RSI || metric.rsi) : '-',
             b_band_pct: metric ? (metric.b_band_pct !== undefined ? metric.b_band_pct : (metric.BB_Pct !== undefined ? metric.BB_Pct : metric['BB_%b'])) : '-',
+            Disparity20: metric ? (metric.Disparity20 !== undefined ? metric.Disparity20 : (metric.disparity20 !== undefined ? metric.disparity20 : '-')) : '-',
             VolumeRatio: metric ? (metric.VolumeRatio !== undefined ? metric.VolumeRatio : (metric.volume_ratio !== undefined ? metric.volume_ratio : '-')) : '-',
             SignalLevel: signalLevel,
             Status: signalLevel,
@@ -2629,7 +2632,23 @@
       });
       evaluatedSellSignals.forEach(item => {
         const tk = formatTicker(item.Ticker || item.ticker || item.code);
-        combinedSellMap.set(tk, item);
+        const existing = combinedSellMap.get(tk);
+        if (existing) {
+          // Merge so we DO NOT lose Google Sheets recorded data (like Date, Disparity20, etc.)
+          const mergedDisp = (existing.Disparity20 !== undefined && existing.Disparity20 !== null && existing.Disparity20 !== '' && existing.Disparity20 !== '-')
+            ? existing.Disparity20
+            : ((existing.disparity20 !== undefined && existing.disparity20 !== null && existing.disparity20 !== '' && existing.disparity20 !== '-')
+              ? existing.disparity20
+              : item.Disparity20);
+          combinedSellMap.set(tk, {
+            ...existing,
+            ...item,
+            Date: existing.Date || item.Date,
+            Disparity20: mergedDisp
+          });
+        } else {
+          combinedSellMap.set(tk, item);
+        }
       });
       const finalSellList = Array.from(combinedSellMap.values());
 
@@ -2723,7 +2742,7 @@
       const lastSyncText = document.getElementById('sync-time')?.textContent?.replace('최근 갱신: ', '').trim() || '';
       renderBuyCandidates(uniqueBuyList, lastSyncText);
       renderHoldings(holdingsData, allHistory, evaluatedHoldingsStatus);
-      renderSellSignals(uniqueSellList);
+      renderSellSignals(uniqueSellList, allHistory);
       renderAllStocks(dynamicKospi);
       renderKosdaqStocks(dynamicKosdaq);
 
@@ -3886,7 +3905,7 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
       }).join('');
     }
 
-    function renderSellSignals(list) {
+    function renderSellSignals(list, metricsList = []) {
       const tbody = document.getElementById('sell-signals-body');
       if (!tbody) return;
       if (!list || list.length === 0) {
@@ -3948,7 +3967,26 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
           else if (bBandPctVal >= 1.0) bbColor = '#f87171';
         }
 
-        const rawDisparity = (item.Disparity20 !== undefined ? item.Disparity20 : (item.disparity20 !== undefined ? item.disparity20 : (item.prev_Disparity20 || item.prev_disparity20)));
+        let rawDisparity = (item.Disparity20 !== undefined && item.Disparity20 !== null && item.Disparity20 !== '' && item.Disparity20 !== '-') 
+          ? item.Disparity20 
+          : (item.disparity20 !== undefined && item.disparity20 !== null && item.disparity20 !== '' && item.disparity20 !== '-'
+            ? item.disparity20 
+            : (item['이격도'] || item.Disparity || item.disparity || item.prev_Disparity20 || item.prev_disparity20));
+
+        // Fallback: If disparity is missing/blank from sheet record, enrich from full metrics history!
+        if (rawDisparity === undefined || rawDisparity === null || rawDisparity === '' || rawDisparity === '-' || isNaN(Number(rawDisparity))) {
+          const fallbackMetrics = (metricsList && metricsList.length > 0) ? metricsList : (window.latestMetricsCacheData || allMetricsData || []);
+          const matchedMetric = fallbackMetrics.find(m => {
+            const mTk = formatTicker(m.Ticker || m.ticker || m.code);
+            const mName = String(m.Name || m.name || '').trim();
+            const sName = String(item.Name || item.name || '').trim();
+            return (ticker && ticker !== '-' && mTk === ticker) || (sName && mName === sName);
+          });
+          if (matchedMetric) {
+            rawDisparity = matchedMetric.Disparity20 !== undefined ? matchedMetric.Disparity20 : (matchedMetric.disparity20 !== undefined ? matchedMetric.disparity20 : (matchedMetric['이격도'] || matchedMetric.prev_Disparity20));
+          }
+        }
+
         const dispVal = (rawDisparity !== undefined && rawDisparity !== null && rawDisparity !== '' && !isNaN(Number(rawDisparity))) ? Number(rawDisparity) : NaN;
         const dispStr = !isNaN(dispVal) ? formatDec(dispVal, 1) + '%' : '-';
         let dispColor = 'inherit';
