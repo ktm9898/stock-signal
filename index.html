@@ -2143,17 +2143,19 @@
         case 'lt_value':
           return currVal <= (ruleVal + margin);
         case 'cross_above_value':
-          return currVal >= (ruleVal - margin);
+          return (ruleVal - margin) <= currVal && currVal <= ruleVal;
         case 'cross_below_value':
-          return currVal <= (ruleVal + margin);
+          return ruleVal <= currVal && currVal <= (ruleVal + margin);
         case 'cross_above_indicator':
           if (!isNaN(targetVal)) {
-            return (currVal > targetVal) || ((targetVal - currVal) <= margin);
+            const diff = targetVal - currVal;
+            return (0 <= diff && diff <= margin);
           }
           return false;
         case 'cross_below_indicator':
           if (!isNaN(targetVal)) {
-            return (currVal < targetVal) || ((currVal - targetVal) <= margin);
+            const diff = currVal - targetVal;
+            return (0 <= diff && diff <= margin);
           }
           return false;
         case 'turn_up':

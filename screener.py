@@ -589,16 +589,18 @@ def check_single_rule_near(rule, df, buy_price=None):
     elif cond in ('lte_value', 'lt_value'):
         return curr_val <= (rule_val + margin)
     elif cond == 'cross_above_value':
-        return curr_val >= (rule_val - margin)
+        return (rule_val - margin) <= curr_val <= rule_val
     elif cond == 'cross_below_value':
-        return curr_val <= (rule_val + margin)
+        return rule_val <= curr_val <= (rule_val + margin)
     elif cond == 'cross_above_indicator':
         if not np.isnan(target_val):
-            return (curr_val > target_val) or ((target_val - curr_val) <= margin)
+            diff = target_val - curr_val
+            return (0 <= diff <= margin)
         return False
     elif cond == 'cross_below_indicator':
         if not np.isnan(target_val):
-            return (curr_val < target_val) or ((curr_val - target_val) <= margin)
+            diff = curr_val - target_val
+            return (0 <= diff <= margin)
         return False
     elif cond == 'turn_up':
         return curr_val >= -0.5
