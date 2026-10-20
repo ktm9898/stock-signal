@@ -1419,6 +1419,7 @@
 
   </div>
 
+  <script src="data/meta_lgbm_runtime.js"></script>
   <script>
     let REAL_PRELOADED_DATA = {};
     let LOADED_CHUNKS = { '2016_2020': false, '2021_2025': false, '2026_current': false };
@@ -3923,13 +3924,26 @@
       const prInd = priorityIndicator || "";
       const prOrd = priorityOrder || "DESC";
 
-      function getIndicatorValue(item, ind) {
+      function getIndicatorValue(item, ind, stock, rowIdx, concurrentCount) {
         if (!item) return 0;
         const ind_lower = String(ind).toLowerCase();
         if (ind_lower === 'ai_prob' || ind_lower === 'ai_win_prob' || ind_lower === 'aiprob' || ind_lower === 'ai_score') {
           if (item.ai_prob !== undefined && item.ai_prob !== null) return Number(item.ai_prob);
           if (item.ai_win_prob !== undefined && item.ai_win_prob !== null) return Number(item.ai_win_prob);
           if (item.AI_Prob !== undefined && item.AI_Prob !== null) return Number(item.AI_Prob);
+
+          // Real LightGBM Meta-Model In-Browser Runtime
+          if (typeof LGBMMetaModel !== 'undefined' && stock && stock.rows && rowIdx !== undefined && rowIdx >= 0) {
+            try {
+              const idxRows = (stock.market === 'KOSDAQ150') ? kosdaqIndexRows : kospiIndexRows;
+              const aiScore = LGBMMetaModel.computeScore(stock, rowIdx, idxRows, concurrentCount);
+              if (!isNaN(aiScore) && aiScore > 0) {
+                return aiScore;
+              }
+            } catch (e) {
+              console.warn("LGBMMetaModel computation fallback:", e);
+            }
+          }
 
           const rawBB = Number(item.b_band_pct !== undefined ? item.b_band_pct : (item.bb_pct !== undefined ? item.bb_pct : 0.2));
           const disp = Number(item.disparity20 !== undefined ? item.disparity20 : 95);
@@ -4024,6 +4038,12 @@
         });
       });
 
+      // Prepare benchmark index rows for in-browser AI Meta-Model
+      const rawK = REAL_PRELOADED_DATA['069500'] || REAL_PRELOADED_DATA['KOSPI'] || [];
+      const rawKq = REAL_PRELOADED_DATA['229200'] || REAL_PRELOADED_DATA['KOSDAQ'] || [];
+      const kospiIndexRows = ensureIndicators(rawK);
+      const kosdaqIndexRows = ensureIndicators(rawKq);
+
       const sortedDates = Array.from(allDatesSet).sort();
 
       // Track active positions: ticker -> position
@@ -4083,6 +4103,7 @@
               ticker: s.ticker,
               name: s.name,
               market: s.market,
+              aiScore: pos.aiScore,
               signalDate: pos.entrySignalDate,
               entryDate: pos.entryDate,
               entryPrice: Math.round(pos.initialBuyPrice),
@@ -4145,16 +4166,22 @@
             newBuys.push({
               stock: s,
               row: currRow,
-              nextRow: nextRow
+              nextRow: nextRow,
+              rowIdx: sRowIdx
             });
           }
         });
 
         if (newBuys.length > 0) {
+          // Pre-compute AI score for each buy candidate using LightGBM runtime
+          newBuys.forEach(b => {
+            b.aiScore = getIndicatorValue(b.row, 'ai_prob', b.stock, b.rowIdx, newBuys.length);
+          });
+
           // 1. Cutoff score filtering (커트라인)
           if (cutoffVal !== null && cutoffVal > 0) {
             newBuys = newBuys.filter(b => {
-              const score = getIndicatorValue(b.row, 'ai_prob');
+              const score = (b.aiScore !== undefined) ? b.aiScore : getIndicatorValue(b.row, 'ai_prob', b.stock, b.rowIdx, newBuys.length);
               return score >= cutoffVal;
             });
           }
@@ -4162,9 +4189,10 @@
           // 2. Sort new buys by priority indicator if priority indicator is set
           if (prInd && newBuys.length > 0) {
             const sortOrd = prOrd;
+            const isAiPri = ['ai_prob', 'ai_win_prob', 'aiprob', 'ai_score'].includes(prInd.toLowerCase());
             newBuys.sort((a, b) => {
-              const valA = getIndicatorValue(a.row, prInd);
-              const valB = getIndicatorValue(b.row, prInd);
+              const valA = isAiPri ? a.aiScore : getIndicatorValue(a.row, prInd, a.stock, a.rowIdx, newBuys.length);
+              const valB = isAiPri ? b.aiScore : getIndicatorValue(b.row, prInd, b.stock, b.rowIdx, newBuys.length);
               return sortOrd === 'DESC' ? valB - valA : valA - valB;
             });
           }
@@ -4180,6 +4208,7 @@
               ticker: s.ticker,
               name: s.name,
               market: s.market,
+              aiScore: item.aiScore,
               entrySignalDate: item.row.date,
               entryDate: item.nextRow.date,
               initialBuyPrice: initialBuyPrice,
@@ -4212,6 +4241,7 @@
           ticker: s.ticker,
           name: s.name,
           market: s.market,
+          aiScore: pos.aiScore,
           signalDate: pos.entrySignalDate,
           entryDate: pos.entryDate,
           entryPrice: Math.round(pos.initialBuyPrice),
