@@ -1110,6 +1110,19 @@ if __name__ == "__main__":
                 if buy_item:
                     buy_candidates.append(buy_item)
 
+    # Ensure Benchmark Indices (069500: KODEX 200, 229200: KODEX 코스닥150) are loaded in stock_df_map for AI relative features
+    for idx_ticker, idx_name in [('069500', 'KODEX 200'), ('229200', 'KODEX 코스닥150')]:
+        if idx_ticker not in stock_df_map:
+            try:
+                df_idx = get_ohlcv_data(idx_ticker, start_date, end_date)
+                df_idx = check_and_trim_incomplete_candle(df_idx)
+                if df_idx is not None and len(df_idx) >= 25:
+                    df_idx = calculate_indicators(df_idx)
+                    stock_df_map[idx_ticker] = (df_idx, idx_name)
+                    print(f" [INFO] Loaded Benchmark Index {idx_name} ({idx_ticker}) for AI Relative Metrics.")
+            except Exception as e:
+                print(f" [WARN] Failed loading Benchmark Index {idx_ticker}: {e}")
+
     # Calculate AI Win Probability for all Buy Candidates using pre-trained LightGBM model
     model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "meta_lgbm_model.pkl")
     if not os.path.exists(model_path):
