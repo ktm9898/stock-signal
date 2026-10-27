@@ -340,7 +340,7 @@ function doPost(e) {
         const stageColIdx = headers.indexOf("Stage") >= 0 ? headers.indexOf("Stage") : 3;
         const dateColIdx = headers.indexOf("Date") >= 0 ? headers.indexOf("Date") : 0;
         const closeColIdx = headers.indexOf("ClosePrice") >= 0 ? headers.indexOf("ClosePrice") : (lastCol >= 15 ? 14 : 12);
-        const adxColIdx = headers.indexOf("ADX") >= 0 ? headers.indexOf("ADX") : (lastCol >= 15 ? 5 : 4);
+        const vrColIdx = headers.indexOf("VolumeRatio") >= 0 ? headers.indexOf("VolumeRatio") : (headers.indexOf("volume_ratio") >= 0 ? headers.indexOf("volume_ratio") : (lastCol >= 15 ? 13 : 11));
         const existingRows = lastRow > 1 ? buySheet.getRange(2, 1, lastRow - 1, lastCol).getValues() : [];
         
         // Map currently active holdings' DateAdded by ticker
@@ -378,13 +378,17 @@ function doPost(e) {
                 exists = true;
                 break;
               }
-              // 2) Cross-day identical indicators/price check (same unupdated candle state)
+              // 2) Cross-day identical candle check (same unupdated candle state: both Close and VolumeRatio identical)
               const cleanRowClose = Number(String(existingRows[i][closeColIdx] !== undefined ? existingRows[i][closeColIdx] : "").replace(/[^0-9.-]/g, ""));
               const cleanCandClose = Number(String(c.close).replace(/[^0-9.-]/g, ""));
-              const rowAdx = Number(existingRows[i][adxColIdx]);
-              const candAdx = Number(c.adx);
+              const rowVR = Number(String(existingRows[i][vrColIdx] !== undefined ? existingRows[i][vrColIdx] : "").replace(/[^0-9.-]/g, ""));
+              const rawCandVR = c.volume_ratio !== undefined ? c.volume_ratio : (c.VolumeRatio !== undefined ? c.VolumeRatio : NaN);
+              const candVR = Number(rawCandVR);
 
-              if (!isNaN(cleanRowClose) && !isNaN(cleanCandClose) && cleanRowClose > 0 && cleanRowClose === cleanCandClose) {
+              const isSameClose = (!isNaN(cleanRowClose) && !isNaN(cleanCandClose) && cleanRowClose > 0 && cleanRowClose === cleanCandClose);
+              const isSameVR = (!isNaN(rowVR) && !isNaN(candVR) && Math.abs(rowVR - candVR) < 0.1);
+
+              if (isSameClose && isSameVR) {
                 exists = true;
                 break;
               }
