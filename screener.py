@@ -491,9 +491,9 @@ def check_single_rule(rule, df, buy_price=None):
     elif cond == 'lt_value':
         return curr_val < rule_val
     elif cond == 'cross_above_value':
-        return not np.isnan(prev_val) and prev_val <= rule_val and curr_val > rule_val
+        return not np.isnan(prev_val) and prev_val < rule_val and curr_val >= rule_val
     elif cond == 'cross_below_value':
-        return not np.isnan(prev_val) and prev_val >= rule_val and curr_val < rule_val
+        return not np.isnan(prev_val) and prev_val > rule_val and curr_val <= rule_val
     elif cond == 'turn_up':
         return not np.isnan(prev_val) and prev_val <= 0 and curr_val > 0
     elif cond == 'turn_down':
@@ -507,9 +507,9 @@ def check_single_rule(rule, df, buy_price=None):
     elif cond == 'lte_indicator':
         return curr_val <= target_val
     elif cond == 'cross_above_indicator':
-        return not np.isnan(prev_val) and not np.isnan(prev_target_val) and prev_val <= prev_target_val and curr_val > target_val
+        return not np.isnan(prev_val) and not np.isnan(prev_target_val) and prev_val < prev_target_val and curr_val >= target_val
     elif cond == 'cross_below_indicator':
-        return not np.isnan(prev_val) and not np.isnan(prev_target_val) and prev_val >= prev_target_val and curr_val < target_val
+        return not np.isnan(prev_val) and not np.isnan(prev_target_val) and prev_val > prev_target_val and curr_val <= target_val
     return False
 
 def check_group_match(group, df, buy_price=None):

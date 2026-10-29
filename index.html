@@ -2083,15 +2083,15 @@
 
       const prevVal = prevRow ? getIndicatorValue(ind, prevRow) : NaN;
       const targetVal = targetInd ? getIndicatorValue(targetInd, row) : ruleVal;
-      const prevTargetVal = (targetInd && prevRow) ? getIndicatorValue(targetInd, prevRow) : ruleVal;
+      const prevTargetVal = targetInd ? (prevRow ? getIndicatorValue(targetInd, prevRow) : NaN) : ruleVal;
 
       switch (cond) {
         case 'gte_value': return currVal >= ruleVal;
         case 'lte_value': return currVal <= ruleVal;
         case 'gt_value': return currVal > ruleVal;
         case 'lt_value': return currVal < ruleVal;
-        case 'cross_above_value': return !isNaN(prevVal) && prevVal <= ruleVal && currVal > ruleVal;
-        case 'cross_below_value': return !isNaN(prevVal) && prevVal >= ruleVal && currVal < ruleVal;
+        case 'cross_above_value': return !isNaN(prevVal) && prevVal < ruleVal && currVal >= ruleVal;
+        case 'cross_below_value': return !isNaN(prevVal) && prevVal > ruleVal && currVal <= ruleVal;
         case 'turn_up': return !isNaN(prevVal) && prevVal <= 0 && currVal > 0;
         case 'turn_down': return !isNaN(prevVal) && prevVal >= 0 && currVal < 0;
         case 'gt_indicator': return !isNaN(targetVal) && currVal > targetVal;
@@ -2100,10 +2100,10 @@
         case 'lte_indicator': return !isNaN(targetVal) && currVal <= targetVal;
         case 'cross_above_indicator':
           if (extraCtx && extraCtx.isRecordedBuy && !isNaN(targetVal) && currVal >= targetVal) return true;
-          return !isNaN(targetVal) && !isNaN(prevVal) && !isNaN(prevTargetVal) && (prevVal <= prevTargetVal && currVal > targetVal);
+          return !isNaN(targetVal) && !isNaN(prevVal) && !isNaN(prevTargetVal) && (prevVal < prevTargetVal && currVal >= targetVal);
         case 'cross_below_indicator':
           if (extraCtx && extraCtx.isRecordedBuy && !isNaN(targetVal) && currVal <= targetVal) return true;
-          return !isNaN(targetVal) && !isNaN(prevVal) && !isNaN(prevTargetVal) && (prevVal >= prevTargetVal && currVal < targetVal);
+          return !isNaN(targetVal) && !isNaN(prevVal) && !isNaN(prevTargetVal) && (prevVal > prevTargetVal && currVal <= targetVal);
         default: return false;
       }
     }
