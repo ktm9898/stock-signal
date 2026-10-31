@@ -15,6 +15,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap"
     rel="stylesheet">
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
   <!-- Chart.js -->
@@ -2364,14 +2365,6 @@
         const cutoffScoreVal = document.getElementById('opt-cutoff-score')?.value ? parseFloat(document.getElementById('opt-cutoff-score').value) : null;
         const maxBuyCountVal = document.getElementById('opt-max-buy-count')?.value ? parseInt(document.getElementById('opt-max-buy-count').value, 10) : null;
 
-        console.log("%c[백테스트 시작 파라미터]", "color:#2563eb; font-weight:bold; font-size:12px;", {
-          "우선순위지표": priorityIndicatorVal || "(미설정)",
-          "정렬순서": priorityOrderVal,
-          "시작일": startDateStr,
-          "종료일": endDateStr,
-          "최대매수": maxBuyCountVal
-        });
-
         const allExecutedTrades = simulateTradesForRules(
           currentBuyGroups,
           currentSellGroups,
@@ -4207,11 +4200,6 @@
             b.aiScore = getIndicatorValue(b.row, 'ai_prob', b.stock, b.rowIdx, newBuys.length);
           });
 
-          if (currDateStr === '2026-10-28') {
-            const listStr = newBuys.map(b => `${b.stock.name}(${b.stock.ticker}): ${b.aiScore}점`).join(' | ');
-            console.log("%c[2026-10-28 후보 전수 (정렬 전)] " + listStr, "color:#d97706; font-weight:bold;");
-          }
-
           // 1. Cutoff score filtering (커트라인)
           if (cutoffVal !== null && cutoffVal > 0) {
             newBuys = newBuys.filter(b => {
@@ -4231,11 +4219,6 @@
             });
           }
 
-          if (currDateStr === '2026-10-28') {
-            const chosen = newBuys.slice(0, maxBuys || 2);
-            const chosenStr = chosen.map((b, i) => `${i + 1}위: ${b.stock.name}(${b.stock.ticker}) [${b.aiScore}점]`).join(', ');
-            console.log("%c[2026-10-28 최종 선정 2개] " + chosenStr, "color:#059669; font-weight:bold; font-size:12px;");
-          }
           if (maxBuys !== null && maxBuys > 0 && newBuys.length > maxBuys) {
             newBuys.splice(maxBuys);
           }
