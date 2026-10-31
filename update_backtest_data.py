@@ -128,7 +128,7 @@ def sync_current_year_chunk():
     kospi_items = get_kospi200_tickers()[:200]
     kosdaq_items = get_kosdaq150_tickers()[:150]
     all_target_stocks = kospi_items + kosdaq_items
-    all_symbols = [s['ticker'] for s in all_target_stocks] + ["KOSPI", "KOSDAQ"]
+    all_symbols = [s['ticker'] for s in all_target_stocks] + ["KOSPI", "KOSDAQ", "069500", "229200"]
 
     # 1. Update stocks_350.json
     try:
