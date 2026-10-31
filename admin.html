@@ -4066,9 +4066,9 @@
         });
       });
 
-      // Prepare benchmark index rows for in-browser AI Meta-Model
-      const rawK = REAL_PRELOADED_DATA['069500'] || REAL_PRELOADED_DATA['KOSPI'] || [];
-      const rawKq = REAL_PRELOADED_DATA['229200'] || REAL_PRELOADED_DATA['KOSDAQ'] || [];
+      // Prepare benchmark index rows for in-browser AI Meta-Model (Strict 069500 / 229200 ETF benchmarks)
+      const rawK = REAL_PRELOADED_DATA['069500'] || [];
+      const rawKq = REAL_PRELOADED_DATA['229200'] || [];
       const kospiIndexRows = ensureIndicators(rawK);
       const kosdaqIndexRows = ensureIndicators(rawKq);
 
