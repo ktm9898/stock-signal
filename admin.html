@@ -2355,8 +2355,11 @@
         window.IS_COMPARE_MODE = false;
         document.getElementById('kpi-single-grid').style.display = 'grid';
         document.getElementById('kpi-compare-grid').style.display = 'none';
-
-        const priorityIndicatorVal = document.getElementById('opt-priority-indicator')?.value || "";
+        let priorityIndicatorVal = document.getElementById('opt-priority-indicator')?.value || "";
+        const pLower = String(priorityIndicatorVal).toLowerCase().trim();
+        if (pLower === 'ai 점수' || pLower === 'ai' || pLower === 'ai_score' || pLower === 'ai_win_prob' || pLower === 'aiprob') {
+          priorityIndicatorVal = 'ai_prob';
+        }
         const priorityOrderVal = document.getElementById('opt-priority-order')?.value || "DESC";
         const cutoffScoreVal = document.getElementById('opt-cutoff-score')?.value ? parseFloat(document.getElementById('opt-cutoff-score').value) : null;
         const maxBuyCountVal = document.getElementById('opt-max-buy-count')?.value ? parseInt(document.getElementById('opt-max-buy-count').value, 10) : null;
@@ -3602,7 +3605,24 @@
         document.getElementById('opt-initial-capital').value = slot.tradeAmount;
       }
       if (document.getElementById('opt-priority-indicator')) {
-        document.getElementById('opt-priority-indicator').value = slot.priorityIndicator || "";
+        let pInd = slot.priorityIndicator || "";
+        const pLower = String(pInd).toLowerCase().trim();
+        if (pLower === 'ai 점수' || pLower === 'ai' || pLower === 'ai_score' || pLower === 'ai_win_prob' || pLower === 'aiprob') {
+          pInd = 'ai_prob';
+        } else if (pLower === '볼린저 %b' || pLower === '볼린저밴드' || pLower === 'b_band_pct') {
+          pInd = 'bb_pct';
+        } else if (pLower === '이격도') {
+          pInd = 'disparity20';
+        } else if (pLower === '거래량비율' || pLower === 'vr') {
+          pInd = 'volume_ratio';
+        } else if (pLower === 'macd 오실레이터') {
+          pInd = 'macd_osc';
+        } else if (pLower === '스토캐스틱 %k') {
+          pInd = 'stoch_k';
+        } else if (pLower === '스토캐스틱 %d') {
+          pInd = 'stoch_d';
+        }
+        document.getElementById('opt-priority-indicator').value = pInd;
       }
       if (document.getElementById('opt-priority-order')) {
         document.getElementById('opt-priority-order').value = slot.priorityOrder || "DESC";
@@ -3926,8 +3946,8 @@
 
       function getIndicatorValue(item, ind, stock, rowIdx, concurrentCount) {
         if (!item) return 0;
-        const ind_lower = String(ind).toLowerCase();
-        if (ind_lower === 'ai_prob' || ind_lower === 'ai_win_prob' || ind_lower === 'aiprob' || ind_lower === 'ai_score') {
+        const ind_lower = String(ind).toLowerCase().trim();
+        if (ind_lower === 'ai_prob' || ind_lower === 'ai_win_prob' || ind_lower === 'aiprob' || ind_lower === 'ai_score' || ind_lower === 'ai 점수' || ind_lower === 'ai') {
           if (item.ai_prob !== undefined && item.ai_prob !== null) return Number(item.ai_prob);
           if (item.ai_win_prob !== undefined && item.ai_win_prob !== null) return Number(item.ai_win_prob);
           if (item.AI_Prob !== undefined && item.AI_Prob !== null) return Number(item.AI_Prob);
@@ -4189,7 +4209,7 @@
           // 2. Sort new buys by priority indicator if priority indicator is set
           if (prInd && newBuys.length > 0) {
             const sortOrd = prOrd;
-            const isAiPri = ['ai_prob', 'ai_win_prob', 'aiprob', 'ai_score'].includes(prInd.toLowerCase());
+            const isAiPri = ['ai_prob', 'ai_win_prob', 'aiprob', 'ai_score', 'ai 점수', 'ai'].includes(prInd.toLowerCase().trim());
             newBuys.sort((a, b) => {
               const valA = isAiPri ? a.aiScore : getIndicatorValue(a.row, prInd, a.stock, a.rowIdx, newBuys.length);
               const valB = isAiPri ? b.aiScore : getIndicatorValue(b.row, prInd, b.stock, b.rowIdx, newBuys.length);
