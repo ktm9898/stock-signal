@@ -82,7 +82,9 @@
     }
 
     const curr = stock.rows[rowIdx];
-    const sStats = calculateHistoricalStats(stock.rows, rowIdx);
+    const histRows = stock.allRows || stock.rows;
+    const histIdx = stock.allRows ? histRows.findIndex(r => r.date === curr.date) : rowIdx;
+    const sStats = calculateHistoricalStats(histRows, histIdx >= 0 ? histIdx : rowIdx);
 
     // Find matching index row by date
     let iCurr = null;
@@ -106,7 +108,7 @@
     const stockPlusDi = Number(curr.plus_di !== undefined ? curr.plus_di : 20.0);
     const stockMacdOsc = Number(curr.macd_osc !== undefined ? curr.macd_osc : 0.0);
     const stockStochK = Number(curr.stoch_k !== undefined ? curr.stoch_k : 50.0);
-    const stockStochD = Number(curr.stoch_d !== undefined ? curr.stoch_d : 50.0);
+    const stockStochD = Number(curr.stoch_d !== undefined ? curr.stoch_d : stockStochK);
 
     const idxRsi = iCurr ? Number(iCurr.rsi !== undefined ? iCurr.rsi : 50.0) : 50.0;
     const idxBbPct = iCurr ? Number(iCurr.bb_pct !== undefined ? iCurr.bb_pct : (iCurr.b_band_pct !== undefined ? iCurr.b_band_pct : 0.5)) : 0.5;
