@@ -4207,11 +4207,8 @@
           });
 
           if (currDateStr === '2026-10-28') {
-            console.log("%c[2026-10-28 신호 포착 후보 목록 (정렬 전)]", "color:#d97706; font-weight:bold;", newBuys.map(b => ({
-              종목: b.stock.name,
-              코드: b.stock.ticker,
-              AI점수: b.aiScore
-            })));
+            const listStr = newBuys.map(b => `${b.stock.name}(${b.stock.ticker}): ${b.aiScore}점`).join(' | ');
+            console.log("%c[2026-10-28 후보 전수 (정렬 전)] " + listStr, "color:#d97706; font-weight:bold;");
           }
 
           // 1. Cutoff score filtering (커트라인)
@@ -4234,11 +4231,9 @@
           }
 
           if (currDateStr === '2026-10-28') {
-            console.log("%c[2026-10-28 최종 상위 매수 선정 종목]", "color:#059669; font-weight:bold;", newBuys.slice(0, maxBuys || 2).map(b => ({
-              종목: b.stock.name,
-              코드: b.stock.ticker,
-              AI점수: b.aiScore
-            })));
+            const chosen = newBuys.slice(0, maxBuys || 2);
+            const chosenStr = chosen.map((b, i) => `${i + 1}위: ${b.stock.name}(${b.stock.ticker}) [${b.aiScore}점]`).join(', ');
+            console.log("%c[2026-10-28 최종 선정 2개] " + chosenStr, "color:#059669; font-weight:bold; font-size:12px;");
           }
           if (maxBuys !== null && maxBuys > 0 && newBuys.length > maxBuys) {
             newBuys.splice(maxBuys);
