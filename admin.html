@@ -2364,6 +2364,14 @@
         const cutoffScoreVal = document.getElementById('opt-cutoff-score')?.value ? parseFloat(document.getElementById('opt-cutoff-score').value) : null;
         const maxBuyCountVal = document.getElementById('opt-max-buy-count')?.value ? parseInt(document.getElementById('opt-max-buy-count').value, 10) : null;
 
+        console.log("%c[백테스트 시작 파라미터]", "color:#2563eb; font-weight:bold; font-size:12px;", {
+          "우선순위지표": priorityIndicatorVal || "(미설정)",
+          "정렬순서": priorityOrderVal,
+          "시작일": startDateStr,
+          "종료일": endDateStr,
+          "최대매수": maxBuyCountVal
+        });
+
         const allExecutedTrades = simulateTradesForRules(
           currentBuyGroups,
           currentSellGroups,
@@ -4198,6 +4206,14 @@
             b.aiScore = getIndicatorValue(b.row, 'ai_prob', b.stock, b.rowIdx, newBuys.length);
           });
 
+          if (currDateStr === '2026-10-28') {
+            console.log("%c[2026-10-28 신호 포착 후보 목록 (정렬 전)]", "color:#d97706; font-weight:bold;", newBuys.map(b => ({
+              종목: b.stock.name,
+              코드: b.stock.ticker,
+              AI점수: b.aiScore
+            })));
+          }
+
           // 1. Cutoff score filtering (커트라인)
           if (cutoffVal !== null && cutoffVal > 0) {
             newBuys = newBuys.filter(b => {
@@ -4215,6 +4231,14 @@
               const valB = isAiPri ? b.aiScore : getIndicatorValue(b.row, prInd, b.stock, b.rowIdx, newBuys.length);
               return sortOrd === 'DESC' ? valB - valA : valA - valB;
             });
+          }
+
+          if (currDateStr === '2026-10-28') {
+            console.log("%c[2026-10-28 최종 상위 매수 선정 종목]", "color:#059669; font-weight:bold;", newBuys.slice(0, maxBuys || 2).map(b => ({
+              종목: b.stock.name,
+              코드: b.stock.ticker,
+              AI점수: b.aiScore
+            })));
           }
           if (maxBuys !== null && maxBuys > 0 && newBuys.length > maxBuys) {
             newBuys.splice(maxBuys);
