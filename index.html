@@ -2401,36 +2401,30 @@
         if (!reason && isScaleIn) {
           const scaleDrop = (activeSlot && activeSlot.scaleInDrop !== null && activeSlot.scaleInDrop !== undefined && activeSlot.scaleInDrop !== '') ? Math.abs(Number(activeSlot.scaleInDrop)) : 20;
           const scaleMult = (activeSlot && activeSlot.scaleInMultiplier !== null && activeSlot.scaleInMultiplier !== undefined && activeSlot.scaleInMultiplier !== '') ? Number(activeSlot.scaleInMultiplier) : 1.0;
-          const matchedHolding = (holdingsData || []).find(h => {
-            const hTk = formatTicker(h.Ticker || h.ticker || h.code || '');
-            const hNm = String(h.Name || h.name || '').trim();
-            const iNm = String(item.Name || item.name || '').trim();
-            return (hTk && hTk !== '-' && hTk === tk) || (hNm && iNm && hNm === iNm);
-          });
-          const hBuyPrice = matchedHolding ? Number(matchedHolding.BuyPrice || matchedHolding.buyPrice || 0) : 0;
-          const sigClose = Number(item.ClosePrice || item.close || item.price || 0);
-          if (hBuyPrice > 0 && sigClose > 0 && sigClose < hBuyPrice) {
-            const dropPct = (((sigClose - hBuyPrice) / hBuyPrice) * 100).toFixed(2);
-            reason = `[${activeSlot.name}] 물타기 기준 (-${scaleDrop}%) 도달 (매수가 대비 ${dropPct}% | 익일 시가 ${scaleMult}배 추가매수)`;
-          } else {
-            reason = `[${activeSlot.name}] 물타기 기준 (-${scaleDrop}%) 도달 (매수가 대비 -${scaleDrop}% 이상 하락 | 익일 시가 ${scaleMult}배 추가매수)`;
-          }
+          reason = `[${activeSlot.name}] 물타기 기준 (-${scaleDrop}%) 도달 (익일 시가 ${scaleMult}배 추가매수)`;
         } else if (!reason && !isScaleIn && isCustomStrategy) {
           const histRecord = (allHistory || []).find(h => {
             const hTk = formatTicker(h.Ticker || h.ticker || h.code);
             const hDt = formatShortDate(h.Date || h.date || h.Timestamp);
             return hTk === tk && hDt === dt;
-          }) || (allHistory || []).find(h => formatTicker(h.Ticker || h.ticker || h.code) === tk);
+          });
 
           const fullItem = histRecord ? { ...histRecord, ...item } : { ...item };
 
-          const prevAdx = fullItem.prev_ADX !== undefined ? fullItem.prev_ADX : (fullItem.Prev_ADX !== undefined ? fullItem.Prev_ADX : fullItem.prev_adx);
-          const prevMdi = fullItem.prev_Minus_DI !== undefined ? fullItem.prev_Minus_DI : (fullItem.Prev_Minus_DI !== undefined ? fullItem.Prev_Minus_DI : fullItem.prev_minus_di);
-          const prevPdi = fullItem.prev_Plus_DI !== undefined ? fullItem.prev_Plus_DI : (fullItem.Prev_Plus_DI !== undefined ? fullItem.Prev_Plus_DI : fullItem.prev_plus_di);
-          const prevRsi = fullItem.prev_RSI !== undefined ? fullItem.prev_RSI : (fullItem.Prev_RSI !== undefined ? fullItem.Prev_RSI : fullItem.prev_rsi);
-          const prevBB = fullItem.prev_BB_Pct !== undefined ? fullItem.prev_BB_Pct : (fullItem.Prev_BB_Pct !== undefined ? fullItem.Prev_BB_Pct : fullItem.prev_b_band_pct);
-          const prevVR = fullItem.prev_VolumeRatio !== undefined ? fullItem.prev_VolumeRatio : (fullItem.Prev_VolumeRatio !== undefined ? fullItem.Prev_VolumeRatio : fullItem.prev_volume_ratio);
-          const prevClose = fullItem.prev_ClosePrice !== undefined ? fullItem.prev_ClosePrice : (fullItem.Prev_ClosePrice !== undefined ? fullItem.Prev_ClosePrice : fullItem.prev_close);
+          const pickPrev = (...vals) => {
+            for (const v of vals) {
+              if (v !== undefined && v !== null && v !== '' && v !== '-') return v;
+            }
+            return undefined;
+          };
+
+          const prevAdx = pickPrev(item.Prev_ADX, item.prev_ADX, item.prev_adx, fullItem.Prev_ADX, fullItem.prev_ADX, fullItem.prev_adx);
+          const prevMdi = pickPrev(item.Prev_Minus_DI, item.prev_Minus_DI, item.prev_minus_di, fullItem.Prev_Minus_DI, fullItem.prev_Minus_DI, fullItem.prev_minus_di);
+          const prevPdi = pickPrev(item.Prev_Plus_DI, item.prev_Plus_DI, item.prev_plus_di, fullItem.Prev_Plus_DI, fullItem.prev_Plus_DI, fullItem.prev_plus_di);
+          const prevRsi = pickPrev(item.Prev_RSI, item.prev_RSI, item.prev_rsi, fullItem.Prev_RSI, fullItem.prev_RSI, fullItem.prev_rsi);
+          const prevBB = pickPrev(item.Prev_BB_Pct, item.prev_BB_Pct, item.prev_b_band_pct, fullItem.Prev_BB_Pct, fullItem.prev_BB_Pct, fullItem.prev_b_band_pct);
+          const prevVR = pickPrev(item.Prev_VolumeRatio, item.prev_VolumeRatio, item.prev_volume_ratio, fullItem.Prev_VolumeRatio, fullItem.prev_VolumeRatio, fullItem.prev_volume_ratio);
+          const prevClose = pickPrev(item.Prev_ClosePrice, item.prev_ClosePrice, item.prev_close, fullItem.Prev_ClosePrice, fullItem.prev_ClosePrice, fullItem.prev_close);
           const syntheticPrev = {
             ADX: prevAdx, adx: prevAdx,
             Minus_DI: prevMdi, minus_di: prevMdi,
