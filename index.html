@@ -2077,7 +2077,6 @@
 
       const currVal = getIndicatorValue(ind, row);
       if (isNaN(currVal)) {
-        if (extraCtx && extraCtx.isRecordedBuy) return true;
         return false;
       }
 
@@ -2099,10 +2098,8 @@
         case 'gte_indicator': return !isNaN(targetVal) && currVal >= targetVal;
         case 'lte_indicator': return !isNaN(targetVal) && currVal <= targetVal;
         case 'cross_above_indicator':
-          if (extraCtx && extraCtx.isRecordedBuy && !isNaN(targetVal) && currVal >= targetVal) return true;
           return !isNaN(targetVal) && !isNaN(prevVal) && !isNaN(prevTargetVal) && (prevVal < prevTargetVal && currVal >= targetVal);
         case 'cross_below_indicator':
-          if (extraCtx && extraCtx.isRecordedBuy && !isNaN(targetVal) && currVal <= targetVal) return true;
           return !isNaN(targetVal) && !isNaN(prevVal) && !isNaN(prevTargetVal) && (prevVal > prevTargetVal && currVal <= targetVal);
         default: return false;
       }
@@ -2400,8 +2397,25 @@
         const rawStage = String(item.Stage || item.stage || item.priority || '');
         const isScaleIn = rawStage.includes('물타기');
 
-        let reason = item.Reason || item.reason || item.Notes || item.notes || '';
-        if (!reason && !isScaleIn && isCustomStrategy) {
+        let reason = item.Reason || item.reason || item.Details || item.details || item.Notes || item.notes || '';
+        if (!reason && isScaleIn) {
+          const scaleDrop = (activeSlot && activeSlot.scaleInDrop !== null && activeSlot.scaleInDrop !== undefined && activeSlot.scaleInDrop !== '') ? Math.abs(Number(activeSlot.scaleInDrop)) : 20;
+          const scaleMult = (activeSlot && activeSlot.scaleInMultiplier !== null && activeSlot.scaleInMultiplier !== undefined && activeSlot.scaleInMultiplier !== '') ? Number(activeSlot.scaleInMultiplier) : 1.0;
+          const matchedHolding = (holdingsData || []).find(h => {
+            const hTk = formatTicker(h.Ticker || h.ticker || h.code || '');
+            const hNm = String(h.Name || h.name || '').trim();
+            const iNm = String(item.Name || item.name || '').trim();
+            return (hTk && hTk !== '-' && hTk === tk) || (hNm && iNm && hNm === iNm);
+          });
+          const hBuyPrice = matchedHolding ? Number(matchedHolding.BuyPrice || matchedHolding.buyPrice || 0) : 0;
+          const sigClose = Number(item.ClosePrice || item.close || item.price || 0);
+          if (hBuyPrice > 0 && sigClose > 0 && sigClose < hBuyPrice) {
+            const dropPct = (((sigClose - hBuyPrice) / hBuyPrice) * 100).toFixed(2);
+            reason = `[${activeSlot.name}] 물타기 기준 (-${scaleDrop}%) 도달 (매수가 대비 ${dropPct}% | 익일 시가 ${scaleMult}배 추가매수)`;
+          } else {
+            reason = `[${activeSlot.name}] 물타기 기준 (-${scaleDrop}%) 도달 (매수가 대비 -${scaleDrop}% 이상 하락 | 익일 시가 ${scaleMult}배 추가매수)`;
+          }
+        } else if (!reason && !isScaleIn && isCustomStrategy) {
           const histRecord = (allHistory || []).find(h => {
             const hTk = formatTicker(h.Ticker || h.ticker || h.code);
             const hDt = formatShortDate(h.Date || h.date || h.Timestamp);
@@ -2426,7 +2440,7 @@
             VolumeRatio: prevVR, volume_ratio: prevVR,
             ClosePrice: prevClose, close: prevClose
           };
-          const histBuyInfo = getMatchedBuyGroupsInfo(activeSlot, fullItem, syntheticPrev, { isRecordedBuy: true });
+          const histBuyInfo = getMatchedBuyGroupsInfo(activeSlot, fullItem, syntheticPrev);
           if (histBuyInfo) {
             reason = histBuyInfo.reason;
           } else {
@@ -3591,7 +3605,10 @@ MACD Osc 수치가 음수에서 양수로 막 돌아설 때 주가의 단기 상
         const vrNum = Number(rawVR);
         const vrColor = (!isNaN(vrNum) && vrNum >= 150) ? 'var(--accent-warning)' : 'inherit';
 
-        const reason = (item.Reason || item.reason || item.Notes || item.notes || '[과거 포착 신호] 이전 스크리너 실행 당시 전략 매수 조건을 충족하여 기록된 종목입니다.').replace(/'/g, "\\'");
+        const defaultReason = (stageText === '물타기' || stageText === '물타기매수')
+          ? `[${activeSlot.name}] 물타기 기준 (-${activeSlot.scaleInDrop || 20}%) 도달 (익일 시가 ${activeSlot.scaleInMultiplier || 1}배 추가매수)`
+          : '[과거 포착 신호] 이전 스크리너 실행 당시 전략 매수 조건을 충족하여 기록된 종목입니다.';
+        const reason = (item.Reason || item.reason || item.Details || item.details || item.Notes || item.notes || defaultReason).replace(/'/g, "\\'");
 
         const rankText = (stageText === '물타기' || stageText === '물타기매수') ? '물타기' : (item.computed_rank ? `${item.computed_rank}순위` : '-');
 

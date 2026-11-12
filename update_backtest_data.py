@@ -262,5 +262,5 @@ def recalculate_all_2026_indicators_300():
     return True
 
 if __name__ == "__main__":
-    recalculate_all_2026_indicators_300()
     sync_current_year_chunk()
+    recalculate_all_2026_indicators_300()

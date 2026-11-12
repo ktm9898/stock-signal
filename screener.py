@@ -77,53 +77,59 @@ def fetch_official_etf_constituents(etf_code, market_name):
         return items
     except Exception as e:
         print(f"[WARN] Failed fetching official ETF {etf_code} constituents: {e}")
-# Cache preloaded verified historical clean regular market data (2021~2026, ~330 candles)
+import threading
+
+# Cache preloaded verified historical clean regular market data (2021~2026, ~300 candles)
 _PRELOADED_HISTORY_CACHE = None
+_PRELOADED_CACHE_LOCK = threading.Lock()
 
 def get_preloaded_base_candles(ticker):
     """
     Load verified clean regular market historical daily candles from local dataset chunks.
-    Combines tail of 2021_2025 and 2026_current (approx. 330 clean daily candles).
+    Combines tail of 2021_2025 and 2026_current (approx. 300 clean daily candles).
     Returns list of dicts: [{'Date': 'YYYY-MM-DD', '시가': float, '고가': float, '저가': float, '종가': float, '거래량': float}, ...]
     """
     global _PRELOADED_HISTORY_CACHE
     if _PRELOADED_HISTORY_CACHE is None:
-        _PRELOADED_HISTORY_CACHE = {}
-        data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-        p2026 = os.path.join(data_dir, "history_2026_current.json")
-        p2025 = os.path.join(data_dir, "history_2021_2025.json")
+        with _PRELOADED_CACHE_LOCK:
+            if _PRELOADED_HISTORY_CACHE is None:
+                temp_cache = {}
+                data_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+                p2026 = os.path.join(data_dir, "history_2026_current.json")
+                p2025 = os.path.join(data_dir, "history_2021_2025.json")
 
-        c2026_data = {}
-        c2025_data = {}
-        if os.path.exists(p2026):
-            try:
-                with open(p2026, "r", encoding="utf-8") as f:
-                    c2026_data = json.load(f).get("preloaded_data", {})
-            except Exception as e:
-                print(f"[WARN] Failed loading 2026 dataset: {e}")
-        if os.path.exists(p2025):
-            try:
-                with open(p2025, "r", encoding="utf-8") as f:
-                    c2025_data = json.load(f).get("preloaded_data", {})
-            except Exception as e:
-                print(f"[WARN] Failed loading 2021-2025 dataset: {e}")
+                c2026_data = {}
+                c2025_data = {}
+                if os.path.exists(p2026):
+                    try:
+                        with open(p2026, "r", encoding="utf-8") as f:
+                            c2026_data = json.load(f).get("preloaded_data", {})
+                    except Exception as e:
+                        print(f"[WARN] Failed loading 2026 dataset: {e}")
+                if os.path.exists(p2025):
+                    try:
+                        with open(p2025, "r", encoding="utf-8") as f:
+                            c2025_data = json.load(f).get("preloaded_data", {})
+                    except Exception as e:
+                        print(f"[WARN] Failed loading 2021-2025 dataset: {e}")
 
-        all_syms = set(list(c2026_data.keys()) + list(c2025_data.keys()))
-        for sym in all_syms:
-            rows_2025 = c2025_data.get(sym, [])
-            rows_2026 = c2026_data.get(sym, [])
-            combined = (rows_2025 + rows_2026)[-300:]
-            _PRELOADED_HISTORY_CACHE[sym] = [
-                {
-                    "Date": str(r[0])[:10],
-                    "시가": float(r[1]),
-                    "고가": float(r[2]),
-                    "저가": float(r[3]),
-                    "종가": float(r[4]),
-                    "거래량": float(r[5])
-                }
-                for r in combined if len(r) >= 6
-            ]
+                all_syms = set(list(c2026_data.keys()) + list(c2025_data.keys()))
+                for sym in all_syms:
+                    rows_2025 = c2025_data.get(sym, [])
+                    rows_2026 = c2026_data.get(sym, [])
+                    combined = (rows_2025 + rows_2026)[-300:]
+                    temp_cache[sym] = [
+                        {
+                            "Date": str(r[0])[:10],
+                            "시가": float(r[1]),
+                            "고가": float(r[2]),
+                            "저가": float(r[3]),
+                            "종가": float(r[4]),
+                            "거래량": float(r[5])
+                        }
+                        for r in combined if len(r) >= 6
+                    ]
+                _PRELOADED_HISTORY_CACHE = temp_cache
 
     clean_sym = str(ticker).zfill(6)
     return [dict(r) for r in _PRELOADED_HISTORY_CACHE.get(clean_sym, [])]
@@ -243,6 +249,7 @@ def get_ohlcv_data(ticker, start_date, end_date):
                                 "종가": float(clean_today["종가"]),
                                 "거래량": float(clean_today["거래량"])
                             })
+                            base_rows = base_rows[-300:]
                         elif today_str == last_date:
                             # Overwrite today's candle with pure 15:30 regular market OHLCV
                             base_rows[-1]["시가"] = float(clean_today["시가"])
@@ -250,6 +257,7 @@ def get_ohlcv_data(ticker, start_date, end_date):
                             base_rows[-1]["저가"] = float(clean_today["저가"])
                             base_rows[-1]["종가"] = float(clean_today["종가"])
                             base_rows[-1]["거래량"] = float(clean_today["거래량"])
+                            base_rows = base_rows[-300:]
                 except Exception:
                     pass
 
@@ -989,6 +997,9 @@ if __name__ == "__main__":
 
     # 2. Screen Buy Signals across all KOSPI 200 & KOSDAQ 150 (Parallel Execution)
     print("[2/4] Calculating indicators and screening buy signals (Parallel Execution)...")
+    
+    # Pre-warm historical base candles cache on main thread before spawning worker threads
+    get_preloaded_base_candles("069500")
     
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
