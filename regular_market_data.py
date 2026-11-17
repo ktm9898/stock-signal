@@ -71,7 +71,9 @@ def fetch_krx_daily_snapshot(date_str):
 def fetch_naver_minute_regular_ohlcv(ticker, target_dates=None, candle_count=3000):
     """
     2nd Priority Fallback: Fetch Naver FChart minute candles (timeframe=minute)
-    and aggregate strictly between 09:00:00 and 15:30:00.
+    and aggregate strictly between 09:00:00 and 15:35:00.
+    Includes regular market closing auction batch matching (delayed up to 15:35)
+    while strictly excluding after-market trading (15:40~ / 16:00~).
     
     Returns dict of {YYYY-MM-DD: {'시가': float, '고가': float, '저가': float, '종가': float, '거래량': float}}
     """
@@ -113,8 +115,10 @@ def fetch_naver_minute_regular_ohlcv(ticker, target_dates=None, candle_count=300
                 d_str = dt_str[:8] # YYYYMMDD
                 t_str = dt_str[8:12] # HHMM
                 
-                # Strict Regular Market Filter: 09:00 <= HHMM <= 15:30
-                if "0900" <= t_str <= "1530":
+                # Strict Regular Market Filter: 09:00 <= HHMM <= 15:35
+                # Includes 15:30 closing auction batch execution candles (recorded up to ~15:35)
+                # No regular trades occur between 15:30 and 15:40 (order acceptance only for after-market close).
+                if "0900" <= t_str <= "1535":
                     price_str = parts[4]
                     vol_str = parts[5]
                     if price_str and price_str != "null":
@@ -133,13 +137,13 @@ def fetch_naver_minute_regular_ohlcv(ticker, target_dates=None, candle_count=300
         prices = [r[1] for r in records]
         # Open: price of first trade at or after 09:00
         r_open = prices[0]
-        # High: max price during 09:00 ~ 15:30
+        # High: max price during 09:00 ~ 15:35
         r_high = max(prices)
-        # Low: min price during 09:00 ~ 15:30
+        # Low: min price during 09:00 ~ 15:35
         r_low = min(prices)
-        # Close: last trade at or before 15:30 (Zero-tick safe)
+        # Close: last trade at or before 15:35 (captures 15:30 closing auction accurately)
         r_close = prices[-1]
-        # Volume: cumulative volume at the last regular market candle (15:30)
+        # Volume: cumulative volume at the last regular market candle (15:35)
         r_vol = records[-1][2]
 
         results[fmt_date] = {
