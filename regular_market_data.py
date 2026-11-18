@@ -115,10 +115,13 @@ def fetch_naver_minute_regular_ohlcv(ticker, target_dates=None, candle_count=300
                 d_str = dt_str[:8] # YYYYMMDD
                 t_str = dt_str[8:12] # HHMM
                 
-                # Strict Regular Market Filter: 09:00 <= HHMM <= 15:35
-                # Includes 15:30 closing auction batch execution candles (recorded up to ~15:35)
-                # No regular trades occur between 15:30 and 15:40 (order acceptance only for after-market close).
-                if "0900" <= t_str <= "1535":
+                # Dynamic Regular Market Filter:
+                # Normal days: 09:00 <= HHMM <= 15:35 (includes 15:30 closing auction up to 15:35)
+                # CSAT Exam Day (2026-11-19): 10:00 <= HHMM <= 16:35 (includes 16:30 closing auction up to 16:35)
+                is_csat = (d_str == "20261119")
+                start_h = "1000" if is_csat else "0900"
+                end_h = "1635" if is_csat else "1535"
+                if start_h <= t_str <= end_h:
                     price_str = parts[4]
                     vol_str = parts[5]
                     if price_str and price_str != "null":
@@ -135,15 +138,15 @@ def fetch_naver_minute_regular_ohlcv(ticker, target_dates=None, candle_count=300
             continue
 
         prices = [r[1] for r in records]
-        # Open: price of first trade at or after 09:00
+        # Open: price of first trade at or after market open (09:00 or CSAT 10:00)
         r_open = prices[0]
-        # High: max price during 09:00 ~ 15:35
+        # High: max price during regular market hours
         r_high = max(prices)
-        # Low: min price during 09:00 ~ 15:35
+        # Low: min price during regular market hours
         r_low = min(prices)
-        # Close: last trade at or before 15:35 (captures 15:30 closing auction accurately)
+        # Close: last trade at or before market close (captures 15:30 or CSAT 16:30 closing auction accurately)
         r_close = prices[-1]
-        # Volume: cumulative volume at the last regular market candle (15:35)
+        # Volume: cumulative volume at the last regular market candle
         r_vol = records[-1][2]
 
         results[fmt_date] = {

@@ -234,8 +234,9 @@ def get_ohlcv_data(ticker, start_date, end_date):
             kst_now = utc_now.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
             today_str = kst_now.strftime("%Y-%m-%d")
 
-            # Check if today is a weekday and market has started (>= 09:00 KST)
-            if kst_now.weekday() < 5 and kst_now >= kst_now.replace(hour=9, minute=0, second=0, microsecond=0):
+            # Check if today is a weekday and market has started (>= 09:00 KST, or >= 10:00 on CSAT Day)
+            start_hour = 10 if today_str == "2026-11-19" else 9
+            if kst_now.weekday() < 5 and kst_now >= kst_now.replace(hour=start_hour, minute=0, second=0, microsecond=0):
                 try:
                     from regular_market_data import get_clean_regular_ohlcv
                     clean_today = get_clean_regular_ohlcv(clean_t, today_str)
@@ -860,8 +861,9 @@ def check_and_trim_incomplete_candle(df):
     kst_now = utc_now.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
 
     is_weekday = (kst_now.weekday() < 5)
-    market_start = kst_now.replace(hour=9, minute=0, second=0, microsecond=0)
-    market_end = kst_now.replace(hour=15, minute=30, second=0, microsecond=0)
+    is_csat = (kst_now.strftime("%Y-%m-%d") == "2026-11-19")
+    market_start = kst_now.replace(hour=10 if is_csat else 9, minute=0, second=0, microsecond=0)
+    market_end = kst_now.replace(hour=16 if is_csat else 15, minute=30, second=0, microsecond=0)
     is_market_hours = (market_start <= kst_now <= market_end)
 
     if is_weekday and is_market_hours:
@@ -908,6 +910,18 @@ def post_to_google_sheets(url, action, data):
 if __name__ == "__main__":
     print("[INFO] KOSPI 200 & KOSDAQ 150 Stock Signal Screener Engine Starting...")
     
+    utc_now = datetime.datetime.now(datetime.timezone.utc)
+    kst_now = utc_now.astimezone(datetime.timezone(datetime.timedelta(hours=9)))
+    today_str = kst_now.strftime("%Y-%m-%d")
+
+    # CSAT Exam Day (2026-11-19) Guard: Market closes at 16:30 KST.
+    # If triggered before 16:35 KST (e.g. by routine 16:00 triggers), skip early run.
+    if today_str == "2026-11-19" and kst_now < kst_now.replace(hour=16, minute=35, second=0, microsecond=0):
+        print(f"[INFO] Today ({today_str}) is CSAT Exam Day. Regular market closes at 16:30 KST.")
+        print(f"[INFO] Current time is {kst_now.strftime('%H:%M:%S')} KST (before market close at 16:35 KST).")
+        print("[INFO] Skipping pre-close run. The official screener run is scheduled for 17:00 KST.")
+        sys.exit(0)
+
     gas_url = os.environ.get("GAS_WEBAPP_URL", "")
     auth_pin = os.environ.get("AUTH_PIN", "").strip()
 

@@ -807,6 +807,20 @@ function normalizeTicker(t) {
  * to run KOSPI 200 Screener on GitHub Actions.
  */
 function triggerGitHubScreener() {
+  const now = new Date();
+  const kstTime = new Date(now.getTime() + (9 * 60 + now.getTimezoneOffset()) * 60000);
+  const yyyy = kstTime.getFullYear();
+  const mm = String(kstTime.getMonth() + 1).padStart(2, '0');
+  const dd = String(kstTime.getDate()).padStart(2, '0');
+  const curDate = `${yyyy}-${mm}-${dd}`;
+  const curHour = kstTime.getHours();
+
+  // 2026-11-19 수능일: 정규장이 16:30에 종료되므로 16시 트리거는 건너뛰고 17시에 GitHub Actions 스케줄로 실행
+  if (curDate === "2026-11-19" && curHour < 17) {
+    Logger.log("Today is CSAT Exam Day (2026-11-19). Market closes at 16:30 KST. Skipping pre-close trigger.");
+    return;
+  }
+
   const githubToken = PropertiesService.getScriptProperties().getProperty("GITHUB_TOKEN");
   const url = "https://api.github.com/repos/ktm9898/stock-signal/actions/workflows/screener.yml/dispatches";
   const options = {

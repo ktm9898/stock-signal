@@ -3,8 +3,9 @@ name: Update 5-Year Backtest Dataset
 on:
   workflow_dispatch:
   schedule:
-    # Every weekday (Mon-Fri) at 16:30 KST (07:30 UTC)
-    - cron: '30 7 * * 1-5'
+    # Every weekday (Mon-Fri) at 17:15 KST (08:15 UTC)
+    # Allows full completion and settlement of regular market (including CSAT day 16:30 close)
+    - cron: '15 8 * * 1-5'
 
 permissions:
   contents: write

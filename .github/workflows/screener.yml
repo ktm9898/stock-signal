@@ -2,6 +2,9 @@ name: KOSPI 200 Stock Signal Screener
 
 on:
   workflow_dispatch:
+  schedule:
+    # 2026-11-19 수능일: 정규장 마감(16:30) 후 17:00 KST (08:00 UTC) 자동 실행
+    - cron: '0 8 19 11 *'
 
 jobs:
   screen:
